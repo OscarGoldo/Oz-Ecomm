@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
 
-export const productSchema = z.object({
+const productSchema = z.object({
   name: z.string().trim().min(2, "El nombre es muy corto"),
   slug: z.string().trim().optional(),
   description: z.string().trim().max(4000).optional().nullable(),
@@ -126,7 +126,7 @@ export async function updateProduct(
       if (error.code === "23505") {
         return { ok: false, error: "Ya existe un producto con ese enlace (slug)" };
       }
-      return { ok: false, error: `DB: ${error.message}` };
+      return { ok: false, error: "No se pudo guardar el producto" };
     }
 
     revalidatePath("/panel/productos");
@@ -134,10 +134,7 @@ export async function updateProduct(
     return { ok: true, productId: id };
   } catch (e) {
     console.error("updateProduct failed:", e);
-    return {
-      ok: false,
-      error: e instanceof Error ? `ERR: ${e.message}` : "Error inesperado",
-    };
+    return { ok: false, error: "No se pudo guardar el producto" };
   }
 }
 
