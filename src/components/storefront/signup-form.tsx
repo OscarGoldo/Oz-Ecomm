@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
-import { CheckCircle2, ExternalLink, Loader2, Mail, Rocket } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, Rocket } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ interface FormValues {
   store_name: string;
   owner_name: string;
   owner_email: string;
+  password: string;
   whatsapp: string;
   primary_color: string;
 }
@@ -24,7 +25,6 @@ interface Success {
   slug: string;
   email: string;
   storeName: string;
-  emailSent: boolean;
 }
 
 export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
@@ -42,6 +42,7 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
       store_name: "",
       owner_name: "",
       owner_email: prefillEmail,
+      password: "",
       whatsapp: "",
       primary_color: "#2563EB",
     },
@@ -57,6 +58,7 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
       store_name: values.store_name,
       owner_name: values.owner_name,
       owner_email: values.owner_email,
+      password: values.password,
       whatsapp: values.whatsapp || undefined,
       primary_color: values.primary_color || undefined,
     });
@@ -69,7 +71,6 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
       slug: res.slug,
       email: values.owner_email,
       storeName: values.store_name,
-      emailSent: Boolean(res.emailSent),
     });
   }
 
@@ -92,23 +93,18 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
           /{done.slug} <ExternalLink className="size-3.5" />
         </Link>
 
-        {done.emailSent && (
-          <div className="mt-5 flex items-start gap-2 rounded-lg bg-muted/60 p-3 text-left text-sm">
-            <Mail className="mt-0.5 size-4 shrink-0 text-primary" />
-            <p className="text-muted-foreground">
-              Te enviamos un enlace de acceso a{" "}
-              <span className="font-medium text-foreground">{done.email}</span>.
-              Abrilo para entrar a tu panel y cargar tus productos.
-            </p>
-          </div>
-        )}
+        <div className="mt-5 rounded-lg bg-muted/60 p-3 text-left text-sm text-muted-foreground">
+          Entrá a tu panel con tu email{" "}
+          <span className="font-medium text-foreground">{done.email}</span> y la
+          contraseña que elegiste.
+        </div>
 
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">
           <Button asChild className="flex-1">
-            <Link href={`/${done.slug}`}>Ver mi tienda</Link>
+            <Link href="/login">Ir a mi panel</Link>
           </Button>
           <Button asChild variant="outline" className="flex-1">
-            <Link href="/login">Ir a mi panel</Link>
+            <Link href={`/${done.slug}`}>Ver mi tienda</Link>
           </Button>
         </div>
       </div>
@@ -154,15 +150,30 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
           id="owner_email"
           type="email"
           inputMode="email"
+          autoComplete="email"
           {...register("owner_email", { required: "Ingresá tu email" })}
           placeholder="tu@correo.com"
         />
         {errors.owner_email && (
           <p className="text-xs text-destructive">{errors.owner_email.message}</p>
         )}
-        <p className="text-xs text-muted-foreground">
-          Con este email entrás a tu panel (sin contraseña, te llega un enlace).
-        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="password">Contraseña *</Label>
+        <Input
+          id="password"
+          type="password"
+          autoComplete="new-password"
+          {...register("password", {
+            required: "Poné una contraseña",
+            minLength: { value: 8, message: "Mínimo 8 caracteres" },
+          })}
+          placeholder="Mínimo 8 caracteres"
+        />
+        {errors.password && (
+          <p className="text-xs text-destructive">{errors.password.message}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">

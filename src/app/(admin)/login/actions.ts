@@ -1,11 +1,13 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 
 const schema = z.object({
-  email: z.string().email("Ingresá un correo válido"),
+  email: z.string().trim().email("Ingresá un correo válido"),
+  password: z.string().min(1, "Ingresá tu contraseña"),
 });
 
 export interface LoginState {
@@ -13,43 +15,41 @@ export interface LoginState {
   message: string;
 }
 
-/**
- * Sends a magic link to a pre-provisioned store owner. `shouldCreateUser` is
- * false so only existing accounts (created via seed / super-admin) can sign in.
- */
-export async function sendMagicLink(
+/** Email + password sign-in. Redirects to the right panel on success. */
+export async function signIn(
   _prev: LoginState | null,
   formData: FormData,
 ): Promise<LoginState> {
-  const parsed = schema.safeParse({ email: formData.get("email") });
-  if (!parsed.success) {
-    return {
-      ok: false,
-      message: parsed.error.issues[0]?.message ?? "Correo inválido",
-    };
-  }
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const supabase = createClient();
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email: parsed.data.email,
-    options: {
-      shouldCreateUser: false,
-      emailRedirectTo: `${appUrl}/auth/callback?next=/panel`,
-    },
+  const parsed = schema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
   });
-
-  if (error) {
-    return {
-      ok: false,
-      message:
-        "No pudimos enviar el enlace. Verificá que el correo esté registrado.",
-    };
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
 
-  return {
-    ok: true,
-    message: "Te enviamos un enlace de acceso. Revisá tu correo.",
-  };
+  const supabase = createClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+  });
+  if (error) {
+    return { ok: false, message: "Correo o contraseña incorrectos." };
+  }
+
+  // Role-based destination.
+  let dest = "/panel";
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profile?.role === "super_admin") dest = "/super";
+  }
+
+  redirect(dest);
 }

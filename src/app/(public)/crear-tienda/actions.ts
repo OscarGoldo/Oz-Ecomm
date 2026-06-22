@@ -3,20 +3,19 @@
 import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { isReservedSlug, slugify } from "@/lib/slug";
 
 export interface SignupResult {
   ok: boolean;
   error?: string;
   slug?: string;
-  emailSent?: boolean;
 }
 
 const schema = z.object({
   store_name: z.string().trim().min(2, "El nombre de la tienda es muy corto"),
   owner_name: z.string().trim().min(2, "Ingresá tu nombre"),
   owner_email: z.string().trim().email("Email inválido"),
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
   primary_color: z
     .string()
     .trim()
@@ -85,9 +84,10 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
     return { ok: false, error: "No se pudo crear la tienda. Intentá de nuevo." };
   }
 
-  // Create the owner auth user.
+  // Create the owner auth user with their password.
   const created = await db.auth.admin.createUser({
     email: d.owner_email,
+    password: d.password,
     email_confirm: true,
   });
   const userId = created.data.user?.id;
@@ -121,16 +121,5 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
     display_order: 0,
   });
 
-  // Send the magic link so they can enter their panel right away.
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const supabase = createClient();
-  const { error: otpErr } = await supabase.auth.signInWithOtp({
-    email: d.owner_email,
-    options: {
-      shouldCreateUser: false,
-      emailRedirectTo: `${appUrl}/auth/callback?next=/panel`,
-    },
-  });
-
-  return { ok: true, slug, emailSent: !otpErr };
+  return { ok: true, slug };
 }

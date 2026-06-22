@@ -37,3 +37,5 @@ next-env.d.ts
 
 # old single-tenant prototype (kept locally as reference, not part of the app)
 /Alfa Electronic/
+
+.vercel
