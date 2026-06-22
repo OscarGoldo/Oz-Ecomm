@@ -102,38 +102,43 @@ export async function updateProduct(
   id: string,
   input: ProductInput,
 ): Promise<ActionResult> {
-  const parsed = productSchema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
-  }
-
-  let storeId: string;
   try {
-    storeId = await requireStoreId();
-  } catch {
-    return { ok: false, error: "No autorizado" };
-  }
-
-  const supabase = createClient();
-  const base = normalize(parsed.data, storeId);
-  const slug = slugify(parsed.data.slug || parsed.data.name) || "producto";
-
-  const { error } = await supabase
-    .from("products")
-    .update({ ...base, slug })
-    .eq("id", id)
-    .eq("store_id", storeId);
-
-  if (error) {
-    if (error.code === "23505") {
-      return { ok: false, error: "Ya existe un producto con ese enlace (slug)" };
+    const parsed = productSchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
     }
-    return { ok: false, error: "No se pudo guardar el producto" };
-  }
 
-  revalidatePath("/panel/productos");
-  revalidatePath(`/panel/productos/${id}`);
-  return { ok: true, productId: id };
+    const ctx = await getSessionContext();
+    if (!ctx?.store) return { ok: false, error: "No autorizado" };
+    const storeId = ctx.store.id;
+
+    const supabase = createClient();
+    const base = normalize(parsed.data, storeId);
+    const slug = slugify(parsed.data.slug || parsed.data.name) || "producto";
+
+    const { error } = await supabase
+      .from("products")
+      .update({ ...base, slug })
+      .eq("id", id)
+      .eq("store_id", storeId);
+
+    if (error) {
+      if (error.code === "23505") {
+        return { ok: false, error: "Ya existe un producto con ese enlace (slug)" };
+      }
+      return { ok: false, error: `DB: ${error.message}` };
+    }
+
+    revalidatePath("/panel/productos");
+    revalidatePath(`/panel/productos/${id}`);
+    return { ok: true, productId: id };
+  } catch (e) {
+    console.error("updateProduct failed:", e);
+    return {
+      ok: false,
+      error: e instanceof Error ? `ERR: ${e.message}` : "Error inesperado",
+    };
+  }
 }
 
 export async function deleteProduct(id: string): Promise<ActionResult> {
