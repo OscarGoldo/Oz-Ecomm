@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { signUpStore } from "@/app/(public)/crear-tienda/actions";
 import { slugify } from "@/lib/slug";
 
@@ -176,13 +177,17 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label>WhatsApp</Label>
+        <PhoneInput onChange={(v) => setValue("whatsapp", v)} placeholder="424 1234567" />
+        <p className="text-xs text-muted-foreground">
+          Elegí el prefijo de tu país. Por acá te escriben tus clientes.
+        </p>
+      </div>
+
+      <div>
         <div className="space-y-2">
-          <Label htmlFor="whatsapp">WhatsApp</Label>
-          <Input id="whatsapp" {...register("whatsapp")} placeholder="0424…" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="color">Color</Label>
+          <Label htmlFor="color">Color de tu tienda</Label>
           <div className="flex items-center gap-2">
             <input
               type="color"

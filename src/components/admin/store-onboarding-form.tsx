@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createStore } from "@/app/(superadmin)/super/actions";
 import { slugify } from "@/lib/slug";
@@ -109,8 +110,8 @@ export function StoreOnboardingForm() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="whatsapp">WhatsApp (opcional)</Label>
-            <Input id="whatsapp" {...register("whatsapp")} placeholder="584241234567" />
+            <Label>WhatsApp (opcional)</Label>
+            <PhoneInput onChange={(v) => setValue("whatsapp", v)} placeholder="424 1234567" />
           </div>
         </CardContent>
       </Card>
