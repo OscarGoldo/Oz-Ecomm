@@ -1,4 +1,4 @@
-# Oz Ecom
+# OzShop
 
 Plataforma de ecommerce **multi-tenant** para PYMEs de Venezuela. Mismo código,
 datos separados por `tenant_id` (store), cada tienda con su panel, catálogo y

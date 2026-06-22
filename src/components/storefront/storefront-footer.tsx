@@ -26,7 +26,7 @@ export function StorefrontFooter({ store }: { store: Store }) {
         </div>
         <p className="pt-3 text-xs text-muted-foreground">
           Tienda creada con{" "}
-          <span className="font-medium text-foreground">Oz Ecom</span>
+          <span className="font-medium text-foreground">OzShop</span>
         </p>
       </div>
     </footer>

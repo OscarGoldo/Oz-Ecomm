@@ -36,6 +36,7 @@ const storeSchema = z.object({
   address: optStr,
   show_bs_prices: z.boolean().default(true),
   exchange_rate: z.coerce.number().positive("Tasa inválida").nullable().optional(),
+  auto_exchange_rate: z.boolean().default(false),
 });
 
 export type StoreSettingsInput = z.input<typeof storeSchema>;
@@ -72,6 +73,7 @@ export async function updateStoreSettings(
       address: d.address?.trim() ? d.address.trim() : null,
       show_bs_prices: d.show_bs_prices,
       exchange_rate: d.exchange_rate ?? null,
+      auto_exchange_rate: d.auto_exchange_rate,
       exchange_rate_updated_at:
         d.exchange_rate != null ? new Date().toISOString() : null,
     })

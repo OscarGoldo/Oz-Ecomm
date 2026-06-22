@@ -27,8 +27,8 @@ const lora = Lora({
 
 export const metadata: Metadata = {
   title: {
-    default: "Oz Ecom",
-    template: "%s · Oz Ecom",
+    default: "OzShop",
+    template: "%s · OzShop",
   },
   description:
     "Plataforma de ecommerce para PYMEs de Venezuela. Tu tienda online con pagos locales y doble moneda.",

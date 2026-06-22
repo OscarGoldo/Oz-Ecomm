@@ -20,7 +20,7 @@ export async function sendEmail({
 }: SendEmailParams): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return false;
-  const from = process.env.EMAIL_FROM ?? "Oz Ecom <onboarding@resend.dev>";
+  const from = process.env.EMAIL_FROM ?? "OzShop <onboarding@resend.dev>";
 
   try {
     const res = await fetch(RESEND_ENDPOINT, {
@@ -64,7 +64,7 @@ export function newOrderEmail(p: NewOrderEmailParams): {
       <p style="margin:0;color:#334155">${p.itemsCount} ${p.itemsCount === 1 ? "artículo" : "artículos"} · Total: <strong>${p.totalLabel}</strong></p>
     </div>
     <a href="${p.orderUrl}" style="display:inline-block;background:#2563EB;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">Ver pedido en el panel</a>
-    <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Oz Ecom</p>
+    <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">OzShop</p>
   </div>`;
   return { subject, html };
 }

@@ -62,7 +62,7 @@ export default function LandingPage() {
             <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
               <Store className="size-5" />
             </span>
-            Oz Ecom
+            OzShop
           </div>
           <div className="flex items-center gap-1 sm:gap-3">
             <Button asChild variant="ghost" size="sm">
@@ -191,7 +191,7 @@ export default function LandingPage() {
             <span className="grid size-6 place-items-center rounded bg-primary text-primary-foreground">
               <Store className="size-3.5" />
             </span>
-            Oz Ecom
+            OzShop
           </div>
           <span>© {new Date().getFullYear()} · Hecho en Venezuela 🇻🇪</span>
           <div className="flex gap-4">

@@ -5,7 +5,7 @@ import { ArrowLeft, Store } from "lucide-react";
 import { SignupForm } from "@/components/storefront/signup-form";
 
 export const metadata: Metadata = {
-  title: { absolute: "Creá tu tienda · Oz Ecom" },
+  title: { absolute: "Creá tu tienda · OzShop" },
   description: "Creá tu tienda online gratis en minutos.",
 };
 
@@ -21,7 +21,7 @@ export default function CrearTiendaPage({
           <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Store className="size-5" />
           </span>
-          Oz Ecom
+          OzShop
         </Link>
         <Link
           href="/login"

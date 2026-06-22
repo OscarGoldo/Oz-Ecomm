@@ -38,7 +38,7 @@ export default async function LoginPage({
           <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Store className="size-5" />
           </span>
-          Oz Ecom
+          OzShop
         </Link>
 
         <Card>

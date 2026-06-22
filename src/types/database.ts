@@ -66,6 +66,7 @@ export interface Database {
           free_delivery_min: number | null;
           subscription_status: SubscriptionStatus;
           active: boolean;
+          auto_exchange_rate: boolean;
           customization: Json | null;
           created_at: string;
           updated_at: string;
@@ -95,6 +96,7 @@ export interface Database {
           free_delivery_min?: number | null;
           subscription_status?: SubscriptionStatus;
           active?: boolean;
+          auto_exchange_rate?: boolean;
           customization?: Json | null;
           created_at?: string;
           updated_at?: string;
@@ -280,6 +282,24 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["orders"]["Insert"]>;
+        Relationships: [];
+      };
+      bcv_rates: {
+        Row: {
+          id: string;
+          usd: number | null;
+          eur: number | null;
+          source_date: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          usd?: number | null;
+          eur?: number | null;
+          source_date?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["bcv_rates"]["Insert"]>;
         Relationships: [];
       };
       coupons: {

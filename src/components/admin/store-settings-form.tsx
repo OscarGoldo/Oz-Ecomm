@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,9 +32,22 @@ interface FormValues {
   address: string;
   show_bs_prices: boolean;
   exchange_rate: string;
+  auto_exchange_rate: boolean;
 }
 
-export function StoreSettingsForm({ store }: { store: Store }) {
+export interface BcvDisplay {
+  usd: number | null;
+  eur: number | null;
+  updated_at: string | null;
+}
+
+export function StoreSettingsForm({
+  store,
+  bcvRates,
+}: {
+  store: Store;
+  bcvRates: BcvDisplay | null;
+}) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [logo, setLogo] = useState<string | null>(store.logo_url);
@@ -56,11 +71,13 @@ export function StoreSettingsForm({ store }: { store: Store }) {
       address: store.address ?? "",
       show_bs_prices: store.show_bs_prices,
       exchange_rate: store.exchange_rate != null ? String(store.exchange_rate) : "",
+      auto_exchange_rate: store.auto_exchange_rate ?? false,
     },
   });
 
   const color = watch("primary_color");
   const showBs = watch("show_bs_prices");
+  const autoRate = watch("auto_exchange_rate");
 
   async function onSubmit(values: FormValues) {
     setSubmitting(true);
@@ -77,6 +94,7 @@ export function StoreSettingsForm({ store }: { store: Store }) {
       address: values.address || null,
       show_bs_prices: values.show_bs_prices,
       exchange_rate: values.exchange_rate === "" ? null : values.exchange_rate,
+      auto_exchange_rate: values.auto_exchange_rate,
     };
     const res = await updateStoreSettings(input);
     setSubmitting(false);
@@ -241,8 +259,61 @@ export function StoreSettingsForm({ store }: { store: Store }) {
               placeholder="Ej. 95.00"
             />
             <p className="text-xs text-muted-foreground">
-              Actualizala vos cuando cambie. Se usa para calcular los Bs.
+              Se usa para calcular los Bs en tu tienda.
             </p>
+          </div>
+
+          {/* BCV rates */}
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-medium">Tasa oficial BCV</p>
+              {bcvRates?.updated_at && (
+                <span className="text-xs text-muted-foreground">
+                  {format(new Date(bcvRates.updated_at), "d MMM, HH:mm", { locale: es })}
+                </span>
+              )}
+            </div>
+            {bcvRates && (bcvRates.usd || bcvRates.eur) ? (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={!bcvRates.usd}
+                  onClick={() => bcvRates.usd && setValue("exchange_rate", String(bcvRates.usd))}
+                  className="rounded-lg border bg-background p-2.5 text-left transition-colors hover:border-primary disabled:opacity-50"
+                >
+                  <p className="text-xs text-muted-foreground">Dólar 🇺🇸</p>
+                  <p className="font-semibold">{bcvRates.usd ? `Bs ${Number(bcvRates.usd).toFixed(2)}` : "—"}</p>
+                  <p className="text-[11px] font-medium text-primary">Usar esta tasa</p>
+                </button>
+                <button
+                  type="button"
+                  disabled={!bcvRates.eur}
+                  onClick={() => bcvRates.eur && setValue("exchange_rate", String(bcvRates.eur))}
+                  className="rounded-lg border bg-background p-2.5 text-left transition-colors hover:border-primary disabled:opacity-50"
+                >
+                  <p className="text-xs text-muted-foreground">Euro 🇪🇺</p>
+                  <p className="font-semibold">{bcvRates.eur ? `Bs ${Number(bcvRates.eur).toFixed(2)}` : "—"}</p>
+                  <p className="text-[11px] font-medium text-primary">Usar esta tasa</p>
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Todavía no hay datos del BCV (se actualizan cada mañana).
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="pr-3">
+              <p className="text-sm font-medium">Actualizar con el BCV automáticamente</p>
+              <p className="text-xs text-muted-foreground">
+                Cada día a las 8:00 am tu tasa se pone igual a la del BCV.
+              </p>
+            </div>
+            <Switch
+              checked={autoRate}
+              onCheckedChange={(v) => setValue("auto_exchange_rate", v)}
+            />
           </div>
         </CardContent>
       </Card>
