@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Package,
+  Palette,
   ShoppingBag,
   Tags,
   Ticket,
@@ -27,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/panel/pedidos", label: "Pedidos", icon: ShoppingBag },
   { href: "/panel/productos", label: "Productos", icon: Package },
   { href: "/panel/categorias", label: "Categorías", icon: Tags },
+  { href: "/panel/personalizar", label: "Diseño", icon: Palette },
   { href: "/panel/descuentos", label: "Descuentos", icon: Ticket },
   { href: "/panel/clientes", label: "Clientes", icon: Users },
   { href: "/panel/finanzas", label: "Finanzas", icon: Wallet },

@@ -18,6 +18,7 @@ import {
 } from "@/lib/storefront";
 import { getImageUrl } from "@/lib/storage";
 import { formatBs } from "@/lib/format";
+import { resolveTheme, type SectionId } from "@/lib/theme";
 
 export async function generateMetadata({
   params,
@@ -42,6 +43,7 @@ export default async function StorefrontHome({
   const store = await getStoreBySlug(params.store_slug);
   if (!store) notFound();
 
+  const theme = resolveTheme(store);
   const q = searchParams.q?.trim() || undefined;
   const catSlug = searchParams.cat || undefined;
   const hasFilters = Boolean(q || catSlug);
@@ -63,6 +65,11 @@ export default async function StorefrontHome({
     ? `Resultados para “${q}”`
     : activeCategory ?? "Todos los productos";
 
+  const heroHeadline =
+    theme.hero.headline || store.description || `Bienvenido a ${store.name}`;
+  const heroSubtext = theme.hero.subtext;
+  const heroCta = theme.hero.ctaText || "Ver productos";
+
   const benefits = [
     store.offers_delivery
       ? { icon: Truck, title: "Delivery", text: store.delivery_note || "Llevamos tu pedido" }
@@ -74,6 +81,73 @@ export default async function StorefrontHome({
     { icon: ShieldCheck, title: "Compra segura", text: "Confirmás tu pago y recibís" },
   ].filter(Boolean) as { icon: typeof Truck; title: string; text: string }[];
 
+  // Ordered content sections (catalog is always present).
+  const order: SectionId[] = hasFilters
+    ? ["catalog"]
+    : theme.sections.includes("catalog")
+      ? theme.sections
+      : [...theme.sections, "catalog"];
+
+  const FeaturedSection =
+    featured.length > 0 ? (
+      <section key="featured" className="container pt-6">
+        <h2 className="mb-3 text-lg font-bold tracking-tight">Destacados</h2>
+        <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {featured.map((p) => (
+            <div key={p.id} className="w-40 shrink-0 sm:w-48">
+              <ProductCard product={p} store={store} cardStyle={theme.cardStyle} />
+            </div>
+          ))}
+        </div>
+      </section>
+    ) : null;
+
+  const AboutSection =
+    !hasFilters && theme.about.text ? (
+      <section key="about" className="container pt-8">
+        <div className="rounded-2xl border bg-card p-6">
+          <h2 className="mb-2 text-lg font-bold tracking-tight">
+            {theme.about.title}
+          </h2>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+            {theme.about.text}
+          </p>
+        </div>
+      </section>
+    ) : null;
+
+  const CatalogSection = (
+    <section key="catalog" id="catalogo" className="container scroll-mt-20 space-y-4 pt-6">
+      <CategoryChips categories={categories} />
+      <h2 className="text-lg font-bold tracking-tight">{heading}</h2>
+      {products.length === 0 ? (
+        <div className="grid place-items-center rounded-xl border border-dashed bg-card p-12 text-center">
+          <PackageSearch className="mb-3 size-8 text-muted-foreground" />
+          <p className="font-medium">
+            {hasFilters ? "Sin resultados" : "Catálogo en preparación"}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {hasFilters
+              ? "Probá con otra búsqueda o categoría."
+              : "Pronto vas a ver los productos acá."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {products.map((p) => (
+            <ProductCard key={p.id} product={p} store={store} cardStyle={theme.cardStyle} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
+  function renderSection(id: SectionId) {
+    if (id === "featured") return FeaturedSection;
+    if (id === "about") return AboutSection;
+    return CatalogSection;
+  }
+
   return (
     <main className="pb-4">
       {/* Hero */}
@@ -83,9 +157,11 @@ export default async function StorefrontHome({
             <Image src={banner} alt={store.name} fill priority className="object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
             <div className="container relative flex h-full flex-col justify-end pb-5 text-white">
-              <h1 className="text-2xl font-extrabold sm:text-4xl">{store.name}</h1>
-              {store.description && (
-                <p className="max-w-lg text-sm text-white/90">{store.description}</p>
+              <h1 className="text-2xl font-extrabold sm:text-4xl">{heroHeadline}</h1>
+              {(heroSubtext || store.description) && (
+                <p className="max-w-lg text-sm text-white/90">
+                  {heroSubtext || store.description}
+                </p>
               )}
             </div>
           </section>
@@ -98,14 +174,17 @@ export default async function StorefrontHome({
                 </p>
               )}
               <h1 className="max-w-2xl text-2xl font-extrabold leading-tight sm:text-4xl">
-                {store.description || `Bienvenido a ${store.name}`}
+                {heroHeadline}
               </h1>
+              {heroSubtext && (
+                <p className="mt-2 max-w-lg text-primary-foreground/90">{heroSubtext}</p>
+              )}
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <a
                   href="#catalogo"
                   className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-bold text-primary shadow-sm transition-opacity hover:opacity-90"
                 >
-                  Ver productos
+                  {heroCta}
                 </a>
                 {store.show_bs_prices && store.exchange_rate && (
                   <span className="text-sm text-primary-foreground/90">
@@ -136,45 +215,7 @@ export default async function StorefrontHome({
         </section>
       )}
 
-      {/* Featured */}
-      {featured.length > 0 && (
-        <section className="container pt-6">
-          <h2 className="mb-3 text-lg font-bold tracking-tight">Destacados</h2>
-          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {featured.map((p) => (
-              <div key={p.id} className="w-40 shrink-0 sm:w-48">
-                <ProductCard product={p} store={store} />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Catalog */}
-      <section id="catalogo" className="container scroll-mt-20 space-y-4 pt-6">
-        <CategoryChips categories={categories} />
-        <h2 className="text-lg font-bold tracking-tight">{heading}</h2>
-
-        {products.length === 0 ? (
-          <div className="grid place-items-center rounded-xl border border-dashed bg-card p-12 text-center">
-            <PackageSearch className="mb-3 size-8 text-muted-foreground" />
-            <p className="font-medium">
-              {hasFilters ? "Sin resultados" : "Catálogo en preparación"}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {hasFilters
-                ? "Probá con otra búsqueda o categoría."
-                : "Pronto vas a ver los productos acá."}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {products.map((p) => (
-              <ProductCard key={p.id} product={p} store={store} />
-            ))}
-          </div>
-        )}
-      </section>
+      {order.map((id) => renderSection(id))}
     </main>
   );
 }

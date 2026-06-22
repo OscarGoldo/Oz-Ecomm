@@ -66,6 +66,7 @@ export interface Database {
           free_delivery_min: number | null;
           subscription_status: SubscriptionStatus;
           active: boolean;
+          customization: Json | null;
           created_at: string;
           updated_at: string;
         };
@@ -94,6 +95,7 @@ export interface Database {
           free_delivery_min?: number | null;
           subscription_status?: SubscriptionStatus;
           active?: boolean;
+          customization?: Json | null;
           created_at?: string;
           updated_at?: string;
         };

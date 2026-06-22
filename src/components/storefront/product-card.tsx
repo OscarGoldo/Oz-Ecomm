@@ -12,9 +12,10 @@ import type { Product, Store } from "@/types/database";
 interface ProductCardProps {
   product: Product;
   store: Pick<Store, "id" | "slug" | "exchange_rate" | "show_bs_prices">;
+  cardStyle?: "soft" | "bordered";
 }
 
-export function ProductCard({ product, store }: ProductCardProps) {
+export function ProductCard({ product, store, cardStyle = "soft" }: ProductCardProps) {
   const cover = getImageUrl(product.images[0]);
   const available = isAvailable(product);
   const discount =
@@ -23,7 +24,14 @@ export function ProductCard({ product, store }: ProductCardProps) {
       : null;
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-xl border bg-card transition-shadow hover:shadow-lg">
+    <div
+      className={cn(
+        "group relative flex flex-col overflow-hidden rounded-lg bg-card transition-all",
+        cardStyle === "bordered"
+          ? "border-2 hover:border-primary/50"
+          : "border shadow-sm hover:shadow-lg",
+      )}
+    >
       {/* Click target covering the card (kept below the add button) */}
       <Link
         href={`/${store.slug}/producto/${product.slug}`}
