@@ -149,17 +149,23 @@ export default async function OrderDetailPage({
           ))}
         </ul>
         <div className="space-y-1.5 border-t p-4 text-sm">
+          {(order.shipping_cost > 0 || order.discount_total > 0) && (
+            <div className="flex justify-between text-muted-foreground">
+              <span>Subtotal</span>
+              <span>{formatUSD(order.subtotal)}</span>
+            </div>
+          )}
+          {order.discount_total > 0 && (
+            <div className="flex justify-between text-success">
+              <span>Descuento{order.coupon_code ? ` (${order.coupon_code})` : ""}</span>
+              <span>−{formatUSD(order.discount_total)}</span>
+            </div>
+          )}
           {order.shipping_cost > 0 && (
-            <>
-              <div className="flex justify-between text-muted-foreground">
-                <span>Subtotal</span>
-                <span>{formatUSD(order.subtotal)}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>Envío</span>
-                <span>{formatUSD(order.shipping_cost)}</span>
-              </div>
-            </>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Envío</span>
+              <span>{formatUSD(order.shipping_cost)}</span>
+            </div>
           )}
           <div className="flex items-center justify-between pt-1">
             <span className="font-medium">Total</span>

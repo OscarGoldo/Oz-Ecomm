@@ -10,6 +10,8 @@ import {
   Loader2,
   Lock,
   Store as StoreIcon,
+  Ticket,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,7 +26,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PaymentProofUpload } from "@/components/storefront/payment-proof-upload";
-import { createOrder } from "@/app/(public)/[store_slug]/checkout/actions";
+import { createOrder, previewCoupon } from "@/app/(public)/[store_slug]/checkout/actions";
 import { formatBs, formatUSD, usdToBs } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { EnrichedCart } from "@/lib/cart";
@@ -76,6 +78,13 @@ export function CheckoutForm({
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [proofPath, setProofPath] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [checkingCoupon, setCheckingCoupon] = useState(false);
+  const [coupon, setCoupon] = useState<{
+    code: string;
+    discount: number;
+    freeShipping: boolean;
+  } | null>(null);
 
   const {
     register,
@@ -104,14 +113,34 @@ export function CheckoutForm({
   const subtotal = cart.subtotalUsd;
   const deliveryFee = Number(store.delivery_fee ?? 0);
   const freeMin = store.free_delivery_min;
-  const shipping =
+  const baseShipping =
     fulfillment === "delivery" &&
     deliveryFee > 0 &&
     !(freeMin != null && subtotal >= Number(freeMin))
       ? deliveryFee
       : 0;
-  const total = subtotal + shipping;
+  const discount = coupon ? coupon.discount : 0;
+  const shipping = coupon?.freeShipping ? 0 : baseShipping;
+  const total = Math.max(0, subtotal + shipping - discount);
   const totalBs = cart.showBs ? usdToBs(total, cart.exchangeRate) : null;
+
+  async function applyCoupon() {
+    if (!couponCode.trim()) return;
+    setCheckingCoupon(true);
+    const res = await previewCoupon(store.id, couponCode, subtotal);
+    setCheckingCoupon(false);
+    if (!res.ok) {
+      setCoupon(null);
+      toast.error(res.error ?? "Cupón no válido");
+      return;
+    }
+    setCoupon({
+      code: res.code ?? couponCode.toUpperCase(),
+      discount: res.discount ?? 0,
+      freeShipping: Boolean(res.freeShipping),
+    });
+    toast.success("Cupón aplicado");
+  }
 
   async function copy(text: string) {
     try {
@@ -148,6 +177,7 @@ export function CheckoutForm({
       payment_method_id: values.payment_method_id,
       payment_reference: values.payment_reference || undefined,
       payment_proof_path: proofPath || undefined,
+      coupon_code: coupon?.code || undefined,
       notes: values.notes || undefined,
     });
     setSubmitting(false);
@@ -375,6 +405,62 @@ export function CheckoutForm({
         </CardContent>
       </Card>
 
+      {/* Coupon */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Cupón de descuento</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {coupon ? (
+            <div className="flex items-center justify-between rounded-lg border border-success/40 bg-success/5 p-3">
+              <span className="inline-flex items-center gap-2 text-sm font-medium">
+                <Ticket className="size-4 text-success" />
+                <span className="font-mono">{coupon.code}</span>
+                <span className="text-success">
+                  {coupon.freeShipping
+                    ? "envío gratis"
+                    : `−${formatUSD(coupon.discount)}`}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setCoupon(null);
+                  setCouponCode("");
+                }}
+                className="text-muted-foreground hover:text-destructive"
+                aria-label="Quitar cupón"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    applyCoupon();
+                  }
+                }}
+                placeholder="Código"
+                className="font-mono"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={applyCoupon}
+                disabled={checkingCoupon || !couponCode.trim()}
+              >
+                {checkingCoupon ? <Loader2 className="animate-spin" /> : "Aplicar"}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Summary + submit */}
       <Card>
         <CardContent className="space-y-3 pt-6">
@@ -385,6 +471,12 @@ export function CheckoutForm({
               </span>
               <span>{formatUSD(subtotal)}</span>
             </div>
+            {discount > 0 && (
+              <div className="flex items-center justify-between text-success">
+                <span>Descuento ({coupon?.code})</span>
+                <span>−{formatUSD(discount)}</span>
+              </div>
+            )}
             {fulfillment === "delivery" && deliveryFee > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Envío</span>

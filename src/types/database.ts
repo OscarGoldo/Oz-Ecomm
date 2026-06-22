@@ -26,6 +26,8 @@ export type PaymentMethodType =
 
 export type FulfillmentType = "delivery" | "pickup";
 
+export type CouponType = "percentage" | "fixed" | "free_shipping";
+
 export type OrderStatus =
   | "pending_payment"
   | "pending_confirmation"
@@ -229,6 +231,8 @@ export interface Database {
           delivery_notes: string | null;
           subtotal: number;
           shipping_cost: number;
+          discount_total: number;
+          coupon_code: string | null;
           total: number;
           currency: string;
           total_bs: number | null;
@@ -256,6 +260,8 @@ export interface Database {
           delivery_notes?: string | null;
           subtotal: number;
           shipping_cost?: number;
+          discount_total?: number;
+          coupon_code?: string | null;
           total: number;
           currency?: string;
           total_bs?: number | null;
@@ -272,6 +278,40 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["orders"]["Insert"]>;
+        Relationships: [];
+      };
+      coupons: {
+        Row: {
+          id: string;
+          store_id: string;
+          code: string;
+          type: CouponType;
+          value: number;
+          min_cart: number | null;
+          max_discount: number | null;
+          usage_limit: number | null;
+          times_used: number;
+          starts_at: string | null;
+          expires_at: string | null;
+          active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          code: string;
+          type: CouponType;
+          value?: number;
+          min_cart?: number | null;
+          max_discount?: number | null;
+          usage_limit?: number | null;
+          times_used?: number;
+          starts_at?: string | null;
+          expires_at?: string | null;
+          active?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["coupons"]["Insert"]>;
         Relationships: [];
       };
       order_items: {
@@ -320,3 +360,4 @@ export type Product = Tables["products"]["Row"];
 export type PaymentMethod = Tables["payment_methods"]["Row"];
 export type Order = Tables["orders"]["Row"];
 export type OrderItem = Tables["order_items"]["Row"];
+export type Coupon = Tables["coupons"]["Row"];

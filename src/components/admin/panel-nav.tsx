@@ -7,6 +7,8 @@ import {
   Package,
   ShoppingBag,
   Tags,
+  Ticket,
+  Users,
   Wallet,
   Settings,
   type LucideIcon,
@@ -25,6 +27,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/panel/pedidos", label: "Pedidos", icon: ShoppingBag },
   { href: "/panel/productos", label: "Productos", icon: Package },
   { href: "/panel/categorias", label: "Categorías", icon: Tags },
+  { href: "/panel/descuentos", label: "Descuentos", icon: Ticket },
+  { href: "/panel/clientes", label: "Clientes", icon: Users },
   { href: "/panel/finanzas", label: "Finanzas", icon: Wallet },
   { href: "/panel/configuracion", label: "Ajustes", icon: Settings },
 ];
@@ -79,16 +83,11 @@ export function PanelSidebarNav({ badges = {} }: NavProps) {
   );
 }
 
-/** Mobile bottom tab bar (below md). */
+/** Mobile bottom tab bar (below md) — horizontally scrollable. */
 export function PanelBottomNav({ badges = {} }: NavProps) {
   const pathname = usePathname();
   return (
-    <nav
-      className="fixed inset-x-0 bottom-0 z-40 grid border-t bg-background md:hidden"
-      style={{
-        gridTemplateColumns: `repeat(${NAV_ITEMS.length}, minmax(0, 1fr))`,
-      }}
-    >
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t bg-background md:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {NAV_ITEMS.map((item) => {
         const active = isActive(pathname, item.href);
         const badge = badges[item.href];
@@ -97,7 +96,7 @@ export function PanelBottomNav({ badges = {} }: NavProps) {
             key={item.href}
             href={item.href}
             className={cn(
-              "relative flex flex-col items-center gap-1 py-2 text-[11px] font-medium transition-colors",
+              "relative flex min-w-[4.25rem] shrink-0 flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium transition-colors",
               active ? "text-primary" : "text-muted-foreground",
             )}
           >

@@ -7,7 +7,8 @@ import { readCartForStore } from "@/lib/cart";
 import { clearCart } from "@/lib/cart-actions";
 import { formatUSD, usdToBs } from "@/lib/format";
 import { newOrderEmail, sendEmail } from "@/lib/email";
-import type { OrderStatus } from "@/types/database";
+import { evaluateCoupon, findCouponByCode } from "@/lib/coupons";
+import type { Coupon, CouponType, OrderStatus } from "@/types/database";
 
 const checkoutSchema = z.object({
   store_id: z.string().uuid(),
@@ -25,6 +26,7 @@ const checkoutSchema = z.object({
   payment_method_id: z.string().uuid("Elegí un método de pago"),
   payment_reference: z.string().trim().optional(),
   payment_proof_path: z.string().trim().optional(),
+  coupon_code: z.string().trim().optional(),
   notes: z.string().trim().optional(),
 });
 
@@ -34,6 +36,36 @@ export interface CheckoutResult {
   ok: boolean;
   error?: string;
   orderId?: string;
+}
+
+export interface CouponPreview {
+  ok: boolean;
+  error?: string;
+  type?: CouponType;
+  /** Discount on the subtotal (USD). */
+  discount?: number;
+  freeShipping?: boolean;
+  code?: string;
+}
+
+/** Validate a coupon for the checkout (preview before submitting). */
+export async function previewCoupon(
+  storeId: string,
+  code: string,
+  subtotalUsd: number,
+): Promise<CouponPreview> {
+  if (!code.trim()) return { ok: false, error: "Ingresá un código" };
+  const coupon = await findCouponByCode(storeId, code);
+  if (!coupon) return { ok: false, error: "El cupón no es válido" };
+  const result = evaluateCoupon(coupon, subtotalUsd);
+  if (!result.valid) return { ok: false, error: result.reason ?? "Cupón no válido" };
+  return {
+    ok: true,
+    type: coupon.type,
+    discount: result.discount,
+    freeShipping: result.freeShipping,
+    code: coupon.code,
+  };
 }
 
 export async function createOrder(
@@ -136,18 +168,33 @@ export async function createOrder(
 
   const subtotal = orderItems.reduce((s, i) => s + i.subtotal, 0);
 
+  // Coupon (optional). Re-validated server-side against the real subtotal.
+  let discount = 0;
+  let couponFreeShipping = false;
+  let appliedCoupon: Coupon | null = null;
+  if (data.coupon_code && data.coupon_code.trim()) {
+    const coupon = await findCouponByCode(store.id, data.coupon_code);
+    if (!coupon) return { ok: false, error: "El cupón no es válido" };
+    const result = evaluateCoupon(coupon, subtotal);
+    if (!result.valid) return { ok: false, error: result.reason ?? "Cupón no válido" };
+    discount = result.discount;
+    couponFreeShipping = result.freeShipping;
+    appliedCoupon = coupon;
+  }
+
   // Shipping: flat delivery_fee for delivery orders, waived if subtotal reaches
-  // the free-delivery threshold. Pickup is always free.
+  // the free-delivery threshold or a free-shipping coupon applies. Pickup free.
   const deliveryFee = Number(store.delivery_fee ?? 0);
   const freeMin = store.free_delivery_min;
-  const shipping =
+  const baseShipping =
     data.fulfillment_type === "delivery" &&
     deliveryFee > 0 &&
     !(freeMin != null && subtotal >= Number(freeMin))
       ? deliveryFee
       : 0;
+  const shipping = couponFreeShipping ? 0 : baseShipping;
 
-  const total = subtotal + shipping;
+  const total = Math.max(0, subtotal + shipping - discount);
   const totalBs = store.show_bs_prices
     ? usdToBs(total, store.exchange_rate)
     : null;
@@ -170,6 +217,8 @@ export async function createOrder(
       delivery_notes: data.delivery_notes || null,
       subtotal,
       shipping_cost: shipping,
+      discount_total: discount,
+      coupon_code: appliedCoupon ? appliedCoupon.code : null,
       total,
       currency: "USD",
       total_bs: totalBs,
@@ -194,6 +243,14 @@ export async function createOrder(
   if (itemsErr) {
     await db.from("orders").delete().eq("id", order.id);
     return { ok: false, error: "No se pudo crear el pedido. Intentá de nuevo." };
+  }
+
+  // Count the coupon use.
+  if (appliedCoupon) {
+    await db
+      .from("coupons")
+      .update({ times_used: appliedCoupon.times_used + 1 })
+      .eq("id", appliedCoupon.id);
   }
 
   // Decrement stock now only for immediately-confirmed (cash) orders.
