@@ -119,32 +119,42 @@ export function ProductForm({ storeId, categories, product }: ProductFormProps) 
     };
 
     setSubmitting(true);
-    const result = isEdit
-      ? await updateProduct(product!.id, input)
-      : await createProduct(input);
-    setSubmitting(false);
+    try {
+      const result = isEdit
+        ? await updateProduct(product!.id, input)
+        : await createProduct(input);
 
-    if (!result.ok) {
-      toast.error(result.error ?? "No se pudo guardar");
-      return;
+      if (!result.ok) {
+        toast.error(result.error ?? "No se pudo guardar");
+        return;
+      }
+      toast.success(isEdit ? "Producto actualizado" : "Producto creado");
+      router.push("/panel/productos");
+      router.refresh();
+    } catch {
+      toast.error("No se pudo guardar. Revisá tu conexión e intentá de nuevo.");
+    } finally {
+      setSubmitting(false);
     }
-    toast.success(isEdit ? "Producto actualizado" : "Producto creado");
-    router.push("/panel/productos");
-    router.refresh();
   }
 
   async function onDelete() {
     if (!product) return;
     setDeleting(true);
-    const result = await deleteProduct(product.id);
-    setDeleting(false);
-    if (!result.ok) {
-      toast.error(result.error ?? "No se pudo eliminar");
-      return;
+    try {
+      const result = await deleteProduct(product.id);
+      if (!result.ok) {
+        toast.error(result.error ?? "No se pudo eliminar");
+        return;
+      }
+      toast.success("Producto eliminado");
+      router.push("/panel/productos");
+      router.refresh();
+    } catch {
+      toast.error("No se pudo eliminar. Intentá de nuevo.");
+    } finally {
+      setDeleting(false);
     }
-    toast.success("Producto eliminado");
-    router.push("/panel/productos");
-    router.refresh();
   }
 
   return (
