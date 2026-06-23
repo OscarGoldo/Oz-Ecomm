@@ -52,6 +52,7 @@ interface FormValues {
   category_id: string;
   sku: string;
   price: string;
+  cost: string;
   compare_at_price: string;
   stock: string;
   track_stock: boolean;
@@ -68,6 +69,7 @@ function toDefaults(product?: Product): FormValues {
     category_id: product?.category_id ?? NONE,
     sku: product?.sku ?? "",
     price: product ? String(product.price) : "",
+    cost: product?.cost != null ? String(product.cost) : "",
     compare_at_price:
       product?.compare_at_price != null ? String(product.compare_at_price) : "",
     stock: product ? String(product.stock) : "0",
@@ -108,6 +110,7 @@ export function ProductForm({ storeId, categories, product }: ProductFormProps) 
       category_id: values.category_id === NONE ? null : values.category_id,
       sku: values.sku || null,
       price: values.price,
+      cost: values.cost === "" ? null : values.cost,
       compare_at_price: values.compare_at_price === "" ? null : values.compare_at_price,
       currency: "USD",
       stock: values.stock,
@@ -255,6 +258,29 @@ export function ProductForm({ storeId, categories, product }: ProductFormProps) 
                 {...register("compare_at_price")}
                 placeholder="Opcional (oferta)"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cost">Costo (USD)</Label>
+              <Input
+                id="cost"
+                type="number"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
+                {...register("cost")}
+                placeholder="Cuánto te cuesta"
+              />
+              <p className="text-xs text-muted-foreground">
+                {(() => {
+                  const p = Number(watch("price"));
+                  const c = Number(watch("cost"));
+                  if (p > 0 && c > 0 && c <= p) {
+                    const margin = Math.round(((p - c) / p) * 100);
+                    return `Ganancia: $${(p - c).toFixed(2)} · margen ${margin}%`;
+                  }
+                  return "Para ver márgenes en Finanzas.";
+                })()}
+              </p>
             </div>
           </div>
 

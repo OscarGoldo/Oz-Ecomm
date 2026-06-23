@@ -125,7 +125,7 @@ export async function createOrder(
 
   const { data: products } = await db
     .from("products")
-    .select("id, name, price, track_stock, stock, status")
+    .select("id, name, price, cost, track_stock, stock, status")
     .eq("store_id", store.id)
     .in(
       "id",
@@ -138,6 +138,7 @@ export async function createOrder(
     product_name: string;
     quantity: number;
     unit_price: number;
+    unit_cost: number;
     subtotal: number;
   }[] = [];
   const stockUpdates: { id: string; newStock: number }[] = [];
@@ -159,6 +160,7 @@ export async function createOrder(
       product_name: product.name,
       quantity: qty,
       unit_price: product.price,
+      unit_cost: product.cost ?? 0,
       subtotal: product.price * qty,
     });
     if (product.track_stock) {

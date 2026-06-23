@@ -157,6 +157,7 @@ export interface Database {
           slug: string;
           description: string | null;
           price: number;
+          cost: number | null;
           currency: string;
           compare_at_price: number | null;
           stock: number;
@@ -177,6 +178,7 @@ export interface Database {
           slug: string;
           description?: string | null;
           price: number;
+          cost?: number | null;
           currency?: string;
           compare_at_price?: number | null;
           stock?: number;
@@ -344,6 +346,7 @@ export interface Database {
           product_name: string;
           quantity: number;
           unit_price: number;
+          unit_cost: number;
           subtotal: number;
           created_at: string;
         };
@@ -354,10 +357,33 @@ export interface Database {
           product_name: string;
           quantity: number;
           unit_price: number;
+          unit_cost?: number;
           subtotal: number;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["order_items"]["Insert"]>;
+        Relationships: [];
+      };
+      expenses: {
+        Row: {
+          id: string;
+          store_id: string;
+          description: string;
+          category: string | null;
+          amount: number;
+          spent_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          description: string;
+          category?: string | null;
+          amount: number;
+          spent_at?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["expenses"]["Insert"]>;
         Relationships: [];
       };
     };
@@ -382,4 +408,5 @@ export type Product = Tables["products"]["Row"];
 export type PaymentMethod = Tables["payment_methods"]["Row"];
 export type Order = Tables["orders"]["Row"];
 export type OrderItem = Tables["order_items"]["Row"];
+export type Expense = Tables["expenses"]["Row"];
 export type Coupon = Tables["coupons"]["Row"];

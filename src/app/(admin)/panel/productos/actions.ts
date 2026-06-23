@@ -12,6 +12,7 @@ const productSchema = z.object({
   slug: z.string().trim().optional(),
   description: z.string().trim().max(4000).optional().nullable(),
   price: z.coerce.number().min(0, "Precio inválido"),
+  cost: z.coerce.number().min(0).nullable().optional(),
   compare_at_price: z.coerce
     .number()
     .min(0)
@@ -48,6 +49,7 @@ function normalize(data: z.infer<typeof productSchema>, storeId: string) {
     name: data.name,
     description: data.description?.trim() ? data.description.trim() : null,
     price: data.price,
+    cost: data.cost ?? null,
     compare_at_price: data.compare_at_price ?? null,
     currency: data.currency || "USD",
     category_id: data.category_id ?? null,
