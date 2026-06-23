@@ -48,11 +48,15 @@ export const DEFAULT_THEME: StoreTheme = {
 export const THEME_PRESETS: {
   id: string;
   label: string;
+  desc: string;
+  icon: string;
   theme: Pick<StoreTheme, "colors" | "font" | "buttonStyle" | "cardStyle">;
 }[] = [
   {
     id: "classic",
     label: "Clásico",
+    desc: "Versátil",
+    icon: "store",
     theme: {
       colors: { primary: "#2563EB", accent: "#f59e0b", surface: "#ffffff" },
       font: "inter",
@@ -61,33 +65,68 @@ export const THEME_PRESETS: {
     },
   },
   {
-    id: "modern",
-    label: "Moderno",
+    id: "fashion",
+    label: "Moda",
+    desc: "Indumentaria",
+    icon: "shirt",
     theme: {
-      colors: { primary: "#111827", accent: "#10b981", surface: "#f9fafb" },
-      font: "poppins",
+      // Minimalista monocromo, estética editorial.
+      colors: { primary: "#1f2937", accent: "#b08968", surface: "#faf9f7" },
+      font: "montserrat",
       buttonStyle: "square",
       cardStyle: "bordered",
     },
   },
   {
-    id: "elegant",
-    label: "Elegante",
+    id: "accessories",
+    label: "Accesorios",
+    desc: "Joyería · premium",
+    icon: "gem",
     theme: {
-      colors: { primary: "#8b5e3c", accent: "#c79a3a", surface: "#faf7f2" },
+      // Elegante, dorado, serif sofisticado.
+      colors: { primary: "#3f3328", accent: "#c9a227", surface: "#fbf7ef" },
       font: "lora",
       buttonStyle: "rounded",
       cardStyle: "soft",
     },
   },
   {
-    id: "vibrant",
-    label: "Vibrante",
+    id: "beauty",
+    label: "Belleza",
+    desc: "Salud y belleza",
+    icon: "sparkles",
     theme: {
-      colors: { primary: "#db2777", accent: "#7c3aed", surface: "#fff7fb" },
-      font: "montserrat",
+      // Suave, pastel, cuidado y bienestar.
+      colors: { primary: "#c2649a", accent: "#7fb6a1", surface: "#fdf6f8" },
+      font: "poppins",
       buttonStyle: "rounded",
       cardStyle: "soft",
+    },
+  },
+  {
+    id: "tech",
+    label: "Tecnología",
+    desc: "Electrónica",
+    icon: "cpu",
+    theme: {
+      // Moderno, alto contraste, líneas marcadas.
+      colors: { primary: "#1e40af", accent: "#06b6d4", surface: "#f8fafc" },
+      font: "montserrat",
+      buttonStyle: "square",
+      cardStyle: "bordered",
+    },
+  },
+  {
+    id: "sports",
+    label: "Deportes",
+    desc: "Energético",
+    icon: "dumbbell",
+    theme: {
+      // Vibrante y dinámico, naranja + negro atlético.
+      colors: { primary: "#ea580c", accent: "#0f172a", surface: "#ffffff" },
+      font: "montserrat",
+      buttonStyle: "rounded",
+      cardStyle: "bordered",
     },
   },
 ];

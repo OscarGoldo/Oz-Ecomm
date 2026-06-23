@@ -2,7 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, Check, Loader2, Save } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  Cpu,
+  Dumbbell,
+  Gem,
+  Loader2,
+  Save,
+  Shirt,
+  Sparkles,
+  Store,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -39,6 +52,15 @@ import {
 import { cn } from "@/lib/utils";
 
 const ALL_SECTIONS: SectionId[] = ["featured", "catalog", "about"];
+
+const PRESET_ICONS: Record<string, LucideIcon> = {
+  store: Store,
+  shirt: Shirt,
+  gem: Gem,
+  sparkles: Sparkles,
+  cpu: Cpu,
+  dumbbell: Dumbbell,
+};
 
 function ColorField({
   label,
@@ -157,24 +179,37 @@ export function ThemeEditor({
           <CardHeader>
             <CardTitle className="text-base">Plantillas</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {THEME_PRESETS.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => applyPreset(p.id)}
-                className={cn(
-                  "rounded-xl border p-3 text-left transition-colors",
-                  theme.preset === p.id ? "border-primary ring-1 ring-primary" : "hover:border-primary/40",
-                )}
-              >
-                <div className="mb-2 flex gap-1">
-                  <span className="size-4 rounded-full" style={{ background: p.theme.colors.primary }} />
-                  <span className="size-4 rounded-full" style={{ background: p.theme.colors.accent }} />
-                </div>
-                <p className="text-xs font-semibold">{p.label}</p>
-              </button>
-            ))}
+          <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {THEME_PRESETS.map((p) => {
+              const Icon = PRESET_ICONS[p.icon] ?? Store;
+              const active = theme.preset === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => applyPreset(p.id)}
+                  className={cn(
+                    "overflow-hidden rounded-xl border text-left transition-colors",
+                    active ? "border-primary ring-1 ring-primary" : "hover:border-primary/40",
+                  )}
+                >
+                  <div
+                    className="flex h-12 items-center justify-between px-3"
+                    style={{ background: p.theme.colors.primary }}
+                  >
+                    <Icon className="size-5 text-white/90" />
+                    <span
+                      className="size-4 rounded-full ring-2 ring-white/40"
+                      style={{ background: p.theme.colors.accent }}
+                    />
+                  </div>
+                  <div className="p-2.5">
+                    <p className="text-xs font-semibold">{p.label}</p>
+                    <p className="text-[11px] text-muted-foreground">{p.desc}</p>
+                  </div>
+                </button>
+              );
+            })}
           </CardContent>
         </Card>
 
