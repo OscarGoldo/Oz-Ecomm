@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { BellRing, ChevronRight, Inbox } from "lucide-react";
 
-import { OrderStatusBadge } from "@/components/admin/status-badge";
+import { OrderQuickStatus } from "@/components/admin/order-quick-status";
 import { OrdersFilters } from "@/components/admin/orders-filters";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -98,32 +98,28 @@ export default async function PedidosPage({
                   ?.label ?? order.payment_method_type)
               : "—";
             return (
-              <li key={order.id}>
-                <Link
-                  href={`/panel/pedidos/${order.id}`}
-                  className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:border-primary/50"
-                >
-                  {isNew && (
-                    <span className="size-2 shrink-0 rounded-full bg-warning" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">#{order.order_number}</span>
-                      <OrderStatusBadge status={order.status} />
-                    </div>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {order.customer_name} · {payment}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(order.created_at), "d 'de' MMM, HH:mm", {
-                        locale: es,
-                      })}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="font-semibold">{formatUSD(order.total)}</p>
-                  </div>
+              <li
+                key={order.id}
+                className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:border-primary/50"
+              >
+                {isNew && (
+                  <span className="size-2 shrink-0 rounded-full bg-warning" />
+                )}
+                <Link href={`/panel/pedidos/${order.id}`} className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">
+                    #{order.order_number} · {order.customer_name}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {payment} ·{" "}
+                    {format(new Date(order.created_at), "d 'de' MMM, HH:mm", {
+                      locale: es,
+                    })}
+                  </p>
                 </Link>
+                <span className="shrink-0 font-semibold">
+                  {formatUSD(order.total)}
+                </span>
+                <OrderQuickStatus orderId={order.id} status={order.status} />
               </li>
             );
           })}

@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
@@ -152,6 +153,10 @@ export function CheckoutForm({
   }
 
   async function onSubmit(values: FormValues) {
+    if (values.customer_phone.trim().length < 6) {
+      toast.error("Ingresá tu teléfono");
+      return;
+    }
     if (values.fulfillment_type === "delivery" && values.delivery_address.trim().length < 5) {
       toast.error("Ingresá la dirección de entrega");
       return;
@@ -218,17 +223,11 @@ export function CheckoutForm({
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="customer_phone">Teléfono / WhatsApp *</Label>
-              <Input
-                id="customer_phone"
-                type="tel"
-                inputMode="tel"
-                {...register("customer_phone", { required: "Ingresá un teléfono" })}
-                placeholder="0424-1234567"
+              <Label>Teléfono / WhatsApp *</Label>
+              <PhoneInput
+                onChange={(v) => setValue("customer_phone", v)}
+                placeholder="424 1234567"
               />
-              {errors.customer_phone && (
-                <p className="text-xs text-destructive">{errors.customer_phone.message}</p>
-              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="customer_email">Email (opcional)</Label>

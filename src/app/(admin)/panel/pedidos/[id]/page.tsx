@@ -70,7 +70,7 @@ export default async function OrderDetailPage({
         </Link>
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold tracking-tight">
-            Pedido #{order.order_number}
+            #{order.order_number} · {order.customer_name}
           </h1>
           <OrderStatusBadge status={order.status} />
         </div>
