@@ -17,6 +17,8 @@ import {
   updateOrderStatus,
 } from "@/app/(admin)/panel/pedidos/actions";
 import { ORDER_STATUS_META } from "@/lib/constants";
+import { orderStatusClientMessage, shouldNotifyCustomer } from "@/lib/order-messages";
+import { whatsappUrl } from "@/lib/whatsapp";
 import type { OrderStatus } from "@/types/database";
 
 const NEXT: Record<OrderStatus, OrderStatus[]> = {
@@ -39,10 +41,18 @@ function labelFor(from: OrderStatus, to: OrderStatus): string {
 
 export function OrderQuickStatus({
   orderId,
+  orderNumber,
   status,
+  customerName,
+  customerPhone,
+  storeName,
 }: {
   orderId: string;
+  orderNumber: number;
   status: OrderStatus;
+  customerName: string;
+  customerPhone: string;
+  storeName: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -60,7 +70,27 @@ export function OrderQuickStatus({
         toast.error(res.error ?? "No se pudo actualizar");
         return;
       }
-      toast.success(isConfirm ? "Pago confirmado" : `Pedido: ${ORDER_STATUS_META[to].label}`);
+
+      // Offer a 1-tap WhatsApp message to the customer.
+      const wa = shouldNotifyCustomer(to)
+        ? whatsappUrl(
+            customerPhone,
+            orderStatusClientMessage(to, customerName, orderNumber, storeName),
+          )
+        : null;
+      toast.success(
+        isConfirm ? "Pago confirmado" : `Pedido: ${ORDER_STATUS_META[to].label}`,
+        wa
+          ? {
+              description: "Avisale al cliente que cambió su pedido.",
+              action: {
+                label: "Avisar 📲",
+                onClick: () => window.open(wa, "_blank"),
+              },
+              duration: 8000,
+            }
+          : undefined,
+      );
       router.refresh();
     });
   }

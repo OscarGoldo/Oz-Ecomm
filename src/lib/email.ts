@@ -68,3 +68,28 @@ export function newOrderEmail(p: NewOrderEmailParams): {
   </div>`;
   return { subject, html };
 }
+
+interface CustomerStatusEmailParams {
+  storeName: string;
+  orderNumber: number;
+  statusLabel: string;
+  message: string;
+}
+
+/** Build the "order status update" email for the customer. */
+export function customerOrderStatusEmail(p: CustomerStatusEmailParams): {
+  subject: string;
+  html: string;
+} {
+  const subject = `Tu pedido #${p.orderNumber}: ${p.statusLabel} · ${p.storeName}`;
+  const html = `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+    <p style="margin:0 0 4px;color:#64748b">${p.storeName}</p>
+    <div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px">
+      <p style="margin:0 0 8px;font-size:18px;font-weight:700">Pedido #${p.orderNumber} · ${p.statusLabel}</p>
+      <p style="margin:0;color:#334155;line-height:1.5">${p.message}</p>
+    </div>
+    <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Enviado por ${p.storeName} vía OzShop</p>
+  </div>`;
+  return { subject, html };
+}

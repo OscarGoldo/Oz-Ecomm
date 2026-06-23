@@ -30,6 +30,7 @@ import {
 } from "@/app/(admin)/panel/pedidos/actions";
 import { ORDER_STATUS_META } from "@/lib/constants";
 import { whatsappUrl } from "@/lib/whatsapp";
+import { orderStatusClientMessage, shouldNotifyCustomer } from "@/lib/order-messages";
 import type { OrderStatus } from "@/types/database";
 
 const ADVANCE_OPTIONS: OrderStatus[] = ["preparing", "in_delivery", "completed"];
@@ -63,12 +64,34 @@ export function OrderActions({
     `Hola ${customerName}! 👋 Te contacto de ${storeName} por tu pedido #${orderNumber}.`,
   );
 
+  function notifyToast(title: string, to: OrderStatus) {
+    const wa = shouldNotifyCustomer(to)
+      ? whatsappUrl(
+          customerPhone,
+          orderStatusClientMessage(to, customerName, orderNumber, storeName),
+        )
+      : null;
+    toast.success(
+      title,
+      wa
+        ? {
+            description: "Avisale al cliente que cambió su pedido.",
+            action: {
+              label: "Avisar 📲",
+              onClick: () => window.open(wa, "_blank"),
+            },
+            duration: 8000,
+          }
+        : undefined,
+    );
+  }
+
   async function handleConfirm() {
     setConfirming(true);
     const res = await confirmPayment(orderId);
     setConfirming(false);
     if (!res.ok) return toast.error(res.error ?? "Error");
-    toast.success("Pago confirmado. Stock descontado.");
+    notifyToast("Pago confirmado. Stock descontado.", "confirmed");
     router.refresh();
   }
 
@@ -79,7 +102,7 @@ export function OrderActions({
         toast.error(res.error ?? "Error");
         return;
       }
-      toast.success(`Pedido: ${ORDER_STATUS_META[next].label}`);
+      notifyToast(`Pedido: ${ORDER_STATUS_META[next].label}`, next);
       router.refresh();
     });
   }

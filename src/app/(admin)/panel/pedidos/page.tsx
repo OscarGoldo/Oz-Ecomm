@@ -119,7 +119,14 @@ export default async function PedidosPage({
                 <span className="shrink-0 font-semibold">
                   {formatUSD(order.total)}
                 </span>
-                <OrderQuickStatus orderId={order.id} status={order.status} />
+                <OrderQuickStatus
+                  orderId={order.id}
+                  orderNumber={order.order_number}
+                  status={order.status}
+                  customerName={order.customer_name}
+                  customerPhone={order.customer_phone}
+                  storeName={store.name}
+                />
               </li>
             );
           })}

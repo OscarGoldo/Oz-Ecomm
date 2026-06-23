@@ -4,17 +4,20 @@ import { revalidatePath } from "next/cache";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSessionContext } from "@/lib/auth";
-import type { OrderStatus } from "@/types/database";
+import { customerOrderStatusEmail, sendEmail } from "@/lib/email";
+import { orderStatusClientMessage } from "@/lib/order-messages";
+import { ORDER_STATUS_META } from "@/lib/constants";
+import type { OrderStatus, Store } from "@/types/database";
 
 export interface ActionResult {
   ok: boolean;
   error?: string;
 }
 
-async function requireStoreId(): Promise<string> {
+async function requireStore(): Promise<Store> {
   const ctx = await getSessionContext();
   if (!ctx?.store) throw new Error("No autorizado");
-  return ctx.store.id;
+  return ctx.store;
 }
 
 function revalidate(orderId: string) {
@@ -24,17 +27,53 @@ function revalidate(orderId: string) {
 }
 
 /**
+ * Automatically email the customer about a status change. No-op if the order
+ * has no email or Resend isn't configured. Never fails the action.
+ */
+async function notifyCustomerEmail(
+  orderId: string,
+  status: OrderStatus,
+  storeName: string,
+) {
+  try {
+    const db = createAdminClient();
+    const { data: order } = await db
+      .from("orders")
+      .select("customer_email, customer_name, order_number")
+      .eq("id", orderId)
+      .maybeSingle();
+    if (!order?.customer_email) return;
+    const message = orderStatusClientMessage(
+      status,
+      order.customer_name,
+      order.order_number,
+      storeName,
+    );
+    const { subject, html } = customerOrderStatusEmail({
+      storeName,
+      orderNumber: order.order_number,
+      statusLabel: ORDER_STATUS_META[status].label,
+      message,
+    });
+    await sendEmail({ to: order.customer_email, subject, html });
+  } catch {
+    /* notifications must never break the status change */
+  }
+}
+
+/**
  * Confirm payment for an order awaiting verification: move
  * pending_confirmation → confirmed and decrement stock definitively
  * (tracked products only). Mirrors the cash-order decrement in createOrder.
  */
 export async function confirmPayment(orderId: string): Promise<ActionResult> {
-  let storeId: string;
+  let store: Store;
   try {
-    storeId = await requireStoreId();
+    store = await requireStore();
   } catch {
     return { ok: false, error: "No autorizado" };
   }
+  const storeId = store.id;
 
   const db = createAdminClient();
 
@@ -88,6 +127,7 @@ export async function confirmPayment(orderId: string): Promise<ActionResult> {
     .eq("store_id", storeId);
   if (error) return { ok: false, error: "No se pudo confirmar el pago" };
 
+  await notifyCustomerEmail(orderId, "confirmed", store.name);
   revalidate(orderId);
   return { ok: true };
 }
@@ -108,9 +148,9 @@ export async function updateOrderStatus(
     return { ok: false, error: "Estado no permitido" };
   }
 
-  let storeId: string;
+  let store: Store;
   try {
-    storeId = await requireStoreId();
+    store = await requireStore();
   } catch {
     return { ok: false, error: "No autorizado" };
   }
@@ -125,9 +165,10 @@ export async function updateOrderStatus(
       ...(status === "cancelled" ? { cancelled_at: now } : {}),
     })
     .eq("id", orderId)
-    .eq("store_id", storeId);
+    .eq("store_id", store.id);
   if (error) return { ok: false, error: "No se pudo actualizar el pedido" };
 
+  await notifyCustomerEmail(orderId, status, store.name);
   revalidate(orderId);
   return { ok: true };
 }
