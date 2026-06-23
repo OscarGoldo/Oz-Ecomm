@@ -36,7 +36,29 @@ export function StorePreview({
     ? theme.sections
     : [...theme.sections, "catalog"];
 
+  const fashion = theme.layout === "fashion";
+
   function Card({ p }: { p: SampleProduct }) {
+    if (fashion) {
+      return (
+        <div>
+          <div className="grid aspect-[3/4] place-items-center overflow-hidden bg-white text-muted-foreground">
+            {p.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.image} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <StoreIcon className="size-6 opacity-30" />
+            )}
+          </div>
+          <div className="mt-1.5 text-center">
+            <p className="line-clamp-1 text-[9px] uppercase tracking-[0.15em] text-foreground/80">
+              {p.name}
+            </p>
+            <p className="text-[11px] font-bold">{formatUSD(p.price)}</p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div
         className={cn(
@@ -94,17 +116,31 @@ export function StorePreview({
       </div>
 
       {/* Hero */}
-      <div className="bg-gradient-to-br from-primary to-primary/80 px-4 py-6 text-primary-foreground">
-        <p className="text-base font-extrabold leading-tight">
-          {theme.hero.headline || `Bienvenido a ${storeName}`}
-        </p>
-        {theme.hero.subtext && (
-          <p className="mt-1 text-[11px] text-primary-foreground/90">{theme.hero.subtext}</p>
-        )}
-        <span className="mt-3 inline-block rounded-lg bg-white px-3 py-1.5 text-[11px] font-bold text-primary">
-          {theme.hero.ctaText || "Ver productos"}
-        </span>
-      </div>
+      {fashion ? (
+        <div className="flex min-h-[160px] items-end bg-gradient-to-br from-primary to-primary/70 p-4 text-white">
+          <div>
+            <p className="text-[8px] uppercase tracking-[0.3em] text-white/80">{storeName}</p>
+            <p className="mt-1 text-lg font-light uppercase leading-tight tracking-wide">
+              {theme.hero.headline || `Bienvenido a ${storeName}`}
+            </p>
+            <span className="mt-2 inline-block border border-white px-3 py-1 text-[9px] uppercase tracking-[0.2em]">
+              {theme.hero.ctaText || "Ver colección"}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gradient-to-br from-primary to-primary/80 px-4 py-6 text-primary-foreground">
+          <p className="text-base font-extrabold leading-tight">
+            {theme.hero.headline || `Bienvenido a ${storeName}`}
+          </p>
+          {theme.hero.subtext && (
+            <p className="mt-1 text-[11px] text-primary-foreground/90">{theme.hero.subtext}</p>
+          )}
+          <span className="mt-3 inline-block rounded-lg bg-white px-3 py-1.5 text-[11px] font-bold text-primary">
+            {theme.hero.ctaText || "Ver productos"}
+          </span>
+        </div>
+      )}
 
       {/* Sections */}
       <div className="space-y-4 p-3">

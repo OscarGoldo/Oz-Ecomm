@@ -11,6 +11,7 @@ import {
 
 import { CategoryChips } from "@/components/storefront/category-chips";
 import { ProductCard } from "@/components/storefront/product-card";
+import { FashionStorefront } from "@/components/storefront/fashion-storefront";
 import {
   getStoreBySlug,
   getStoreCategories,
@@ -69,6 +70,22 @@ export default async function StorefrontHome({
     theme.hero.headline || store.description || `Bienvenido a ${store.name}`;
   const heroSubtext = theme.hero.subtext;
   const heroCta = theme.hero.ctaText || "Ver productos";
+
+  // Vertical layouts change the whole structure (not just styles).
+  if (theme.layout === "fashion") {
+    return (
+      <FashionStorefront
+        store={store}
+        theme={theme}
+        categories={categories}
+        products={products}
+        hasFilters={hasFilters}
+        heading={heading}
+        banner={banner}
+        hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
+      />
+    );
+  }
 
   const benefits = [
     store.offers_delivery

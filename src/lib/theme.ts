@@ -8,8 +8,28 @@ export type ButtonStyle = "rounded" | "square";
 export type CardStyle = "soft" | "bordered";
 export type SectionId = "featured" | "catalog" | "about";
 
+/** Structural layout variant per vertical (changes the JSX, not just styles). */
+export type LayoutId =
+  | "classic"
+  | "fashion"
+  | "accessories"
+  | "beauty"
+  | "tech"
+  | "sports";
+
+export const LAYOUT_IDS: LayoutId[] = [
+  "classic",
+  "fashion",
+  "accessories",
+  "beauty",
+  "tech",
+  "sports",
+];
+
 export interface StoreTheme {
   preset: string;
+  /** Structural layout. "classic" = base layout. */
+  layout: LayoutId;
   colors: { primary: string; accent: string; surface: string };
   font: ThemeFont;
   buttonStyle: ButtonStyle;
@@ -35,6 +55,7 @@ export const SECTION_LABELS: Record<SectionId, string> = {
 
 export const DEFAULT_THEME: StoreTheme = {
   preset: "classic",
+  layout: "classic",
   colors: { primary: "#2563EB", accent: "#f59e0b", surface: "#ffffff" },
   font: "inter",
   buttonStyle: "rounded",
@@ -139,6 +160,8 @@ export function resolveTheme(
   const basePrimary = store.primary_color || DEFAULT_THEME.colors.primary;
   return {
     preset: c.preset ?? DEFAULT_THEME.preset,
+    layout:
+      c.layout && LAYOUT_IDS.includes(c.layout) ? c.layout : DEFAULT_THEME.layout,
     colors: {
       primary: c.colors?.primary ?? basePrimary,
       accent: c.colors?.accent ?? DEFAULT_THEME.colors.accent,

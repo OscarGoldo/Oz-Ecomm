@@ -45,6 +45,7 @@ import {
   THEME_PRESETS,
   type ButtonStyle,
   type CardStyle,
+  type LayoutId,
   type SectionId,
   type StoreTheme,
   type ThemeFont,
@@ -140,7 +141,12 @@ export function ThemeEditor({
   function applyPreset(presetId: string) {
     const preset = THEME_PRESETS.find((p) => p.id === presetId);
     if (!preset) return;
-    setTheme((t) => ({ ...t, ...preset.theme, preset: presetId }));
+    setTheme((t) => ({
+      ...t,
+      ...preset.theme,
+      preset: presetId,
+      layout: presetId as LayoutId,
+    }));
   }
   function toggleSection(id: SectionId, on: boolean) {
     setTheme((t) => {
@@ -182,7 +188,7 @@ export function ThemeEditor({
           <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {THEME_PRESETS.map((p) => {
               const Icon = PRESET_ICONS[p.icon] ?? Store;
-              const active = theme.preset === p.id;
+              const active = theme.layout === p.id;
               return (
                 <button
                   key={p.id}
