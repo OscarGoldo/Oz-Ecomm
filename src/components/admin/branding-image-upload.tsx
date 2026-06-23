@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { STORE_IMAGES_BUCKET, fileExt, getImageUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 15 * 1024 * 1024;
 
 interface BrandingImageUploadProps {
   storeId: string;
@@ -38,7 +38,7 @@ export function BrandingImageUpload({
       return;
     }
     if (file.size > MAX_BYTES) {
-      toast.error("La imagen supera 5 MB");
+      toast.error("La imagen supera 15 MB");
       return;
     }
     const supabase = createClient();

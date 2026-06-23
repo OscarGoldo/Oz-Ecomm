@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const MAX_IMAGES = 6;
-const MAX_BYTES = 5 * 1024 * 1024; // 5MB
+const MAX_BYTES = 15 * 1024 * 1024; // 15MB
 
 interface ImageUploaderProps {
   storeId: string;
@@ -46,7 +46,7 @@ export function ImageUploader({ storeId, value, onChange }: ImageUploaderProps) 
         continue;
       }
       if (file.size > MAX_BYTES) {
-        toast.error(`${file.name}: supera 5 MB`);
+        toast.error(`${file.name}: supera 15 MB`);
         continue;
       }
 
@@ -156,7 +156,7 @@ export function ImageUploader({ storeId, value, onChange }: ImageUploaderProps) 
         onChange={(e) => handleFiles(e.target.files)}
       />
       <p className="text-xs text-muted-foreground">
-        Hasta {MAX_IMAGES} imágenes (máx. 5 MB c/u). La primera es la portada.
+        Hasta {MAX_IMAGES} imágenes (máx. 15 MB c/u). La primera es la portada.
       </p>
     </div>
   );

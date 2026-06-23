@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { PAYMENT_PROOFS_BUCKET, fileExt } from "@/lib/storage";
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 15 * 1024 * 1024;
 
 interface PaymentProofUploadProps {
   storeId: string;
@@ -31,7 +31,7 @@ export function PaymentProofUpload({
       return;
     }
     if (file.size > MAX_BYTES) {
-      toast.error("La imagen supera 5 MB");
+      toast.error("La imagen supera 15 MB");
       return;
     }
 
