@@ -37,12 +37,23 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ImageUploader } from "@/components/admin/image-uploader";
 import {
+  VariantsEditor,
+  initialVariantState,
+  type VariantState,
+} from "@/components/admin/variants-editor";
+import {
   createProduct,
   deleteProduct,
   updateProduct,
   type ProductInput,
 } from "@/app/(admin)/panel/productos/actions";
-import type { Category, Product, ProductStatus } from "@/types/database";
+import { cleanVariantOptions, variantCombos, variantKey } from "@/lib/variants";
+import type {
+  Category,
+  Product,
+  ProductStatus,
+  ProductVariant,
+} from "@/types/database";
 
 const NONE = "none";
 
@@ -85,13 +96,22 @@ interface ProductFormProps {
   storeId: string;
   categories: Pick<Category, "id" | "name">[];
   product?: Product;
+  variants?: ProductVariant[];
 }
 
-export function ProductForm({ storeId, categories, product }: ProductFormProps) {
+export function ProductForm({
+  storeId,
+  categories,
+  product,
+  variants,
+}: ProductFormProps) {
   const router = useRouter();
   const isEdit = Boolean(product);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [variantState, setVariantState] = useState<VariantState>(() =>
+    initialVariantState(product?.variant_options, variants),
+  );
 
   const {
     register,
@@ -102,8 +122,33 @@ export function ProductForm({ storeId, categories, product }: ProductFormProps) 
   } = useForm<FormValues>({ defaultValues: toDefaults(product) });
 
   const trackStock = watch("track_stock");
+  const hasVariants = variantState.enabled;
 
   async function onSubmit(values: FormValues) {
+    // Build variant payload from the editor state.
+    let variantOptions: ProductInput["variant_options"] = null;
+    let variantPayload: ProductInput["variants"] = [];
+    if (variantState.enabled) {
+      const axes = cleanVariantOptions(variantState.options);
+      const combos = variantCombos(axes);
+      if (axes.length === 0 || combos.length === 0) {
+        toast.error("Agregá al menos un tipo de variante con sus valores");
+        return;
+      }
+      const rowByKey = new Map(variantState.rows.map((r) => [r.key, r]));
+      variantOptions = axes;
+      variantPayload = combos.map((vals) => {
+        const r = rowByKey.get(variantKey(vals));
+        const priceNum = r?.price ? Number(r.price) : NaN;
+        return {
+          option_values: vals,
+          stock: Math.max(0, Math.floor(Number(r?.stock) || 0)),
+          price: Number.isFinite(priceNum) && priceNum > 0 ? priceNum : null,
+          active: r?.active ?? true,
+        };
+      });
+    }
+
     const input: ProductInput = {
       name: values.name,
       description: values.description || null,
@@ -119,6 +164,8 @@ export function ProductForm({ storeId, categories, product }: ProductFormProps) 
       status: values.status,
       featured: values.featured,
       images: values.images,
+      variant_options: variantOptions,
+      variants: variantPayload,
     };
 
     setSubmitting(true);
@@ -284,49 +331,71 @@ export function ProductForm({ storeId, categories, product }: ProductFormProps) 
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div>
-              <p className="text-sm font-medium">Controlar stock</p>
-              <p className="text-xs text-muted-foreground">
-                Mostrar “agotado” cuando llegue a 0.
-              </p>
-            </div>
-            <Controller
-              control={control}
-              name="track_stock"
-              render={({ field }) => (
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
+          {hasVariants ? (
+            <p className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
+              El stock se maneja por variante (abajo). El precio de arriba es el
+              precio base; cada variante puede tener el suyo.
+            </p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <p className="text-sm font-medium">Controlar stock</p>
+                  <p className="text-xs text-muted-foreground">
+                    Mostrar “agotado” cuando llegue a 0.
+                  </p>
+                </div>
+                <Controller
+                  control={control}
+                  name="track_stock"
+                  render={({ field }) => (
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
                 />
-              )}
-            />
-          </div>
+              </div>
 
-          {trackStock && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="stock">Stock</Label>
-                <Input
-                  id="stock"
-                  type="number"
-                  min="0"
-                  inputMode="numeric"
-                  {...register("stock")}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="low_stock_threshold">Aviso de bajo stock</Label>
-                <Input
-                  id="low_stock_threshold"
-                  type="number"
-                  min="0"
-                  inputMode="numeric"
-                  {...register("low_stock_threshold")}
-                />
-              </div>
-            </div>
+              {trackStock && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="stock">Stock</Label>
+                    <Input
+                      id="stock"
+                      type="number"
+                      min="0"
+                      inputMode="numeric"
+                      {...register("stock")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="low_stock_threshold">Aviso de bajo stock</Label>
+                    <Input
+                      id="low_stock_threshold"
+                      type="number"
+                      min="0"
+                      inputMode="numeric"
+                      {...register("low_stock_threshold")}
+                    />
+                  </div>
+                </div>
+              )}
+            </>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Variantes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <VariantsEditor
+            value={variantState}
+            onChange={setVariantState}
+            basePrice={watch("price")}
+          />
         </CardContent>
       </Card>
 

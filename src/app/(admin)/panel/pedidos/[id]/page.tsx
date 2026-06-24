@@ -140,6 +140,9 @@ export default async function OrderDetailPage({
             <li key={item.id} className="flex items-center justify-between gap-3 p-4">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{item.product_name}</p>
+                {item.variant_name && (
+                  <p className="text-xs font-medium text-primary">{item.variant_name}</p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   {item.quantity} × {formatUSD(item.unit_price)}
                 </p>

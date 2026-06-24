@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 
-import { CART_COOKIE, readCart, type Cart } from "@/lib/cart";
+import { CART_COOKIE, readCart, type Cart, type CartItem } from "@/lib/cart";
 
 const MAX_QTY = 99;
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
@@ -32,17 +32,27 @@ function count(cart: Cart): number {
   return cart.items.reduce((sum, i) => sum + i.qty, 0);
 }
 
+/** Same cart line = same product AND same variant (null for simple products). */
+function matches(item: CartItem, productId: string, variantId: string | null) {
+  return item.id === productId && (item.variantId ?? null) === variantId;
+}
+
 export async function addToCart(
   storeId: string,
   productId: string,
   qty = 1,
+  variantId: string | null = null,
 ): Promise<CartActionResult> {
   const cart = currentFor(storeId);
-  const existing = cart.items.find((i) => i.id === productId);
+  const existing = cart.items.find((i) => matches(i, productId, variantId));
   if (existing) {
     existing.qty = Math.min(MAX_QTY, existing.qty + qty);
   } else {
-    cart.items.push({ id: productId, qty: Math.min(MAX_QTY, Math.max(1, qty)) });
+    cart.items.push({
+      id: productId,
+      qty: Math.min(MAX_QTY, Math.max(1, qty)),
+      variantId,
+    });
   }
   writeCart(cart);
   return { ok: true, count: count(cart) };
@@ -51,15 +61,16 @@ export async function addToCart(
 export async function updateCartItem(
   storeId: string,
   productId: string,
+  variantId: string | null,
   qty: number,
 ): Promise<CartActionResult> {
   const cart = currentFor(storeId);
   if (qty <= 0) {
-    cart.items = cart.items.filter((i) => i.id !== productId);
+    cart.items = cart.items.filter((i) => !matches(i, productId, variantId));
   } else {
-    const item = cart.items.find((i) => i.id === productId);
+    const item = cart.items.find((i) => matches(i, productId, variantId));
     if (item) item.qty = Math.min(MAX_QTY, Math.floor(qty));
-    else cart.items.push({ id: productId, qty: Math.min(MAX_QTY, qty) });
+    else cart.items.push({ id: productId, qty: Math.min(MAX_QTY, qty), variantId });
   }
   writeCart(cart);
   return { ok: true, count: count(cart) };
@@ -68,9 +79,10 @@ export async function updateCartItem(
 export async function removeCartItem(
   storeId: string,
   productId: string,
+  variantId: string | null = null,
 ): Promise<CartActionResult> {
   const cart = currentFor(storeId);
-  cart.items = cart.items.filter((i) => i.id !== productId);
+  cart.items = cart.items.filter((i) => !matches(i, productId, variantId));
   writeCart(cart);
   return { ok: true, count: count(cart) };
 }

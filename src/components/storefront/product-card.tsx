@@ -82,7 +82,12 @@ export function ProductCard({ product, store, cardStyle = "soft" }: ProductCardP
             showBs={store.show_bs_prices}
           />
           {available ? (
-            <AddToCartButton storeId={store.id} productId={product.id} />
+            <AddToCartButton
+              storeId={store.id}
+              productId={product.id}
+              hasVariants={Boolean(product.variant_options?.length)}
+              href={`/${store.slug}/producto/${product.slug}`}
+            />
           ) : (
             <span className="flex h-9 items-center justify-center rounded-lg bg-muted text-xs font-medium text-muted-foreground">
               Sin stock

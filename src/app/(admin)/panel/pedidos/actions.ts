@@ -90,31 +90,65 @@ export async function confirmPayment(orderId: string): Promise<ActionResult> {
 
   const { data: items } = await db
     .from("order_items")
-    .select("product_id, quantity")
+    .select("product_id, variant_id, quantity")
     .eq("order_id", orderId);
 
-  const tracked = (items ?? []).filter(
-    (i): i is { product_id: string; quantity: number } => Boolean(i.product_id),
+  const lines = (items ?? []).filter(
+    (i): i is { product_id: string; variant_id: string | null; quantity: number } =>
+      Boolean(i.product_id),
   );
 
-  if (tracked.length > 0) {
-    const ids = tracked.map((i) => i.product_id);
+  // Per-variant stock.
+  const variantLines = lines.filter((i) => i.variant_id) as {
+    product_id: string;
+    variant_id: string;
+    quantity: number;
+  }[];
+  if (variantLines.length > 0) {
+    const { data: vars } = await db
+      .from("product_variants")
+      .select("id, stock")
+      .in("id", variantLines.map((i) => i.variant_id))
+      .eq("store_id", storeId);
+    const vById = new Map((vars ?? []).map((v) => [v.id, v]));
+    await Promise.all(
+      variantLines.map((i) => {
+        const v = vById.get(i.variant_id);
+        if (!v) return Promise.resolve();
+        return db
+          .from("product_variants")
+          .update({ stock: Math.max(0, v.stock - i.quantity) })
+          .eq("id", i.variant_id)
+          .eq("store_id", storeId);
+      }),
+    );
+  }
+
+  // Product stock (direct for tracked simple products, mirrored for variant lines).
+  const productIds = [...new Set(lines.map((i) => i.product_id))];
+  if (productIds.length > 0) {
     const { data: products } = await db
       .from("products")
       .select("id, stock, track_stock")
-      .in("id", ids)
+      .in("id", productIds)
       .eq("store_id", storeId);
-    const byId = new Map((products ?? []).map((p) => [p.id, p]));
+    const pById = new Map((products ?? []).map((p) => [p.id, p]));
 
+    const decrement = new Map<string, number>();
+    for (const i of lines) {
+      const p = pById.get(i.product_id);
+      if (!p) continue;
+      if (i.variant_id || p.track_stock) {
+        decrement.set(i.product_id, (decrement.get(i.product_id) ?? 0) + i.quantity);
+      }
+    }
     await Promise.all(
-      tracked.map((item) => {
-        const product = byId.get(item.product_id);
-        if (!product || !product.track_stock) return Promise.resolve();
-        const newStock = Math.max(0, product.stock - item.quantity);
+      [...decrement.entries()].map(([pid, dec]) => {
+        const base = pById.get(pid)?.stock ?? 0;
         return db
           .from("products")
-          .update({ stock: newStock })
-          .eq("id", item.product_id)
+          .update({ stock: Math.max(0, base - dec) })
+          .eq("id", pid)
           .eq("store_id", storeId);
       }),
     );

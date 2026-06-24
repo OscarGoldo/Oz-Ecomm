@@ -79,7 +79,12 @@ export function FashionProductCard({
         </div>
         {available && (
           <div className="relative z-20 mx-auto mt-2.5 max-w-[12rem]">
-            <AddToCartButton storeId={store.id} productId={product.id} />
+            <AddToCartButton
+              storeId={store.id}
+              productId={product.id}
+              hasVariants={Boolean(product.variant_options?.length)}
+              href={`/${store.slug}/producto/${product.slug}`}
+            />
           </div>
         )}
       </div>

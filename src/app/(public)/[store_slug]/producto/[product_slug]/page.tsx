@@ -7,10 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Price } from "@/components/storefront/price";
 import { ProductGallery } from "@/components/storefront/product-gallery";
 import { ProductActions } from "@/components/storefront/product-actions";
+import { VariantPurchase } from "@/components/storefront/variant-purchase";
 import {
   getStoreBySlug,
   getStoreCategories,
   getStoreProduct,
+  getStoreProductVariants,
   isAvailable,
 } from "@/lib/storefront";
 import { getImageUrl } from "@/lib/storage";
@@ -51,6 +53,9 @@ export default async function ProductDetailPage({
     .filter((url): url is string => Boolean(url));
   const available = isAvailable(product);
 
+  const hasVariants = Boolean(product.variant_options?.length);
+  const variants = hasVariants ? await getStoreProductVariants(product.id) : [];
+
   return (
     <main className="container py-6">
       <Link
@@ -71,32 +76,56 @@ export default async function ProductDetailPage({
               </span>
             )}
             <h1 className="text-2xl font-bold tracking-tight">{product.name}</h1>
-            <Price
-              amountUsd={product.price}
-              compareAtUsd={product.compare_at_price}
-              exchangeRate={store.exchange_rate}
-              showBs={store.show_bs_prices}
-              size="lg"
-            />
+            {!hasVariants && (
+              <Price
+                amountUsd={product.price}
+                compareAtUsd={product.compare_at_price}
+                exchangeRate={store.exchange_rate}
+                showBs={store.show_bs_prices}
+                size="lg"
+              />
+            )}
           </div>
 
-          {available ? (
-            <Badge variant="success" className="gap-1">
-              <Check className="size-3.5" /> Disponible
-            </Badge>
+          {hasVariants && product.variant_options ? (
+            <VariantPurchase
+              storeId={store.id}
+              storeSlug={store.slug}
+              productId={product.id}
+              basePrice={product.price}
+              compareAtPrice={product.compare_at_price}
+              exchangeRate={store.exchange_rate}
+              showBs={store.show_bs_prices}
+              options={product.variant_options}
+              variants={variants.map((v) => ({
+                id: v.id,
+                option_values: v.option_values,
+                price: v.price,
+                stock: v.stock,
+                active: v.active,
+              }))}
+            />
           ) : (
-            <Badge variant="danger" className="gap-1">
-              <X className="size-3.5" /> Agotado
-            </Badge>
-          )}
+            <>
+              {available ? (
+                <Badge variant="success" className="gap-1">
+                  <Check className="size-3.5" /> Disponible
+                </Badge>
+              ) : (
+                <Badge variant="danger" className="gap-1">
+                  <X className="size-3.5" /> Agotado
+                </Badge>
+              )}
 
-          <ProductActions
-            storeId={store.id}
-            storeSlug={store.slug}
-            productId={product.id}
-            available={available}
-            maxQty={product.track_stock ? product.stock : null}
-          />
+              <ProductActions
+                storeId={store.id}
+                storeSlug={store.slug}
+                productId={product.id}
+                available={available}
+                maxQty={product.track_stock ? product.stock : null}
+              />
+            </>
+          )}
 
           {product.description && (
             <div className="space-y-2 border-t pt-5">

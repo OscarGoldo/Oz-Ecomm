@@ -654,7 +654,10 @@ function OrderSummary({
           {cart.lines.map((line) => {
             const img = getImageUrl(line.product.images[0]);
             return (
-              <li key={line.product.id} className="flex items-center gap-3 p-3">
+              <li
+                key={`${line.product.id}:${line.variantId ?? ""}`}
+                className="flex items-center gap-3 p-3"
+              >
                 <div className="relative size-12 shrink-0 overflow-hidden rounded-lg border bg-muted">
                   {img && (
                     <Image
@@ -669,9 +672,14 @@ function OrderSummary({
                     {line.available}
                   </span>
                 </div>
-                <p className="min-w-0 flex-1 text-sm font-medium leading-snug line-clamp-2">
-                  {line.product.name}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium leading-snug line-clamp-2">
+                    {line.product.name}
+                  </p>
+                  {line.variantName && (
+                    <p className="text-xs text-primary">{line.variantName}</p>
+                  )}
+                </div>
                 <span className="shrink-0 text-sm font-medium">
                   {formatUSD(line.lineTotalUsd)}
                 </span>

@@ -97,7 +97,12 @@ export function SportsProductCard({
           />
           {available ? (
             <div className="relative z-20">
-              <AddToCartButton storeId={store.id} productId={product.id} />
+              <AddToCartButton
+                storeId={store.id}
+                productId={product.id}
+                hasVariants={Boolean(product.variant_options?.length)}
+                href={`/${store.slug}/producto/${product.slug}`}
+              />
             </div>
           ) : (
             <span className="flex h-9 items-center justify-center rounded-md bg-muted text-xs font-bold uppercase text-muted-foreground">

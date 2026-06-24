@@ -79,7 +79,12 @@ export function BeautyProductCard({
           />
           {available ? (
             <div className="relative z-20">
-              <AddToCartButton storeId={store.id} productId={product.id} />
+              <AddToCartButton
+                storeId={store.id}
+                productId={product.id}
+                hasVariants={Boolean(product.variant_options?.length)}
+                href={`/${store.slug}/producto/${product.slug}`}
+              />
             </div>
           ) : (
             <span className="flex h-9 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">

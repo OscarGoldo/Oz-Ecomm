@@ -1,7 +1,7 @@
 import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
-import type { Category, Product, Store } from "@/types/database";
+import type { Category, Product, ProductVariant, Store } from "@/types/database";
 
 /**
  * Fetch an active store by slug. Cached per request so the layout and page can
@@ -82,6 +82,19 @@ export const getStoreProduct = cache(
       .eq("status", "active")
       .maybeSingle();
     return data ?? null;
+  },
+);
+
+/** Active variants of a product, in display order. */
+export const getStoreProductVariants = cache(
+  async (productId: string): Promise<ProductVariant[]> => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("product_variants")
+      .select("*")
+      .eq("product_id", productId)
+      .order("position");
+    return data ?? [];
   },
 );
 

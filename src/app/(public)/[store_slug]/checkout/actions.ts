@@ -123,25 +123,41 @@ export async function createOrder(
     return { ok: false, error: "Tu carrito está vacío" };
   }
 
-  const { data: products } = await db
-    .from("products")
-    .select("id, name, price, cost, track_stock, stock, status")
-    .eq("store_id", store.id)
-    .in(
-      "id",
-      cart.items.map((i) => i.id),
-    );
+  const variantIds = cart.items
+    .map((i) => i.variantId)
+    .filter((v): v is string => Boolean(v));
+
+  const [{ data: products }, { data: variants }] = await Promise.all([
+    db
+      .from("products")
+      .select("id, name, price, cost, track_stock, stock, status, variant_options")
+      .eq("store_id", store.id)
+      .in(
+        "id",
+        cart.items.map((i) => i.id),
+      ),
+    variantIds.length > 0
+      ? db
+          .from("product_variants")
+          .select("id, product_id, name, price, cost, stock, active")
+          .in("id", variantIds)
+      : Promise.resolve({ data: [] as never[] }),
+  ]);
   const byId = new Map((products ?? []).map((p) => [p.id, p]));
+  const variantById = new Map((variants ?? []).map((v) => [v.id, v]));
 
   const orderItems: {
     product_id: string;
     product_name: string;
+    variant_id: string | null;
+    variant_name: string | null;
     quantity: number;
     unit_price: number;
     unit_cost: number;
     subtotal: number;
   }[] = [];
-  const stockUpdates: { id: string; newStock: number }[] = [];
+  const variantStockUpdates: { id: string; newStock: number }[] = [];
+  const productDecrement = new Map<string, number>();
 
   for (const item of cart.items) {
     const product = byId.get(item.id);
@@ -149,6 +165,41 @@ export async function createOrder(
       return { ok: false, error: "Un producto ya no está disponible. Revisá tu carrito." };
     }
     const qty = item.qty;
+
+    if (item.variantId) {
+      const variant = variantById.get(item.variantId);
+      if (!variant || variant.product_id !== product.id || !variant.active) {
+        return { ok: false, error: "Una variante ya no está disponible. Revisá tu carrito." };
+      }
+      if (variant.stock < qty) {
+        return {
+          ok: false,
+          error: `Stock insuficiente de "${product.name} ${variant.name}" (quedan ${variant.stock}).`,
+        };
+      }
+      const unitPrice = variant.price != null ? variant.price : product.price;
+      const unitCost = variant.cost != null ? variant.cost : product.cost ?? 0;
+      orderItems.push({
+        product_id: product.id,
+        product_name: product.name,
+        variant_id: variant.id,
+        variant_name: variant.name,
+        quantity: qty,
+        unit_price: unitPrice,
+        unit_cost: unitCost,
+        subtotal: unitPrice * qty,
+      });
+      variantStockUpdates.push({ id: variant.id, newStock: variant.stock - qty });
+      productDecrement.set(product.id, (productDecrement.get(product.id) ?? 0) + qty);
+      continue;
+    }
+
+    // A variant product must be ordered with a chosen variant.
+    const opts = product.variant_options;
+    if (Array.isArray(opts) && opts.length > 0) {
+      return { ok: false, error: `Elegí las opciones de "${product.name}".` };
+    }
+
     if (product.track_stock && product.stock < qty) {
       return {
         ok: false,
@@ -158,13 +209,15 @@ export async function createOrder(
     orderItems.push({
       product_id: product.id,
       product_name: product.name,
+      variant_id: null,
+      variant_name: null,
       quantity: qty,
       unit_price: product.price,
       unit_cost: product.cost ?? 0,
       subtotal: product.price * qty,
     });
     if (product.track_stock) {
-      stockUpdates.push({ id: product.id, newStock: product.stock - qty });
+      productDecrement.set(product.id, (productDecrement.get(product.id) ?? 0) + qty);
     }
   }
 
@@ -258,11 +311,21 @@ export async function createOrder(
   // Decrement stock now only for immediately-confirmed (cash) orders.
   // Proof orders decrement when the owner confirms payment (Phase 5).
   if (status === "confirmed") {
-    await Promise.all(
-      stockUpdates.map((u) =>
-        db.from("products").update({ stock: Math.max(0, u.newStock) }).eq("id", u.id),
+    await Promise.all([
+      ...variantStockUpdates.map((u) =>
+        db
+          .from("product_variants")
+          .update({ stock: Math.max(0, u.newStock) })
+          .eq("id", u.id),
       ),
-    );
+      ...[...productDecrement.entries()].map(([pid, dec]) => {
+        const base = byId.get(pid)?.stock ?? 0;
+        return db
+          .from("products")
+          .update({ stock: Math.max(0, base - dec) })
+          .eq("id", pid);
+      }),
+    ]);
   }
 
   // Notify the store owner(s) by email (no-op if Resend isn't configured).

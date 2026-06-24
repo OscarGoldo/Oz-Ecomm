@@ -23,16 +23,16 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  function change(productId: string, qty: number) {
+  function change(productId: string, variantId: string | null, qty: number) {
     startTransition(async () => {
-      await updateCartItem(storeId, productId, qty);
+      await updateCartItem(storeId, productId, variantId, qty);
       router.refresh();
     });
   }
 
-  function remove(productId: string) {
+  function remove(productId: string, variantId: string | null) {
     startTransition(async () => {
-      await removeCartItem(storeId, productId);
+      await removeCartItem(storeId, productId, variantId);
       toast.success("Producto quitado");
       router.refresh();
     });
@@ -62,7 +62,7 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
           const cap = line.product.track_stock ? line.product.stock : 99;
           return (
             <li
-              key={line.product.id}
+              key={`${line.product.id}:${line.variantId ?? ""}`}
               className="flex gap-3 rounded-xl border bg-card p-3"
             >
               <Link
@@ -94,7 +94,7 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
                   </Link>
                   <button
                     type="button"
-                    onClick={() => remove(line.product.id)}
+                    onClick={() => remove(line.product.id, line.variantId)}
                     disabled={pending}
                     className="shrink-0 text-muted-foreground hover:text-destructive"
                     aria-label="Quitar"
@@ -103,8 +103,13 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
                   </button>
                 </div>
 
+                {line.variantName && (
+                  <p className="text-xs font-medium text-primary">
+                    {line.variantName}
+                  </p>
+                )}
                 <p className="text-sm text-muted-foreground">
-                  {formatUSD(line.product.price)} c/u
+                  {formatUSD(line.unitPriceUsd)} c/u
                 </p>
                 {capped && (
                   <p className="text-xs text-warning-foreground">
@@ -116,7 +121,7 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
                   <div className="flex items-center rounded-lg border">
                     <button
                       type="button"
-                      onClick={() => change(line.product.id, line.qty - 1)}
+                      onClick={() => change(line.product.id, line.variantId, line.qty - 1)}
                       disabled={pending}
                       className="grid size-8 place-items-center text-muted-foreground hover:text-foreground"
                       aria-label="Menos"
@@ -128,7 +133,7 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
                     </span>
                     <button
                       type="button"
-                      onClick={() => change(line.product.id, Math.min(cap, line.qty + 1))}
+                      onClick={() => change(line.product.id, line.variantId, Math.min(cap, line.qty + 1))}
                       disabled={pending || line.qty >= cap}
                       className="grid size-8 place-items-center text-muted-foreground hover:text-foreground disabled:opacity-30"
                       aria-label="Más"

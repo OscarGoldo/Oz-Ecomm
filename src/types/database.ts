@@ -31,6 +31,12 @@ export type CouponType = "percentage" | "fixed" | "free_shipping";
 export type PayCurrency = "USD" | "VES";
 export type PayFrequency = "weekly" | "biweekly" | "monthly";
 
+/** One variant axis, e.g. { name: "Talla", values: ["S","M","L"] }. */
+export interface VariantOption {
+  name: string;
+  values: string[];
+}
+
 export type OrderStatus =
   | "pending_payment"
   | "pending_confirmation"
@@ -170,6 +176,7 @@ export interface Database {
           featured: boolean;
           images: string[];
           sku: string | null;
+          variant_options: VariantOption[] | null;
           created_at: string;
           updated_at: string;
         };
@@ -191,6 +198,7 @@ export interface Database {
           featured?: boolean;
           images?: string[];
           sku?: string | null;
+          variant_options?: VariantOption[] | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -347,6 +355,8 @@ export interface Database {
           order_id: string;
           product_id: string | null;
           product_name: string;
+          variant_id: string | null;
+          variant_name: string | null;
           quantity: number;
           unit_price: number;
           unit_cost: number;
@@ -358,6 +368,8 @@ export interface Database {
           order_id: string;
           product_id?: string | null;
           product_name: string;
+          variant_id?: string | null;
+          variant_name?: string | null;
           quantity: number;
           unit_price: number;
           unit_cost?: number;
@@ -365,6 +377,38 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["order_items"]["Insert"]>;
+        Relationships: [];
+      };
+      product_variants: {
+        Row: {
+          id: string;
+          product_id: string;
+          store_id: string;
+          option_values: string[];
+          name: string;
+          price: number | null;
+          cost: number | null;
+          stock: number;
+          sku: string | null;
+          active: boolean;
+          position: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          store_id: string;
+          option_values?: string[];
+          name: string;
+          price?: number | null;
+          cost?: number | null;
+          stock?: number;
+          sku?: string | null;
+          active?: boolean;
+          position?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["product_variants"]["Insert"]>;
         Relationships: [];
       };
       expenses: {
@@ -439,4 +483,5 @@ export type Order = Tables["orders"]["Row"];
 export type OrderItem = Tables["order_items"]["Row"];
 export type Expense = Tables["expenses"]["Row"];
 export type Employee = Tables["employees"]["Row"];
+export type ProductVariant = Tables["product_variants"]["Row"];
 export type Coupon = Tables["coupons"]["Row"];

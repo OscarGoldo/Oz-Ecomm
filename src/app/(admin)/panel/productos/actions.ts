@@ -6,6 +6,21 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
+import { cleanVariantOptions, variantLabel } from "@/lib/variants";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database";
+
+const variantOptionSchema = z.object({
+  name: z.string().trim(),
+  values: z.array(z.string().trim()),
+});
+
+const variantPayloadSchema = z.object({
+  option_values: z.array(z.string()),
+  stock: z.coerce.number().int().min(0).default(0),
+  price: z.coerce.number().min(0).nullable().default(null),
+  active: z.boolean().default(true),
+});
 
 const productSchema = z.object({
   name: z.string().trim().min(2, "El nombre es muy corto"),
@@ -27,9 +42,56 @@ const productSchema = z.object({
   featured: z.boolean().default(false),
   sku: z.string().trim().max(120).nullable().optional(),
   images: z.array(z.string()).default([]),
+  variant_options: z.array(variantOptionSchema).nullable().optional(),
+  variants: z.array(variantPayloadSchema).default([]),
 });
 
 export type ProductInput = z.input<typeof productSchema>;
+
+type ParsedProduct = z.infer<typeof productSchema>;
+type DB = SupabaseClient<Database>;
+
+function hasVariants(data: ParsedProduct): boolean {
+  return Boolean(
+    data.variant_options && data.variant_options.length > 0 && data.variants.length > 0,
+  );
+}
+
+/** Product-row overrides driven by variants (denormalized stock for dashboards). */
+function variantProductPatch(data: ParsedProduct) {
+  if (!hasVariants(data)) return { variant_options: null };
+  return {
+    variant_options: cleanVariantOptions(data.variant_options!),
+    stock: data.variants.reduce((s, v) => s + v.stock, 0),
+    track_stock: true,
+  };
+}
+
+/** Replace a product's variant rows (delete-all + reinsert). */
+async function syncVariants(
+  supabase: DB,
+  storeId: string,
+  productId: string,
+  data: ParsedProduct,
+) {
+  await supabase
+    .from("product_variants")
+    .delete()
+    .eq("product_id", productId)
+    .eq("store_id", storeId);
+  if (!hasVariants(data)) return;
+  const rows = data.variants.map((v, i) => ({
+    product_id: productId,
+    store_id: storeId,
+    option_values: v.option_values,
+    name: variantLabel(v.option_values),
+    price: v.price,
+    stock: v.stock,
+    active: v.active,
+    position: i,
+  }));
+  await supabase.from("product_variants").insert(rows);
+}
 
 export interface ActionResult {
   ok: boolean;
@@ -77,7 +139,7 @@ export async function createProduct(input: ProductInput): Promise<ActionResult> 
   }
 
   const supabase = createClient();
-  const base = normalize(parsed.data, storeId);
+  const base = { ...normalize(parsed.data, storeId), ...variantProductPatch(parsed.data) };
   const baseSlug = slugify(parsed.data.slug || parsed.data.name) || "producto";
 
   // Insert, retrying once with a suffix on slug collision.
@@ -90,6 +152,7 @@ export async function createProduct(input: ProductInput): Promise<ActionResult> 
       .single();
 
     if (!error && data) {
+      await syncVariants(supabase, storeId, data.id, parsed.data);
       revalidatePath("/panel/productos");
       return { ok: true, productId: data.id };
     }
@@ -115,7 +178,7 @@ export async function updateProduct(
     const storeId = ctx.store.id;
 
     const supabase = createClient();
-    const base = normalize(parsed.data, storeId);
+    const base = { ...normalize(parsed.data, storeId), ...variantProductPatch(parsed.data) };
     const slug = slugify(parsed.data.slug || parsed.data.name) || "producto";
 
     const { error } = await supabase
@@ -130,6 +193,8 @@ export async function updateProduct(
       }
       return { ok: false, error: "No se pudo guardar el producto" };
     }
+
+    await syncVariants(supabase, storeId, id, parsed.data);
 
     revalidatePath("/panel/productos");
     revalidatePath(`/panel/productos/${id}`);

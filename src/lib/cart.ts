@@ -10,6 +10,7 @@ const MAX_QTY_PER_ITEM = 99;
 export interface CartItem {
   id: string; // product id
   qty: number;
+  variantId?: string | null;
 }
 
 export interface Cart {
@@ -22,9 +23,13 @@ export interface CartLine {
     Product,
     "id" | "name" | "slug" | "price" | "images" | "track_stock" | "stock"
   >;
+  variantId: string | null;
+  variantName: string | null;
   qty: number;
   /** qty clamped to available stock (if tracked). */
   available: number;
+  /** Effective unit price (variant override or product price). */
+  unitPriceUsd: number;
   lineTotalUsd: number;
 }
 
@@ -52,7 +57,11 @@ function parseCart(raw: string | undefined): Cart | null {
         .filter(
           (i) => typeof i.id === "string" && Number.isFinite(i.qty) && i.qty > 0,
         )
-        .map((i) => ({ id: i.id, qty: Math.min(MAX_QTY_PER_ITEM, Math.floor(i.qty)) }));
+        .map((i) => ({
+          id: i.id,
+          qty: Math.min(MAX_QTY_PER_ITEM, Math.floor(i.qty)),
+          variantId: typeof i.variantId === "string" ? i.variantId : null,
+        }));
       return { storeId: cart.storeId, items };
     }
   } catch {
@@ -99,27 +108,62 @@ export async function getEnrichedCart(
 
   const supabase = createClient();
   const ids = cart.items.map((i) => i.id);
-  const { data: products } = await supabase
-    .from("products")
-    .select("id, name, slug, price, images, track_stock, stock")
-    .eq("store_id", store.id)
-    .eq("status", "active")
-    .in("id", ids);
+  const variantIds = cart.items
+    .map((i) => i.variantId)
+    .filter((v): v is string => Boolean(v));
+
+  const [{ data: products }, { data: variants }] = await Promise.all([
+    supabase
+      .from("products")
+      .select("id, name, slug, price, images, track_stock, stock")
+      .eq("store_id", store.id)
+      .eq("status", "active")
+      .in("id", ids),
+    variantIds.length > 0
+      ? supabase
+          .from("product_variants")
+          .select("id, product_id, name, price, stock, active")
+          .in("id", variantIds)
+      : Promise.resolve({ data: [] as never[] }),
+  ]);
 
   const byId = new Map((products ?? []).map((p) => [p.id, p]));
+  const variantById = new Map((variants ?? []).map((v) => [v.id, v]));
 
   const lines: CartLine[] = [];
   for (const item of cart.items) {
     const product = byId.get(item.id);
     if (!product) continue;
+
+    if (item.variantId) {
+      const variant = variantById.get(item.variantId);
+      if (!variant || variant.product_id !== product.id || !variant.active) continue;
+      const unitPrice = variant.price != null ? variant.price : product.price;
+      const available = Math.min(item.qty, variant.stock);
+      if (available <= 0) continue;
+      lines.push({
+        product: { ...product, track_stock: true, stock: variant.stock },
+        variantId: variant.id,
+        variantName: variant.name,
+        qty: item.qty,
+        available,
+        unitPriceUsd: unitPrice,
+        lineTotalUsd: unitPrice * available,
+      });
+      continue;
+    }
+
     const available = product.track_stock
       ? Math.min(item.qty, product.stock)
       : item.qty;
     if (available <= 0) continue;
     lines.push({
       product,
+      variantId: null,
+      variantName: null,
       qty: item.qty,
       available,
+      unitPriceUsd: product.price,
       lineTotalUsd: product.price * available,
     });
   }

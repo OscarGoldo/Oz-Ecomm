@@ -32,6 +32,13 @@ export default async function EditProductPage({
 
   if (!product) notFound();
 
+  const { data: variants } = await supabase
+    .from("product_variants")
+    .select("*")
+    .eq("product_id", product.id)
+    .eq("store_id", store.id)
+    .order("position");
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
@@ -47,6 +54,7 @@ export default async function EditProductPage({
         storeId={store.id}
         categories={categories ?? []}
         product={product}
+        variants={variants ?? []}
       />
     </div>
   );
