@@ -1,6 +1,6 @@
 "use client";
 
-import { ShoppingCart, Store as StoreIcon } from "lucide-react";
+import { Search, ShoppingCart, Store as StoreIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { formatUSD } from "@/lib/format";
@@ -37,8 +37,34 @@ export function StorePreview({
     : [...theme.sections, "catalog"];
 
   const fashion = theme.layout === "fashion";
+  const tech = theme.layout === "tech";
 
   function Card({ p }: { p: SampleProduct }) {
+    if (tech) {
+      return (
+        <div className="overflow-hidden rounded border-2 bg-card">
+          <div className="grid aspect-square place-items-center bg-white text-muted-foreground">
+            {p.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.image} alt="" className="h-full w-full object-contain p-1" />
+            ) : (
+              <StoreIcon className="size-5 opacity-30" />
+            )}
+          </div>
+          <div className="space-y-1 p-1.5">
+            <p className="line-clamp-1 text-[9px] font-semibold">{p.name}</p>
+            <div className="flex gap-0.5">
+              <span className="rounded-sm border px-1 text-[7px] text-muted-foreground">USB</span>
+              <span className="rounded-sm border px-1 text-[7px] text-muted-foreground">LED</span>
+            </div>
+            <p className="text-[10px] font-bold">{formatUSD(p.price)}</p>
+            <div className="grid h-5 place-items-center rounded-sm bg-primary text-[8px] font-semibold text-primary-foreground">
+              Agregar
+            </div>
+          </div>
+        </div>
+      );
+    }
     if (fashion) {
       return (
         <div>
@@ -116,7 +142,23 @@ export function StorePreview({
       </div>
 
       {/* Hero */}
-      {fashion ? (
+      {tech ? (
+        <div className="bg-[#0b1220] p-4 text-white">
+          <p className="text-[8px] font-semibold uppercase tracking-[0.2em] text-white/50">
+            {storeName}
+          </p>
+          <p className="mt-0.5 text-sm font-bold">
+            {theme.hero.headline || `Bienvenido a ${storeName}`}
+          </p>
+          <div className="mt-2 flex items-center gap-1.5 rounded bg-white px-2 py-1.5">
+            <Search className="size-3 text-muted-foreground" />
+            <span className="text-[9px] text-muted-foreground">Buscar productos…</span>
+          </div>
+          <span className="mt-2 inline-block rounded bg-primary px-2 py-0.5 text-[8px] font-bold uppercase text-primary-foreground">
+            Envío gratis
+          </span>
+        </div>
+      ) : fashion ? (
         <div className="flex min-h-[160px] items-end bg-gradient-to-br from-primary to-primary/70 p-4 text-white">
           <div>
             <p className="text-[8px] uppercase tracking-[0.3em] text-white/80">{storeName}</p>

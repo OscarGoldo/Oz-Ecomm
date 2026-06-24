@@ -12,6 +12,7 @@ import {
 import { CategoryChips } from "@/components/storefront/category-chips";
 import { ProductCard } from "@/components/storefront/product-card";
 import { FashionStorefront } from "@/components/storefront/fashion-storefront";
+import { TechStorefront } from "@/components/storefront/tech-storefront";
 import {
   getStoreBySlug,
   getStoreCategories,
@@ -83,6 +84,20 @@ export default async function StorefrontHome({
         heading={heading}
         banner={banner}
         hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
+      />
+    );
+  }
+
+  if (theme.layout === "tech") {
+    return (
+      <TechStorefront
+        store={store}
+        theme={theme}
+        categories={categories}
+        products={products}
+        hasFilters={hasFilters}
+        heading={heading}
+        hero={{ headline: heroHeadline, subtext: heroSubtext }}
       />
     );
   }
