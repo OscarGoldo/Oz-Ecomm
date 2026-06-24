@@ -38,8 +38,39 @@ export function StorePreview({
 
   const fashion = theme.layout === "fashion";
   const tech = theme.layout === "tech";
+  const sports = theme.layout === "sports";
 
   function Card({ p }: { p: SampleProduct }) {
+    if (sports) {
+      return (
+        <div className="overflow-hidden rounded-lg border-2 bg-card">
+          <div className="relative grid aspect-square place-items-center bg-white text-muted-foreground">
+            {p.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.image} alt="" className="h-full w-full object-contain p-1" />
+            ) : (
+              <StoreIcon className="size-5 opacity-30" />
+            )}
+            <span className="absolute -left-1 top-1.5 -skew-x-12 bg-primary px-2 py-0.5 text-[8px] font-extrabold uppercase italic text-primary-foreground">
+              -20%
+            </span>
+          </div>
+          <div className="space-y-1 p-1.5">
+            <p className="line-clamp-1 text-[9px] font-bold uppercase">{p.name}</p>
+            <div className="h-1 overflow-hidden rounded-full bg-muted">
+              <div className="h-full w-1/3 bg-destructive" />
+            </div>
+            <p className="text-[7px] font-extrabold uppercase italic text-destructive">
+              ¡Solo quedan 3!
+            </p>
+            <p className="text-[10px] font-bold">{formatUSD(p.price)}</p>
+            <div className="grid h-5 place-items-center rounded-sm bg-primary text-[8px] font-bold uppercase text-primary-foreground">
+              Agregar
+            </div>
+          </div>
+        </div>
+      );
+    }
     if (tech) {
       return (
         <div className="overflow-hidden rounded border-2 bg-card">
@@ -142,7 +173,20 @@ export function StorePreview({
       </div>
 
       {/* Hero */}
-      {tech ? (
+      {sports ? (
+        <div className="relative overflow-hidden bg-primary p-4 text-primary-foreground">
+          <div className="absolute inset-y-0 right-0 w-1/3 -skew-x-12 bg-foreground/15" />
+          <p className="relative text-[8px] font-extrabold uppercase tracking-widest text-primary-foreground/70">
+            {storeName}
+          </p>
+          <p className="relative mt-0.5 text-sm font-extrabold uppercase italic">
+            {theme.hero.headline || `Bienvenido a ${storeName}`}
+          </p>
+          <span className="relative mt-2 inline-block -skew-x-6 bg-foreground px-2 py-0.5 text-[8px] font-extrabold uppercase italic text-background">
+            {theme.hero.ctaText || "Comprar"}
+          </span>
+        </div>
+      ) : tech ? (
         <div className="bg-[#0b1220] p-4 text-white">
           <p className="text-[8px] font-semibold uppercase tracking-[0.2em] text-white/50">
             {storeName}
