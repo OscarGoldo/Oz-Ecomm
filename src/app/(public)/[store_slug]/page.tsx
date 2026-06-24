@@ -14,6 +14,8 @@ import { ProductCard } from "@/components/storefront/product-card";
 import { FashionStorefront } from "@/components/storefront/fashion-storefront";
 import { TechStorefront } from "@/components/storefront/tech-storefront";
 import { SportsStorefront } from "@/components/storefront/sports-storefront";
+import { AccessoriesStorefront } from "@/components/storefront/accessories-storefront";
+import { BeautyStorefront } from "@/components/storefront/beauty-storefront";
 import {
   getStoreBySlug,
   getStoreCategories,
@@ -113,6 +115,35 @@ export default async function StorefrontHome({
         hasFilters={hasFilters}
         heading={heading}
         banner={banner}
+        hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
+      />
+    );
+  }
+
+  if (theme.layout === "accessories") {
+    return (
+      <AccessoriesStorefront
+        store={store}
+        theme={theme}
+        categories={categories}
+        products={products}
+        hasFilters={hasFilters}
+        heading={heading}
+        hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
+      />
+    );
+  }
+
+  if (theme.layout === "beauty") {
+    return (
+      <BeautyStorefront
+        store={store}
+        theme={theme}
+        categories={categories}
+        products={products}
+        featured={featured}
+        hasFilters={hasFilters}
+        heading={heading}
         hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
       />
     );

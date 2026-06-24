@@ -39,8 +39,52 @@ export function StorePreview({
   const fashion = theme.layout === "fashion";
   const tech = theme.layout === "tech";
   const sports = theme.layout === "sports";
+  const accessories = theme.layout === "accessories";
+  const beauty = theme.layout === "beauty";
 
   function Card({ p }: { p: SampleProduct }) {
+    if (accessories) {
+      return (
+        <div className="text-center">
+          <div className="grid aspect-square place-items-center rounded-sm bg-muted/40 text-muted-foreground">
+            {p.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.image} alt="" className="h-full w-full object-contain p-3" />
+            ) : (
+              <StoreIcon className="size-5 opacity-30" />
+            )}
+          </div>
+          <p className="mt-2 line-clamp-1 text-[8px] uppercase tracking-[0.15em] text-foreground/70">
+            {p.name}
+          </p>
+          <p className="text-[10px] font-bold">{formatUSD(p.price)}</p>
+        </div>
+      );
+    }
+    if (beauty) {
+      return (
+        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+          <div className="grid aspect-square place-items-center bg-white text-muted-foreground">
+            {p.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.image} alt="" className="h-full w-full object-contain p-2" />
+            ) : (
+              <StoreIcon className="size-5 opacity-30" />
+            )}
+          </div>
+          <div className="space-y-1 p-2">
+            <p className="line-clamp-1 text-[9px] font-medium">{p.name}</p>
+            <p className="text-[8px] text-amber-400">
+              ★★★★★ <span className="text-muted-foreground">(12)</span>
+            </p>
+            <p className="text-[10px] font-bold">{formatUSD(p.price)}</p>
+            <div className="grid h-5 place-items-center rounded-full bg-primary text-[8px] font-semibold text-primary-foreground">
+              Agregar
+            </div>
+          </div>
+        </div>
+      );
+    }
     if (sports) {
       return (
         <div className="overflow-hidden rounded-lg border-2 bg-card">
@@ -173,7 +217,28 @@ export function StorePreview({
       </div>
 
       {/* Hero */}
-      {sports ? (
+      {accessories ? (
+        <div className="border-b bg-background px-4 py-6 text-center">
+          <p className="text-[7px] uppercase tracking-[0.3em] text-muted-foreground">
+            {storeName}
+          </p>
+          <p className="mt-1 text-sm">
+            {theme.hero.headline || `Bienvenido a ${storeName}`}
+          </p>
+          <span className="mt-2 inline-block border-b border-foreground pb-0.5 text-[8px] uppercase tracking-[0.2em]">
+            {theme.hero.ctaText || "Ver colección"}
+          </span>
+        </div>
+      ) : beauty ? (
+        <div className="bg-gradient-to-b from-primary/15 to-transparent px-4 py-6 text-center">
+          <p className="text-sm font-semibold">
+            {theme.hero.headline || `Bienvenido a ${storeName}`}
+          </p>
+          <span className="mt-2 inline-block rounded-full bg-primary px-3 py-1 text-[8px] font-semibold text-primary-foreground">
+            {theme.hero.ctaText || "Comprar"}
+          </span>
+        </div>
+      ) : sports ? (
         <div className="relative overflow-hidden bg-primary p-4 text-primary-foreground">
           <div className="absolute inset-y-0 right-0 w-1/3 -skew-x-12 bg-foreground/15" />
           <p className="relative text-[8px] font-extrabold uppercase tracking-widest text-primary-foreground/70">
