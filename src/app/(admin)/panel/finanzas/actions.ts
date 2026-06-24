@@ -73,3 +73,82 @@ export async function deleteExpense(id: string): Promise<ActionResult> {
   revalidatePath("/panel/finanzas");
   return { ok: true };
 }
+
+// ── Payroll (nómina) ─────────────────────────────────────────────────────────
+
+const employeeSchema = z.object({
+  name: z.string().trim().min(2, "Poné un nombre").max(80),
+  role: z.string().trim().max(60).optional().nullable(),
+  amount: z.coerce.number().positive("Monto inválido"),
+  currency: z.enum(["USD", "VES"]).default("USD"),
+  frequency: z.enum(["weekly", "biweekly", "monthly"]).default("monthly"),
+});
+
+export type EmployeeInput = z.input<typeof employeeSchema>;
+
+export async function createEmployee(input: EmployeeInput): Promise<ActionResult> {
+  const parsed = employeeSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  let storeId: string;
+  try {
+    storeId = await requireStoreId();
+  } catch {
+    return { ok: false, error: "No autorizado" };
+  }
+
+  const supabase = createClient();
+  const { error } = await supabase.from("employees").insert({
+    store_id: storeId,
+    name: parsed.data.name,
+    role: parsed.data.role?.trim() || null,
+    amount: parsed.data.amount,
+    currency: parsed.data.currency,
+    frequency: parsed.data.frequency,
+  });
+  if (error) return { ok: false, error: "No se pudo agregar el empleado" };
+
+  revalidatePath("/panel/finanzas");
+  return { ok: true };
+}
+
+export async function setEmployeeActive(
+  id: string,
+  active: boolean,
+): Promise<ActionResult> {
+  let storeId: string;
+  try {
+    storeId = await requireStoreId();
+  } catch {
+    return { ok: false, error: "No autorizado" };
+  }
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("employees")
+    .update({ active })
+    .eq("id", id)
+    .eq("store_id", storeId);
+  if (error) return { ok: false, error: "No se pudo actualizar" };
+  revalidatePath("/panel/finanzas");
+  return { ok: true };
+}
+
+export async function deleteEmployee(id: string): Promise<ActionResult> {
+  let storeId: string;
+  try {
+    storeId = await requireStoreId();
+  } catch {
+    return { ok: false, error: "No autorizado" };
+  }
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("employees")
+    .delete()
+    .eq("id", id)
+    .eq("store_id", storeId);
+  if (error) return { ok: false, error: "No se pudo eliminar" };
+  revalidatePath("/panel/finanzas");
+  return { ok: true };
+}

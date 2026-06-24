@@ -2,21 +2,16 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Minus, Plus, MessageCircle, ShoppingCart } from "lucide-react";
+import { Loader2, Minus, Plus, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { addToCart } from "@/lib/cart-actions";
-import { whatsappUrl } from "@/lib/whatsapp";
 
 interface ProductActionsProps {
   storeId: string;
   storeSlug: string;
   productId: string;
-  productName: string;
-  priceLabel: string;
-  productUrl: string;
-  whatsapp: string | null;
   available: boolean;
   maxQty: number | null;
 }
@@ -25,10 +20,6 @@ export function ProductActions({
   storeId,
   storeSlug,
   productId,
-  productName,
-  priceLabel,
-  productUrl,
-  whatsapp,
   available,
   maxQty,
 }: ProductActionsProps) {
@@ -39,9 +30,6 @@ export function ProductActions({
   const cap = maxQty && maxQty > 0 ? maxQty : 99;
   const dec = () => setQty((q) => Math.max(1, q - 1));
   const inc = () => setQty((q) => Math.min(cap, q + 1));
-
-  const waMessage = `Hola! Me interesa este producto:\n*${productName}* — ${priceLabel}\nCantidad: ${qty}\n${productUrl}\n¿Está disponible?`;
-  const waUrl = whatsappUrl(whatsapp, waMessage);
 
   function handleAdd() {
     startTransition(async () => {
@@ -62,17 +50,8 @@ export function ProductActions({
 
   if (!available) {
     return (
-      <div className="space-y-3">
-        <div className="rounded-lg border bg-muted/40 p-3 text-center text-sm font-medium text-muted-foreground">
-          Producto agotado
-        </div>
-        {waUrl && (
-          <Button asChild variant="outline" className="w-full" size="lg">
-            <a href={waUrl} target="_blank" rel="noopener noreferrer">
-              <MessageCircle /> Consultar disponibilidad
-            </a>
-          </Button>
-        )}
+      <div className="rounded-lg border bg-muted/40 p-3 text-center text-sm font-medium text-muted-foreground">
+        Producto agotado
       </div>
     );
   }
@@ -106,14 +85,6 @@ export function ProductActions({
         {pending ? <Loader2 className="animate-spin" /> : <ShoppingCart />}
         Agregar al carrito
       </Button>
-
-      {waUrl && (
-        <Button asChild variant="outline" className="w-full" size="lg">
-          <a href={waUrl} target="_blank" rel="noopener noreferrer">
-            <MessageCircle /> Pedir por WhatsApp
-          </a>
-        </Button>
-      )}
     </div>
   );
 }

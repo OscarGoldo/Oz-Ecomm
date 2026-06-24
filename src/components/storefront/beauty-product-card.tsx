@@ -1,12 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ImageOff, Star } from "lucide-react";
+import { ImageOff } from "lucide-react";
 
 import { Price } from "@/components/storefront/price";
 import { AddToCartButton } from "@/components/storefront/add-to-cart-button";
 import { getImageUrl } from "@/lib/storage";
 import { isAvailable } from "@/lib/storefront";
-import { extractBeautyTags, reviewStub } from "@/lib/beauty";
+import { extractBeautyTags } from "@/lib/beauty";
 import type { Product, Store } from "@/types/database";
 
 /**
@@ -23,7 +23,6 @@ export function BeautyProductCard({
   const cover = getImageUrl(product.images[0]);
   const available = isAvailable(product);
   const tags = extractBeautyTags(product.name, product.description);
-  const { count } = reviewStub(product.id);
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-3xl border bg-card shadow-sm transition-shadow hover:shadow-lg">
@@ -70,14 +69,6 @@ export function BeautyProductCard({
         <p className="line-clamp-2 text-sm font-medium leading-snug">
           {product.name}
         </p>
-        <div className="flex items-center gap-1.5">
-          <span className="flex text-amber-400">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star key={i} className="size-3 fill-current" />
-            ))}
-          </span>
-          <span className="text-[11px] text-muted-foreground">({count})</span>
-        </div>
 
         <div className="mt-auto space-y-2 pt-1">
           <Price

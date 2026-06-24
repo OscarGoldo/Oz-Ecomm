@@ -28,6 +28,9 @@ export type FulfillmentType = "delivery" | "pickup";
 
 export type CouponType = "percentage" | "fixed" | "free_shipping";
 
+export type PayCurrency = "USD" | "VES";
+export type PayFrequency = "weekly" | "biweekly" | "monthly";
+
 export type OrderStatus =
   | "pending_payment"
   | "pending_confirmation"
@@ -386,6 +389,32 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["expenses"]["Insert"]>;
         Relationships: [];
       };
+      employees: {
+        Row: {
+          id: string;
+          store_id: string;
+          name: string;
+          role: string | null;
+          amount: number;
+          currency: PayCurrency;
+          frequency: PayFrequency;
+          active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          name: string;
+          role?: string | null;
+          amount: number;
+          currency?: PayCurrency;
+          frequency?: PayFrequency;
+          active?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["employees"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -409,4 +438,5 @@ export type PaymentMethod = Tables["payment_methods"]["Row"];
 export type Order = Tables["orders"]["Row"];
 export type OrderItem = Tables["order_items"]["Row"];
 export type Expense = Tables["expenses"]["Row"];
+export type Employee = Tables["employees"]["Row"];
 export type Coupon = Tables["coupons"]["Row"];

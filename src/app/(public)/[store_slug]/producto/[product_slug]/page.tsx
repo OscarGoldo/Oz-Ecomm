@@ -14,7 +14,6 @@ import {
   isAvailable,
 } from "@/lib/storefront";
 import { getImageUrl } from "@/lib/storage";
-import { formatUSD } from "@/lib/format";
 
 export async function generateMetadata({
   params,
@@ -51,9 +50,6 @@ export default async function ProductDetailPage({
     .map((img) => getImageUrl(img))
     .filter((url): url is string => Boolean(url));
   const available = isAvailable(product);
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const productUrl = `${appUrl}/${store.slug}/producto/${product.slug}`;
 
   return (
     <main className="container py-6">
@@ -98,10 +94,6 @@ export default async function ProductDetailPage({
             storeId={store.id}
             storeSlug={store.slug}
             productId={product.id}
-            productName={product.name}
-            priceLabel={formatUSD(product.price)}
-            productUrl={productUrl}
-            whatsapp={store.whatsapp}
             available={available}
             maxQty={product.track_stock ? product.stock : null}
           />

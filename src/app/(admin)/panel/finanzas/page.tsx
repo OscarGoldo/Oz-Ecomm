@@ -13,20 +13,48 @@ import {
 } from "lucide-react";
 
 import { ExpensesManager } from "@/components/admin/expenses-manager";
+import { PayrollManager } from "@/components/admin/payroll-manager";
 import { requireStoreUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { getFinanceSummary, getRecentExpenses } from "@/lib/metrics";
 import { formatBs, formatUSD } from "@/lib/format";
 import { PAYMENT_METHOD_META } from "@/lib/constants";
-import type { Expense, PaymentMethodType } from "@/types/database";
+import type { Employee, Expense, PaymentMethodType } from "@/types/database";
 
 export const metadata: Metadata = { title: "Finanzas" };
 
+/** Times-per-month for each pay frequency (52 weeks / 12 months ≈ 4.33). */
+const FREQ_PER_MONTH = { weekly: 52 / 12, biweekly: 2, monthly: 1 } as const;
+
 export default async function FinanzasPage() {
   const { store } = await requireStoreUser();
-  const [f, expenses] = await Promise.all([
+  const supabase = createClient();
+  const [f, expenses, { data: employeeRows }] = await Promise.all([
     getFinanceSummary(store.id),
     getRecentExpenses(store.id),
+    supabase
+      .from("employees")
+      .select("*")
+      .eq("store_id", store.id)
+      .order("created_at", { ascending: true }),
   ]);
+  const employees = (employeeRows ?? []) as Employee[];
+  const rate = store.exchange_rate;
+
+  // Estimated monthly payroll, normalising every frequency + currency to USD.
+  const payrollMonthlyUsd = employees.reduce((sum, e) => {
+    if (!e.active) return sum;
+    const usd =
+      e.currency === "USD"
+        ? Number(e.amount)
+        : rate && rate > 0
+          ? Number(e.amount) / rate
+          : 0;
+    return sum + usd * FREQ_PER_MONTH[e.frequency];
+  }, 0);
+  const payrollMonthlyBs = rate && rate > 0 ? payrollMonthlyUsd * rate : null;
+  const hasActivePayroll = employees.some((e) => e.active);
+
   const showBs = store.show_bs_prices;
   const noCosts = f.cogsUsd === 0 && f.totalUsd > 0;
 
@@ -150,6 +178,37 @@ export default async function FinanzasPage() {
           </p>
         </div>
         <ExpensesManager initial={expenses as Expense[]} />
+      </section>
+
+      {/* Payroll */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold">Nómina</h2>
+          <p className="text-xs text-muted-foreground">
+            Tus empleados y sueldos (opcional). El monto se muestra en USD y su
+            equivalente en Bs.
+          </p>
+        </div>
+        {hasActivePayroll && (
+          <div className="rounded-xl border bg-card p-4">
+            <p className="text-xs font-medium text-muted-foreground">
+              Nómina mensual estimada
+            </p>
+            <p className="mt-1 text-2xl font-bold tracking-tight">
+              {formatUSD(payrollMonthlyUsd)}
+            </p>
+            {payrollMonthlyBs != null && payrollMonthlyBs > 0 && (
+              <p className="text-xs text-muted-foreground">
+                ≈ {formatBs(payrollMonthlyBs)} / mes
+              </p>
+            )}
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Estimado de lo que pagás al mes. Registrá cada pago real en
+              «Gastos» para descontarlo de tu ganancia.
+            </p>
+          </div>
+        )}
+        <PayrollManager initial={employees} exchangeRate={rate} />
       </section>
 
       {/* Recent sales */}

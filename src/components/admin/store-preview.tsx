@@ -74,9 +74,6 @@ export function StorePreview({
           </div>
           <div className="space-y-1 p-2">
             <p className="line-clamp-1 text-[9px] font-medium">{p.name}</p>
-            <p className="text-[8px] text-amber-400">
-              ★★★★★ <span className="text-muted-foreground">(12)</span>
-            </p>
             <p className="text-[10px] font-bold">{formatUSD(p.price)}</p>
             <div className="grid h-5 place-items-center rounded-full bg-primary text-[8px] font-semibold text-primary-foreground">
               Agregar
