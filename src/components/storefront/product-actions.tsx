@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Minus, Plus, ShoppingCart } from "lucide-react";
+import { Loader2, Minus, Plus, ShoppingCart, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ export function ProductActions({
   const router = useRouter();
   const [qty, setQty] = useState(1);
   const [pending, startTransition] = useTransition();
+  const [buying, setBuying] = useState(false);
 
   const cap = maxQty && maxQty > 0 ? maxQty : 99;
   const dec = () => setQty((q) => Math.max(1, q - 1));
@@ -48,6 +49,19 @@ export function ProductActions({
     });
   }
 
+  function handleBuyNow() {
+    setBuying(true);
+    startTransition(async () => {
+      const res = await addToCart(storeId, productId, qty);
+      if (!res.ok) {
+        setBuying(false);
+        toast.error("No se pudo continuar");
+        return;
+      }
+      router.push(`/${storeSlug}/checkout`);
+    });
+  }
+
   if (!available) {
     return (
       <div className="rounded-lg border bg-muted/40 p-3 text-center text-sm font-medium text-muted-foreground">
@@ -55,6 +69,8 @@ export function ProductActions({
       </div>
     );
   }
+
+  const busy = pending || buying;
 
   return (
     <div className="space-y-3">
@@ -81,8 +97,19 @@ export function ProductActions({
         </div>
       </div>
 
-      <Button onClick={handleAdd} disabled={pending} className="w-full" size="lg">
-        {pending ? <Loader2 className="animate-spin" /> : <ShoppingCart />}
+      <Button onClick={handleBuyNow} disabled={busy} className="w-full" size="lg">
+        {buying ? <Loader2 className="animate-spin" /> : <Zap />}
+        Comprar ahora
+      </Button>
+
+      <Button
+        onClick={handleAdd}
+        disabled={busy}
+        variant="outline"
+        className="w-full"
+        size="lg"
+      >
+        {pending && !buying ? <Loader2 className="animate-spin" /> : <ShoppingCart />}
         Agregar al carrito
       </Button>
     </div>

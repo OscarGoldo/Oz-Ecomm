@@ -33,7 +33,7 @@ export default async function CheckoutPage({
     .order("display_order");
 
   return (
-    <main className="container max-w-2xl py-6">
+    <main className="container max-w-5xl py-6">
       <Link
         href={`/${store.slug}/carrito`}
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
