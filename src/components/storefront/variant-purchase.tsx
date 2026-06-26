@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Price } from "@/components/storefront/price";
 import { addToCart } from "@/lib/cart-actions";
+import { showCartToast } from "@/components/storefront/cart-toast";
 import { cn } from "@/lib/utils";
 import type { VariantOption } from "@/types/database";
 
@@ -24,6 +25,8 @@ interface VariantPurchaseProps {
   storeId: string;
   storeSlug: string;
   productId: string;
+  productName: string;
+  image?: string | null;
   basePrice: number;
   compareAtPrice: number | null;
   exchangeRate: number | null;
@@ -36,6 +39,8 @@ export function VariantPurchase({
   storeId,
   storeSlug,
   productId,
+  productName,
+  image,
   basePrice,
   compareAtPrice,
   exchangeRate,
@@ -116,11 +121,12 @@ export function VariantPurchase({
         toast.error("No se pudo agregar");
         return;
       }
-      toast.success("Agregado al carrito", {
-        action: {
-          label: "Ver carrito",
-          onClick: () => router.push(`/${storeSlug}/carrito`),
-        },
+      showCartToast({
+        name: productName,
+        image,
+        variant: selectedVariant!.option_values.join(" / "),
+        qty,
+        storeSlug,
       });
       router.refresh();
     });

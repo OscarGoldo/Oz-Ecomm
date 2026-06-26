@@ -7,11 +7,14 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { addToCart } from "@/lib/cart-actions";
+import { showCartToast } from "@/components/storefront/cart-toast";
 
 interface ProductActionsProps {
   storeId: string;
   storeSlug: string;
   productId: string;
+  productName: string;
+  image?: string | null;
   available: boolean;
   maxQty: number | null;
 }
@@ -20,6 +23,8 @@ export function ProductActions({
   storeId,
   storeSlug,
   productId,
+  productName,
+  image,
   available,
   maxQty,
 }: ProductActionsProps) {
@@ -39,12 +44,7 @@ export function ProductActions({
         toast.error("No se pudo agregar");
         return;
       }
-      toast.success("Agregado al carrito", {
-        action: {
-          label: "Ver carrito",
-          onClick: () => router.push(`/${storeSlug}/carrito`),
-        },
-      });
+      showCartToast({ name: productName, image, qty, storeSlug });
       router.refresh();
     });
   }

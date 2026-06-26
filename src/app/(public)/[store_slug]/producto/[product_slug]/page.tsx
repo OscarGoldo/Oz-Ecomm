@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Price } from "@/components/storefront/price";
 import { ProductGallery } from "@/components/storefront/product-gallery";
 import { ProductActions } from "@/components/storefront/product-actions";
+import { ProductCard } from "@/components/storefront/product-card";
 import { VariantPurchase } from "@/components/storefront/variant-purchase";
 import {
+  getRelatedProducts,
   getStoreBySlug,
   getStoreCategories,
   getStoreProduct,
@@ -56,6 +58,8 @@ export default async function ProductDetailPage({
   const hasVariants = Boolean(product.variant_options?.length);
   const variants = hasVariants ? await getStoreProductVariants(product.id) : [];
 
+  const related = await getRelatedProducts(store.id, product, 8);
+
   return (
     <main className="container py-6">
       <Link
@@ -92,6 +96,8 @@ export default async function ProductDetailPage({
               storeId={store.id}
               storeSlug={store.slug}
               productId={product.id}
+              productName={product.name}
+              image={images[0] ?? null}
               basePrice={product.price}
               compareAtPrice={product.compare_at_price}
               exchangeRate={store.exchange_rate}
@@ -121,6 +127,8 @@ export default async function ProductDetailPage({
                 storeId={store.id}
                 storeSlug={store.slug}
                 productId={product.id}
+                productName={product.name}
+                image={images[0] ?? null}
                 available={available}
                 maxQty={product.track_stock ? product.stock : null}
               />
@@ -137,6 +145,19 @@ export default async function ProductDetailPage({
           )}
         </div>
       </div>
+
+      {related.length > 0 && (
+        <section className="mt-12 border-t pt-8">
+          <h2 className="mb-5 text-lg font-bold tracking-tight">
+            Productos similares
+          </h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {related.map((p) => (
+              <ProductCard key={p.id} product={p} store={store} />
+            ))}
+          </div>
+        </section>
+      )}
     </main>
   );
 }

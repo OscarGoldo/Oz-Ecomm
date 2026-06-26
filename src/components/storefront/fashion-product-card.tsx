@@ -81,7 +81,10 @@ export function FashionProductCard({
           <div className="relative z-20 mx-auto mt-2.5 max-w-[12rem]">
             <AddToCartButton
               storeId={store.id}
+              storeSlug={store.slug}
               productId={product.id}
+              productName={product.name}
+              image={cover}
               hasVariants={Boolean(product.variant_options?.length)}
               href={`/${store.slug}/producto/${product.slug}`}
             />

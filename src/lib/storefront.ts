@@ -98,6 +98,57 @@ export const getStoreProductVariants = cache(
   },
 );
 
+/**
+ * Products to suggest on a product page: same category first, then filled with
+ * other active products from the store. Excludes the current product.
+ */
+export async function getRelatedProducts(
+  storeId: string,
+  current: Pick<Product, "id" | "category_id">,
+  limit = 8,
+): Promise<Product[]> {
+  const supabase = createClient();
+  const results: Product[] = [];
+  const seen = new Set<string>([current.id]);
+
+  if (current.category_id) {
+    const { data } = await supabase
+      .from("products")
+      .select("*")
+      .eq("store_id", storeId)
+      .eq("status", "active")
+      .eq("category_id", current.category_id)
+      .neq("id", current.id)
+      .order("featured", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    for (const p of data ?? []) {
+      results.push(p);
+      seen.add(p.id);
+    }
+  }
+
+  if (results.length < limit) {
+    const { data } = await supabase
+      .from("products")
+      .select("*")
+      .eq("store_id", storeId)
+      .eq("status", "active")
+      .neq("id", current.id)
+      .order("featured", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(limit + results.length + 1);
+    for (const p of data ?? []) {
+      if (seen.has(p.id)) continue;
+      results.push(p);
+      seen.add(p.id);
+      if (results.length >= limit) break;
+    }
+  }
+
+  return results.slice(0, limit);
+}
+
 /** Whether a product is purchasable given its stock settings. */
 export function isAvailable(product: Pick<Product, "track_stock" | "stock">): boolean {
   return !product.track_stock || product.stock > 0;

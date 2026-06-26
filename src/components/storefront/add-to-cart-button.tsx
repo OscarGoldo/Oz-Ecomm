@@ -7,17 +7,24 @@ import { Loader2, Plus, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 import { addToCart } from "@/lib/cart-actions";
+import { showCartToast } from "@/components/storefront/cart-toast";
 import { cn } from "@/lib/utils";
 
 export function AddToCartButton({
   storeId,
+  storeSlug,
   productId,
+  productName,
+  image,
   className,
   hasVariants,
   href,
 }: {
   storeId: string;
+  storeSlug?: string;
   productId: string;
+  productName?: string;
+  image?: string | null;
   className?: string;
   /** When true, the product needs option selection → link to its detail page. */
   hasVariants?: boolean;
@@ -51,7 +58,11 @@ export function AddToCartButton({
             toast.error("No se pudo agregar");
             return;
           }
-          toast.success("Agregado al carrito");
+          if (storeSlug && productName) {
+            showCartToast({ name: productName, image, qty: 1, storeSlug });
+          } else {
+            toast.success("Agregado al carrito");
+          }
           router.refresh();
         })
       }

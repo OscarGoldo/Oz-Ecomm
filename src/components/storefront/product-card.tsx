@@ -84,7 +84,10 @@ export function ProductCard({ product, store, cardStyle = "soft" }: ProductCardP
           {available ? (
             <AddToCartButton
               storeId={store.id}
+              storeSlug={store.slug}
               productId={product.id}
+              productName={product.name}
+              image={cover}
               hasVariants={Boolean(product.variant_options?.length)}
               href={`/${store.slug}/producto/${product.slug}`}
             />
