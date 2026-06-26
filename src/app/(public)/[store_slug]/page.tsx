@@ -12,6 +12,7 @@ import {
 import { CategoryChips } from "@/components/storefront/category-chips";
 import { ProductCard } from "@/components/storefront/product-card";
 import { FashionStorefront } from "@/components/storefront/fashion-storefront";
+import { AthleteEditorialStorefront } from "@/components/storefront/athlete-editorial-storefront";
 import { TechStorefront } from "@/components/storefront/tech-storefront";
 import { SportsStorefront } from "@/components/storefront/sports-storefront";
 import { AccessoriesStorefront } from "@/components/storefront/accessories-storefront";
@@ -83,6 +84,22 @@ export default async function StorefrontHome({
         theme={theme}
         categories={categories}
         products={products}
+        hasFilters={hasFilters}
+        heading={heading}
+        banner={banner}
+        hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
+      />
+    );
+  }
+
+  if (theme.layout === "fashion-athletic") {
+    return (
+      <AthleteEditorialStorefront
+        store={store}
+        theme={theme}
+        categories={categories}
+        products={products}
+        featured={featured}
         hasFilters={hasFilters}
         heading={heading}
         banner={banner}

@@ -17,7 +17,7 @@ const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Color inválido");
 const themeSchema = z.object({
   preset: z.string().max(40),
   layout: z
-    .enum(["classic", "fashion", "accessories", "beauty", "tech", "sports"])
+    .enum(["classic", "fashion", "fashion-athletic", "accessories", "beauty", "tech", "sports"])
     .default("classic"),
   colors: z.object({ primary: hex, accent: hex, surface: hex }),
   font: z.enum(["inter", "poppins", "montserrat", "lora"]),

@@ -10,6 +10,7 @@ import {
   Dumbbell,
   Gem,
   Loader2,
+  Medal,
   Save,
   Shirt,
   Sparkles,
@@ -57,6 +58,7 @@ const ALL_SECTIONS: SectionId[] = ["featured", "catalog", "about"];
 const PRESET_ICONS: Record<string, LucideIcon> = {
   store: Store,
   shirt: Shirt,
+  medal: Medal,
   gem: Gem,
   sparkles: Sparkles,
   cpu: Cpu,

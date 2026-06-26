@@ -37,6 +37,7 @@ export function StorePreview({
     : [...theme.sections, "catalog"];
 
   const fashion = theme.layout === "fashion";
+  const fashionAthletic = theme.layout === "fashion-athletic";
   const tech = theme.layout === "tech";
   const sports = theme.layout === "sports";
   const accessories = theme.layout === "accessories";
@@ -133,6 +134,31 @@ export function StorePreview({
             <div className="grid h-5 place-items-center rounded-sm bg-primary text-[8px] font-semibold text-primary-foreground">
               Agregar
             </div>
+          </div>
+        </div>
+      );
+    }
+    if (fashionAthletic) {
+      return (
+        <div>
+          <div className="grid aspect-[4/5] place-items-center overflow-hidden rounded-sm bg-stone-100 text-muted-foreground">
+            {p.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.image} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <StoreIcon className="size-5 opacity-30" />
+            )}
+          </div>
+          <div className="mt-2 space-y-0.5">
+            <p className="line-clamp-1 text-[9px] font-medium text-foreground/90">
+              {p.name}
+            </p>
+            <div className="flex gap-0.5">
+              <span className="size-2 rounded-full bg-stone-800" />
+              <span className="size-2 rounded-full bg-stone-400" />
+              <span className="size-2 rounded-full bg-amber-800/60" />
+            </div>
+            <p className="text-[10px] text-foreground/60">{formatUSD(p.price)}</p>
           </div>
         </div>
       );
@@ -263,6 +289,21 @@ export function StorePreview({
           <span className="mt-2 inline-block rounded bg-primary px-2 py-0.5 text-[8px] font-bold uppercase text-primary-foreground">
             Envío gratis
           </span>
+        </div>
+      ) : fashionAthletic ? (
+        <div className="relative flex min-h-[140px] items-end bg-stone-200 p-4">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          <div className="relative text-white">
+            <p className="text-[7px] font-medium uppercase tracking-[0.3em] text-white/70">
+              {storeName}
+            </p>
+            <p className="mt-0.5 text-sm font-light leading-tight">
+              {theme.hero.headline || `Bienvenido a ${storeName}`}
+            </p>
+            <span className="mt-1.5 inline-block border border-white/80 px-2 py-0.5 text-[7px] font-medium uppercase tracking-[0.15em]">
+              {theme.hero.ctaText || "Ver colección"}
+            </span>
+          </div>
         </div>
       ) : fashion ? (
         <div className="flex min-h-[160px] items-end bg-gradient-to-br from-primary to-primary/70 p-4 text-white">

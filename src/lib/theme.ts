@@ -12,6 +12,7 @@ export type SectionId = "featured" | "catalog" | "about";
 export type LayoutId =
   | "classic"
   | "fashion"
+  | "fashion-athletic"
   | "accessories"
   | "beauty"
   | "tech"
@@ -20,6 +21,7 @@ export type LayoutId =
 export const LAYOUT_IDS: LayoutId[] = [
   "classic",
   "fashion",
+  "fashion-athletic",
   "accessories",
   "beauty",
   "tech",
@@ -94,6 +96,18 @@ export const THEME_PRESETS: {
       // Minimalista monocromo, estética editorial.
       colors: { primary: "#1f2937", accent: "#b08968", surface: "#faf9f7" },
       font: "montserrat",
+      buttonStyle: "square",
+      cardStyle: "bordered",
+    },
+  },
+  {
+    id: "fashion-athletic",
+    label: "Atleta Editorial",
+    desc: "Ropa premium · lifestyle",
+    icon: "medal",
+    theme: {
+      colors: { primary: "#292524", accent: "#a8917a", surface: "#fafaf9" },
+      font: "inter",
       buttonStyle: "square",
       cardStyle: "bordered",
     },
