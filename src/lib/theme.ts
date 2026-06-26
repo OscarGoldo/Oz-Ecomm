@@ -13,6 +13,7 @@ export type LayoutId =
   | "classic"
   | "fashion"
   | "fashion-athletic"
+  | "fashion-streetwear"
   | "accessories"
   | "beauty"
   | "tech"
@@ -22,6 +23,7 @@ export const LAYOUT_IDS: LayoutId[] = [
   "classic",
   "fashion",
   "fashion-athletic",
+  "fashion-streetwear",
   "accessories",
   "beauty",
   "tech",
@@ -110,6 +112,18 @@ export const THEME_PRESETS: {
       font: "inter",
       buttonStyle: "square",
       cardStyle: "bordered",
+    },
+  },
+  {
+    id: "fashion-streetwear",
+    label: "Streetwear",
+    desc: "Urbano · vibrante",
+    icon: "flame",
+    theme: {
+      colors: { primary: "#db2777", accent: "#facc15", surface: "#ffffff" },
+      font: "poppins",
+      buttonStyle: "rounded",
+      cardStyle: "soft",
     },
   },
   {

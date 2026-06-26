@@ -38,6 +38,7 @@ export function StorePreview({
 
   const fashion = theme.layout === "fashion";
   const fashionAthletic = theme.layout === "fashion-athletic";
+  const fashionStreet = theme.layout === "fashion-streetwear";
   const tech = theme.layout === "tech";
   const sports = theme.layout === "sports";
   const accessories = theme.layout === "accessories";
@@ -133,6 +134,35 @@ export function StorePreview({
             <p className="text-[10px] font-bold">{formatUSD(p.price)}</p>
             <div className="grid h-5 place-items-center rounded-sm bg-primary text-[8px] font-semibold text-primary-foreground">
               Agregar
+            </div>
+          </div>
+        </div>
+      );
+    }
+    if (fashionStreet) {
+      return (
+        <div className="overflow-hidden rounded-2xl border-2 border-primary/20 bg-card shadow-sm">
+          <div className="relative grid aspect-square place-items-center bg-white text-muted-foreground">
+            {p.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.image} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <StoreIcon className="size-5 opacity-30" />
+            )}
+            <span className="absolute left-1.5 top-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[7px] font-bold text-white">
+              NEW
+            </span>
+          </div>
+          <div className="space-y-1 p-2">
+            <p className="line-clamp-1 text-[10px] font-bold">{p.name}</p>
+            <div className="flex gap-1">
+              <span className="size-2.5 rounded-full bg-pink-500 ring-1 ring-pink-300" />
+              <span className="size-2.5 rounded-full bg-yellow-400 ring-1 ring-yellow-300" />
+              <span className="size-2.5 rounded-full bg-sky-400 ring-1 ring-sky-300" />
+            </div>
+            <p className="text-[10px] font-extrabold text-primary">{formatUSD(p.price)}</p>
+            <div className="grid h-5 place-items-center rounded-full bg-primary text-[8px] font-bold text-white">
+              Comprar
             </div>
           </div>
         </div>
@@ -288,6 +318,21 @@ export function StorePreview({
           </div>
           <span className="mt-2 inline-block rounded bg-primary px-2 py-0.5 text-[8px] font-bold uppercase text-primary-foreground">
             Envío gratis
+          </span>
+        </div>
+      ) : fashionStreet ? (
+        <div className="bg-gradient-to-br from-primary via-primary to-pink-400 p-4 text-white">
+          <p className="text-[8px] font-extrabold uppercase tracking-widest text-white/70">
+            {storeName}
+          </p>
+          <p className="mt-0.5 text-base font-extrabold uppercase leading-tight">
+            {theme.hero.headline || `Bienvenido a ${storeName}`}
+          </p>
+          {theme.hero.subtext && (
+            <p className="mt-1 text-[9px] text-white/80">{theme.hero.subtext}</p>
+          )}
+          <span className="mt-2 inline-block rounded-full bg-white px-3 py-1 text-[9px] font-extrabold text-primary">
+            {theme.hero.ctaText || "Comprar"}
           </span>
         </div>
       ) : fashionAthletic ? (
