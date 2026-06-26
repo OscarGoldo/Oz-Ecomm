@@ -16,6 +16,7 @@ import { AthleteEditorialStorefront } from "@/components/storefront/athlete-edit
 import { StreetStorefront } from "@/components/storefront/streetwear-storefront";
 import { TechStorefront } from "@/components/storefront/tech-storefront";
 import { SportsStorefront } from "@/components/storefront/sports-storefront";
+import { DropsStorefront } from "@/components/storefront/drops-storefront";
 import { AccessoriesStorefront } from "@/components/storefront/accessories-storefront";
 import { BeautyStorefront } from "@/components/storefront/beauty-storefront";
 import {
@@ -146,6 +147,22 @@ export default async function StorefrontHome({
         theme={theme}
         categories={categories}
         products={products}
+        hasFilters={hasFilters}
+        heading={heading}
+        banner={banner}
+        hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
+      />
+    );
+  }
+
+  if (theme.layout === "sports-drops") {
+    return (
+      <DropsStorefront
+        store={store}
+        theme={theme}
+        categories={categories}
+        products={products}
+        featured={featured}
         hasFilters={hasFilters}
         heading={heading}
         banner={banner}

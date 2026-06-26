@@ -39,3 +39,26 @@ export function hexToHslTriplet(hex: string | null | undefined): string | null {
   const lRound = Math.round(l * 100);
   return `${hRound} ${sRound}% ${lRound}%`;
 }
+
+/**
+ * Whether a hex color is "dark" (low perceived luminance). Used to switch the
+ * storefront chrome to a dark token set when the surface color is dark.
+ */
+export function isDarkColor(hex: string | null | undefined): boolean {
+  if (!hex) return false;
+  let value = hex.trim().replace(/^#/, "");
+  if (value.length === 3) {
+    value = value
+      .split("")
+      .map((c) => c + c)
+      .join("");
+  }
+  if (!/^[0-9a-fA-F]{6}$/.test(value)) return false;
+
+  const r = parseInt(value.slice(0, 2), 16) / 255;
+  const g = parseInt(value.slice(2, 4), 16) / 255;
+  const b = parseInt(value.slice(4, 6), 16) / 255;
+  // Rec. 601 perceived luminance.
+  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+  return luminance < 0.4;
+}

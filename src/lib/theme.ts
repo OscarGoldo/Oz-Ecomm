@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-import { hexToHslTriplet } from "@/lib/color";
+import { hexToHslTriplet, isDarkColor } from "@/lib/color";
 import type { Store } from "@/types/database";
 
 export type ThemeFont = "inter" | "poppins" | "montserrat" | "lora";
@@ -17,7 +17,8 @@ export type LayoutId =
   | "accessories"
   | "beauty"
   | "tech"
-  | "sports";
+  | "sports"
+  | "sports-drops";
 
 export const LAYOUT_IDS: LayoutId[] = [
   "classic",
@@ -28,6 +29,7 @@ export const LAYOUT_IDS: LayoutId[] = [
   "beauty",
   "tech",
   "sports",
+  "sports-drops",
 ];
 
 export interface StoreTheme {
@@ -178,6 +180,19 @@ export const THEME_PRESETS: {
       cardStyle: "bordered",
     },
   },
+  {
+    id: "sports-drops",
+    label: "Drops",
+    desc: "Coleccionables · hype",
+    icon: "zap",
+    theme: {
+      // Oscuro premium, acento neón, estética de drops/coleccionista.
+      colors: { primary: "#101014", accent: "#a3e635", surface: "#0a0a0c" },
+      font: "montserrat",
+      buttonStyle: "square",
+      cardStyle: "bordered",
+    },
+  },
 ];
 
 /** Merge a store's saved customization over defaults into a full theme. */
@@ -238,5 +253,25 @@ export function themeStyle(theme: StoreTheme): CSSProperties {
   }
   if (accent) style["--brand-accent"] = accent;
   if (surface) style["--background"] = surface;
+
+  // When the surface is dark, switch the whole chrome (cards, text, borders,
+  // header/footer) to a coherent dark token set so nothing renders dark-on-dark.
+  if (isDarkColor(theme.colors.surface)) {
+    Object.assign(style, {
+      "--foreground": "0 0% 98%",
+      "--card": "0 0% 9%",
+      "--card-foreground": "0 0% 98%",
+      "--popover": "0 0% 9%",
+      "--popover-foreground": "0 0% 98%",
+      "--muted": "0 0% 15%",
+      "--muted-foreground": "0 0% 64%",
+      "--secondary": "0 0% 15%",
+      "--secondary-foreground": "0 0% 98%",
+      "--accent": "0 0% 18%",
+      "--accent-foreground": "0 0% 98%",
+      "--border": "0 0% 20%",
+      "--input": "0 0% 20%",
+    });
+  }
   return style as CSSProperties;
 }

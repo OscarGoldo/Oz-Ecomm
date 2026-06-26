@@ -41,6 +41,7 @@ export function StorePreview({
   const fashionStreet = theme.layout === "fashion-streetwear";
   const tech = theme.layout === "tech";
   const sports = theme.layout === "sports";
+  const drops = theme.layout === "sports-drops";
   const accessories = theme.layout === "accessories";
   const beauty = theme.layout === "beauty";
 
@@ -133,6 +134,42 @@ export function StorePreview({
             </div>
             <p className="text-[10px] font-bold">{formatUSD(p.price)}</p>
             <div className="grid h-5 place-items-center rounded-sm bg-primary text-[8px] font-semibold text-primary-foreground">
+              Agregar
+            </div>
+          </div>
+        </div>
+      );
+    }
+    if (drops) {
+      return (
+        <div className="overflow-hidden rounded-lg border border-white/10 bg-neutral-900">
+          <div className="relative grid aspect-square place-items-center bg-neutral-950 text-white/20">
+            {p.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.image} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <StoreIcon className="size-5 opacity-30" />
+            )}
+            <span
+              className="absolute left-0 top-1.5 px-1.5 py-0.5 text-[7px] font-extrabold uppercase text-neutral-950"
+              style={{ background: "hsl(var(--brand-accent))" }}
+            >
+              Limitada
+            </span>
+          </div>
+          <div className="space-y-1 p-1.5">
+            <p className="line-clamp-1 text-[9px] font-bold uppercase text-white">{p.name}</p>
+            <p
+              className="text-[7px] font-extrabold uppercase"
+              style={{ color: "hsl(var(--brand-accent))" }}
+            >
+              ¡Últimas 3!
+            </p>
+            <p className="text-[10px] font-bold text-white">{formatUSD(p.price)}</p>
+            <div
+              className="grid h-5 place-items-center rounded-sm text-[8px] font-extrabold uppercase text-neutral-950"
+              style={{ background: "hsl(var(--brand-accent))" }}
+            >
               Agregar
             </div>
           </div>
@@ -319,6 +356,27 @@ export function StorePreview({
           <span className="mt-2 inline-block rounded bg-primary px-2 py-0.5 text-[8px] font-bold uppercase text-primary-foreground">
             Envío gratis
           </span>
+        </div>
+      ) : drops ? (
+        <div className="relative overflow-hidden bg-neutral-950 p-4">
+          <p
+            className="text-[8px] font-extrabold uppercase tracking-[0.25em]"
+            style={{ color: "hsl(var(--brand-accent))" }}
+          >
+            {storeName} · Drop activo
+          </p>
+          <p className="mt-0.5 text-base font-extrabold uppercase leading-tight text-white">
+            {theme.hero.headline || `Bienvenido a ${storeName}`}
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <span
+              className="inline-block rounded-sm px-2 py-0.5 text-[8px] font-extrabold uppercase text-neutral-950"
+              style={{ background: "hsl(var(--brand-accent))" }}
+            >
+              {theme.hero.ctaText || "Comprar"}
+            </span>
+            <span className="font-mono text-[9px] font-bold text-white/60">47:59:32</span>
+          </div>
         </div>
       ) : fashionStreet ? (
         <div className="bg-gradient-to-br from-primary via-primary to-pink-400 p-4 text-white">

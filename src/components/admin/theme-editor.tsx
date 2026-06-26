@@ -16,6 +16,7 @@ import {
   Shirt,
   Sparkles,
   Store,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -65,6 +66,7 @@ const PRESET_ICONS: Record<string, LucideIcon> = {
   sparkles: Sparkles,
   cpu: Cpu,
   dumbbell: Dumbbell,
+  zap: Zap,
 };
 
 function ColorField({

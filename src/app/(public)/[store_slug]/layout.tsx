@@ -22,9 +22,13 @@ export default async function StoreLayout({
   return (
     <div style={themeStyle(theme)} className="flex min-h-dvh flex-col bg-background">
       {theme.announcement.enabled && theme.announcement.text &&
-        (theme.layout === "fashion-athletic" ? (
+        (theme.layout === "fashion-athletic" || theme.layout === "sports-drops" ? (
           <div
-            className="overflow-hidden py-1.5 text-xs font-medium tracking-widest text-white uppercase"
+            className={
+              theme.layout === "sports-drops"
+                ? "overflow-hidden py-1.5 text-xs font-extrabold uppercase tracking-widest text-neutral-950"
+                : "overflow-hidden py-1.5 text-xs font-medium uppercase tracking-widest text-white"
+            }
             style={{ background: "hsl(var(--brand-accent, var(--primary)))" }}
           >
             <div className="flex animate-marquee whitespace-nowrap">
