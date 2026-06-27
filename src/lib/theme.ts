@@ -39,6 +39,16 @@ export interface ThemeBlock {
   subtitle: string;
 }
 
+/** Owner-uploaded image sets for the design (storage paths). */
+export interface ThemeMedia {
+  /** Hero carousel slides (falls back to the single banner if empty). */
+  heroSlides: string[];
+  /** Lifestyle / lookbook gallery (falls back to product images if empty). */
+  gallery: string[];
+  /** Press / brand logos strip. */
+  pressLogos: string[];
+}
+
 export interface StoreTheme {
   preset: string;
   /** Structural layout. "classic" = base layout. */
@@ -55,7 +65,29 @@ export interface StoreTheme {
   blocks: Record<string, ThemeBlock>;
   /** Order of the reorderable blocks for the current layout. */
   blockOrder: string[];
+  /** Owner-uploaded images. */
+  media: ThemeMedia;
 }
+
+export type MediaKey = keyof ThemeMedia;
+
+/** Which media uploaders each layout exposes, with editor labels/limits. */
+export const LAYOUT_MEDIA: Partial<
+  Record<LayoutId, { key: MediaKey; label: string; help: string; max: number }[]>
+> = {
+  "fashion-athletic": [
+    { key: "heroSlides", label: "Carrusel de portada", help: "Imágenes grandes que rotan en el hero.", max: 5 },
+    { key: "gallery", label: "Galería “En acción”", help: "Fotos lifestyle. Si está vacía, se usan fotos de productos.", max: 8 },
+    { key: "pressLogos", label: "Logos de prensa", help: "Logos de medios o marcas (se muestran en gris).", max: 8 },
+  ],
+  "fashion-streetwear": [
+    { key: "heroSlides", label: "Carrusel de portada", help: "Imágenes grandes que rotan en el hero.", max: 5 },
+    { key: "gallery", label: "Galería lifestyle", help: "Se muestra como una franja de fotos.", max: 8 },
+  ],
+  "sports-drops": [
+    { key: "heroSlides", label: "Carrusel de campaña", help: "Imágenes de la campaña/drop que rotan en el hero.", max: 5 },
+  ],
+};
 
 /** Definition of a configurable block, per layout. */
 export interface LayoutBlockDef {
@@ -80,11 +112,13 @@ export const LAYOUT_BLOCKS: Partial<Record<LayoutId, LayoutBlockDef[]>> = {
     { id: "lo-nuevo", label: "Lo nuevo (destacados)", defaultTitle: "Lo nuevo", fields: ["title"], removable: true, reorderable: true },
     { id: "catalog", label: "Catálogo", defaultTitle: "Colección", fields: ["title"], removable: false, reorderable: true },
     { id: "lifestyle", label: "En acción (galería)", defaultTitle: "En acción", fields: ["title"], removable: true, reorderable: true },
+    { id: "prensa", label: "Prensa (logos)", defaultTitle: "Nos recomiendan", fields: ["title"], removable: true, reorderable: true },
     { id: "about", label: "Sobre la marca", defaultTitle: "Sobre nosotros", fields: ["title", "body"], removable: true, reorderable: true },
   ],
   "fashion-streetwear": [
     { id: "lo-nuevo", label: "Lo nuevo (destacados)", defaultTitle: "Lo nuevo", defaultSubtitle: "Los últimos drops que no te podés perder", fields: ["title", "subtitle"], removable: true, reorderable: true },
     { id: "colecciones", label: "Colecciones por categoría", defaultTitle: "Colecciones", fields: ["title"], removable: true, reorderable: true },
+    { id: "galeria", label: "Galería lifestyle", defaultTitle: "El look", fields: ["title"], removable: true, reorderable: true },
     { id: "catalog", label: "Catálogo", defaultTitle: "Todo", fields: ["title"], removable: false, reorderable: true },
     { id: "about", label: "Comunidad", defaultTitle: "Comunidad", fields: ["title", "body"], removable: true, reorderable: true },
   ],
@@ -125,6 +159,7 @@ export const DEFAULT_THEME: StoreTheme = {
   sections: ["featured", "catalog"],
   blocks: {},
   blockOrder: [],
+  media: { heroSlides: [], gallery: [], pressLogos: [] },
 };
 
 export const THEME_PRESETS: {
@@ -342,7 +377,18 @@ export function resolveTheme(
         : DEFAULT_THEME.sections,
     blocks: seeded.blocks,
     blockOrder: seeded.blockOrder,
+    media: {
+      heroSlides: cleanStrArray(c.media?.heroSlides),
+      gallery: cleanStrArray(c.media?.gallery),
+      pressLogos: cleanStrArray(c.media?.pressLogos),
+    },
   };
+}
+
+function cleanStrArray(v: unknown): string[] {
+  return Array.isArray(v)
+    ? v.filter((x): x is string => typeof x === "string" && x.length > 0).slice(0, 12)
+    : [];
 }
 
 /** CSS custom properties to apply on the storefront root for a theme. */

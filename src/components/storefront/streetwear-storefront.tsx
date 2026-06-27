@@ -5,6 +5,8 @@ import { PackageSearch } from "lucide-react";
 
 import { CategoryChips } from "@/components/storefront/category-chips";
 import { StreetProductCard } from "@/components/storefront/streetwear-product-card";
+import { HeroSlides } from "@/components/storefront/hero-slides";
+import { getImageUrl } from "@/lib/storage";
 import type { Category, Product, Store } from "@/types/database";
 import { getBlock, type StoreTheme } from "@/lib/theme";
 
@@ -40,8 +42,16 @@ export function StreetStorefront({
         .filter((c) => c.items.length > 0)
     : [];
 
+  const heroImages = theme.media.heroSlides
+    .map((p) => getImageUrl(p))
+    .filter((u): u is string => Boolean(u));
+  const galleryImages = theme.media.gallery
+    .map((p) => getImageUrl(p))
+    .filter((u): u is string => Boolean(u));
+
   const loNuevo = getBlock(theme, "lo-nuevo");
   const colecciones = getBlock(theme, "colecciones");
+  const galeria = getBlock(theme, "galeria");
   const catalog = getBlock(theme, "catalog");
   const about = getBlock(theme, "about");
 
@@ -95,6 +105,33 @@ export function StreetStorefront({
             </section>
           ))}
         </div>
+      ) : null,
+
+    galeria:
+      galleryImages.length >= 2 && galeria.enabled ? (
+        <section key="galeria" className="border-b py-10">
+          <div className="container">
+            <h2 className="mb-5 text-xl font-extrabold uppercase tracking-tight">
+              {galeria.title}
+            </h2>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+              {galleryImages.slice(0, 8).map((img, i) => (
+                <div
+                  key={i}
+                  className="relative aspect-square overflow-hidden rounded-2xl"
+                >
+                  <Image
+                    src={img}
+                    alt=""
+                    fill
+                    sizes="(max-width: 1024px) 50vw, 25vw"
+                    className="object-cover transition-transform duration-500 hover:scale-105"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       ) : null,
 
     catalog: (
@@ -154,9 +191,9 @@ export function StreetStorefront({
       {/* Vibrant hero */}
       {!hasFilters && (
         <section className="relative overflow-hidden">
-          {banner ? (
+          {heroImages.length || banner ? (
             <div className="relative min-h-[70vh]">
-              <Image src={banner} alt={store.name} fill priority className="object-cover" />
+              <HeroSlides slides={heroImages} fallback={banner} alt={store.name} />
               <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-primary/30 to-transparent" />
               <div className="container relative flex min-h-[70vh] flex-col justify-end pb-10 text-white">
                 <p className="text-xs font-extrabold uppercase tracking-widest text-white/70">

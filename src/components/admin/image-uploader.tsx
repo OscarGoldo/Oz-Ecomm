@@ -11,27 +11,43 @@ import {
   fileExt,
   getImageUrl,
   productImagePath,
+  themeImagePath,
 } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
-const MAX_IMAGES = 6;
+const DEFAULT_MAX_IMAGES = 6;
 const MAX_BYTES = 15 * 1024 * 1024; // 15MB
 
 interface ImageUploaderProps {
   storeId: string;
   value: string[];
   onChange: (next: string[]) => void;
+  /** Storage subfolder under <storeId>/theme/. When set, images go there
+   *  instead of the products folder (used by the theme editor). */
+  folder?: string;
+  /** Max number of images (default 6). */
+  max?: number;
+  /** Hide the "first image is cover" hint/star (for non-product galleries). */
+  hideCoverHint?: boolean;
 }
 
-export function ImageUploader({ storeId, value, onChange }: ImageUploaderProps) {
+export function ImageUploader({
+  storeId,
+  value,
+  onChange,
+  folder,
+  max = DEFAULT_MAX_IMAGES,
+  hideCoverHint = false,
+}: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const maxImages = max;
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const remaining = MAX_IMAGES - value.length;
+    const remaining = maxImages - value.length;
     if (remaining <= 0) {
-      toast.error(`Máximo ${MAX_IMAGES} imágenes`);
+      toast.error(`Máximo ${maxImages} imágenes`);
       return;
     }
 
@@ -51,7 +67,9 @@ export function ImageUploader({ storeId, value, onChange }: ImageUploaderProps) 
       }
 
       const fileName = `${crypto.randomUUID()}.${fileExt(file.name)}`;
-      const path = productImagePath(storeId, fileName);
+      const path = folder
+        ? themeImagePath(storeId, folder, fileName)
+        : productImagePath(storeId, fileName);
       const { error } = await supabase.storage
         .from(STORE_IMAGES_BUCKET)
         .upload(path, file, { cacheControl: "3600", upsert: false });
@@ -95,13 +113,13 @@ export function ImageUploader({ storeId, value, onChange }: ImageUploaderProps) 
               sizes="120px"
               className="object-cover"
             />
-            {i === 0 && (
+            {!hideCoverHint && i === 0 && (
               <span className="absolute left-1 top-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
                 Portada
               </span>
             )}
             <div className="absolute inset-x-0 bottom-0 flex justify-between gap-1 bg-gradient-to-t from-black/60 to-transparent p-1 opacity-0 transition-opacity group-hover:opacity-100">
-              {i !== 0 ? (
+              {!hideCoverHint && i !== 0 ? (
                 <button
                   type="button"
                   onClick={() => makeCover(i)}
@@ -125,7 +143,7 @@ export function ImageUploader({ storeId, value, onChange }: ImageUploaderProps) 
           </div>
         ))}
 
-        {value.length < MAX_IMAGES && (
+        {value.length < maxImages && (
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
@@ -156,7 +174,8 @@ export function ImageUploader({ storeId, value, onChange }: ImageUploaderProps) 
         onChange={(e) => handleFiles(e.target.files)}
       />
       <p className="text-xs text-muted-foreground">
-        Hasta {MAX_IMAGES} imágenes (máx. 15 MB c/u). La primera es la portada.
+        Hasta {maxImages} imágenes (máx. 15 MB c/u).
+        {!hideCoverHint && " La primera es la portada."}
       </p>
     </div>
   );

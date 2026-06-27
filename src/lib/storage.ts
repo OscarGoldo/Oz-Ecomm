@@ -21,6 +21,15 @@ export function productImagePath(storeId: string, fileName: string): string {
   return `${storeId}/products/${fileName}`;
 }
 
+/** Build the storage path for a theme/design image: <storeId>/theme/<sub>/<file>. */
+export function themeImagePath(
+  storeId: string,
+  sub: string,
+  fileName: string,
+): string {
+  return `${storeId}/theme/${sub}/${fileName}`;
+}
+
 /** File extension (lowercased, no dot) from a filename, defaulting to "jpg". */
 export function fileExt(name: string): string {
   const ext = name.includes(".") ? name.split(".").pop() : "";

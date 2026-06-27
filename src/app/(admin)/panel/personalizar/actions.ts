@@ -48,6 +48,13 @@ const themeSchema = z.object({
     )
     .default({}),
   blockOrder: z.array(z.string().max(40)).max(30).default([]),
+  media: z
+    .object({
+      heroSlides: z.array(z.string().max(400)).max(12).default([]),
+      gallery: z.array(z.string().max(400)).max(12).default([]),
+      pressLogos: z.array(z.string().max(400)).max(12).default([]),
+    })
+    .default({ heroSlides: [], gallery: [], pressLogos: [] }),
 });
 
 export type ThemeInput = z.input<typeof themeSchema>;

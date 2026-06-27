@@ -4,6 +4,7 @@ import { PackageSearch } from "lucide-react";
 
 import { CategoryChips } from "@/components/storefront/category-chips";
 import { AthleteEditorialProductCard } from "@/components/storefront/athlete-editorial-product-card";
+import { HeroSlides } from "@/components/storefront/hero-slides";
 import { getImageUrl } from "@/lib/storage";
 import type { Category, Product, Store } from "@/types/database";
 import { getBlock, type StoreTheme } from "@/lib/theme";
@@ -37,9 +38,21 @@ export function AthleteEditorialStorefront({
     .filter((u): u is string => Boolean(u))
     .slice(0, 4);
 
+  const resolve = (p: string) => getImageUrl(p);
+  const heroImages = theme.media.heroSlides
+    .map(resolve)
+    .filter((u): u is string => Boolean(u));
+  const galleryImages = theme.media.gallery.length
+    ? theme.media.gallery.map(resolve).filter((u): u is string => Boolean(u))
+    : lifestyleImages;
+  const pressLogos = theme.media.pressLogos
+    .map(resolve)
+    .filter((u): u is string => Boolean(u));
+
   const loNuevo = getBlock(theme, "lo-nuevo");
   const catalog = getBlock(theme, "catalog");
   const lifestyle = getBlock(theme, "lifestyle");
+  const prensa = getBlock(theme, "prensa");
   const about = getBlock(theme, "about");
 
   const nodes: Record<string, ReactNode> = {
@@ -86,14 +99,14 @@ export function AthleteEditorialStorefront({
     ),
 
     lifestyle:
-      lifestyleImages.length >= 3 && lifestyle.enabled ? (
+      galleryImages.length >= 3 && lifestyle.enabled ? (
         <section key="lifestyle" className="border-t bg-stone-50 py-12">
           <div className="container">
             <h2 className="mb-6 text-center text-[11px] font-medium uppercase tracking-[0.3em] text-foreground/50">
               {lifestyle.title}
             </h2>
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-              {lifestyleImages.map((img, i) => (
+              {galleryImages.slice(0, 8).map((img, i) => (
                 <div key={i} className="relative aspect-square overflow-hidden rounded-sm">
                   <Image
                     src={img}
@@ -102,6 +115,29 @@ export function AthleteEditorialStorefront({
                     sizes="(max-width: 1024px) 50vw, 25vw"
                     className="object-cover transition-transform duration-500 hover:scale-105"
                   />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null,
+
+    prensa:
+      pressLogos.length > 0 && prensa.enabled ? (
+        <section key="prensa" className="border-t py-12">
+          <div className="container">
+            {prensa.title && (
+              <h2 className="mb-7 text-center text-[11px] font-medium uppercase tracking-[0.3em] text-foreground/50">
+                {prensa.title}
+              </h2>
+            )}
+            <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
+              {pressLogos.map((src, i) => (
+                <div
+                  key={i}
+                  className="relative h-8 w-24 opacity-50 grayscale transition hover:opacity-100 hover:grayscale-0"
+                >
+                  <Image src={src} alt="" fill sizes="120px" className="object-contain" />
                 </div>
               ))}
             </div>
@@ -129,8 +165,8 @@ export function AthleteEditorialStorefront({
       {/* Full-bleed hero */}
       {!hasFilters && (
         <section className="relative flex min-h-[85vh] items-end overflow-hidden">
-          {banner ? (
-            <Image src={banner} alt={store.name} fill priority className="object-cover" />
+          {heroImages.length || banner ? (
+            <HeroSlides slides={heroImages} fallback={banner} alt={store.name} />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-stone-800 to-stone-600" />
           )}

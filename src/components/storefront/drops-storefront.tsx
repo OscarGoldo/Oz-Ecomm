@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { PackageSearch } from "lucide-react";
 
 import { CategoryChips } from "@/components/storefront/category-chips";
 import { DropsProductCard } from "@/components/storefront/drops-product-card";
 import { DropsCountdown } from "@/components/storefront/drops-countdown";
+import { HeroSlides } from "@/components/storefront/hero-slides";
+import { getImageUrl } from "@/lib/storage";
 import type { Category, Product, Store } from "@/types/database";
 import { getBlock, type StoreTheme } from "@/lib/theme";
 
@@ -48,6 +49,10 @@ export function DropsStorefront({
         }))
         .filter((c) => c.items.length > 0)
     : [];
+
+  const heroImages = theme.media.heroSlides
+    .map((p) => getImageUrl(p))
+    .filter((u): u is string => Boolean(u));
 
   const ligas = getBlock(theme, "ligas");
   const recien = getBlock(theme, "recien");
@@ -174,8 +179,13 @@ export function DropsStorefront({
       {/* Hero — campaign + countdown */}
       {!hasFilters && (
         <section className="relative overflow-hidden border-b border-white/10">
-          {banner ? (
-            <Image src={banner} alt={store.name} fill priority className="object-cover opacity-40" />
+          {heroImages.length || banner ? (
+            <HeroSlides
+              slides={heroImages}
+              fallback={banner}
+              alt={store.name}
+              imageClassName="object-cover opacity-40"
+            />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 to-black" />
           )}

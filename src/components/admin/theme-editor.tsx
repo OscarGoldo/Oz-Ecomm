@@ -38,12 +38,14 @@ import {
   StorePreview,
   type SampleProduct,
 } from "@/components/admin/store-preview";
+import { ImageUploader } from "@/components/admin/image-uploader";
 import {
   updateStoreTheme,
   type ThemeInput,
 } from "@/app/(admin)/panel/personalizar/actions";
 import {
   LAYOUT_BLOCKS,
+  LAYOUT_MEDIA,
   SECTION_LABELS,
   THEME_FONTS,
   THEME_PRESETS,
@@ -51,6 +53,7 @@ import {
   type ButtonStyle,
   type CardStyle,
   type LayoutId,
+  type MediaKey,
   type SectionId,
   type StoreTheme,
   type ThemeBlock,
@@ -144,6 +147,7 @@ export function ThemeEditor({
   const onList = theme.sections;
   const offList = ALL_SECTIONS.filter((s) => !onList.includes(s));
   const blockDefs = LAYOUT_BLOCKS[theme.layout];
+  const mediaDefs = LAYOUT_MEDIA[theme.layout];
 
   function patch(p: Partial<StoreTheme>) {
     setTheme((t) => ({ ...t, ...p, preset: "custom" }));
@@ -184,6 +188,13 @@ export function ThemeEditor({
       next.splice(target, 0, m!);
       return { ...t, blockOrder: next, preset: "custom" };
     });
+  }
+  function setMedia(key: MediaKey, next: string[]) {
+    setTheme((t) => ({
+      ...t,
+      media: { ...t.media, [key]: next },
+      preset: "custom",
+    }));
   }
   function toggleSection(id: SectionId, on: boolean) {
     setTheme((t) => {
@@ -503,6 +514,34 @@ export function ThemeEditor({
                   />
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Images */}
+        {mediaDefs && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Imágenes del diseño</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Subí tus propias imágenes para este diseño.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {mediaDefs.map((m) => (
+                <div key={m.key} className="space-y-1.5">
+                  <Label className="text-xs">{m.label}</Label>
+                  <ImageUploader
+                    storeId={store.id}
+                    value={theme.media[m.key]}
+                    onChange={(next) => setMedia(m.key, next)}
+                    folder={m.key}
+                    max={m.max}
+                    hideCoverHint
+                  />
+                  <p className="text-[11px] text-muted-foreground">{m.help}</p>
+                </div>
+              ))}
             </CardContent>
           </Card>
         )}
