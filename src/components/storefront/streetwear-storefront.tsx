@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { PackageSearch } from "lucide-react";
@@ -5,7 +6,7 @@ import { PackageSearch } from "lucide-react";
 import { CategoryChips } from "@/components/storefront/category-chips";
 import { StreetProductCard } from "@/components/storefront/streetwear-product-card";
 import type { Category, Product, Store } from "@/types/database";
-import type { StoreTheme } from "@/lib/theme";
+import { getBlock, type StoreTheme } from "@/lib/theme";
 
 interface StreetStorefrontProps {
   store: Store;
@@ -39,79 +40,22 @@ export function StreetStorefront({
         .filter((c) => c.items.length > 0)
     : [];
 
-  return (
-    <main>
-      {/* Vibrant hero */}
-      {!hasFilters && (
-        <section className="relative overflow-hidden">
-          {banner ? (
-            <>
-              <div className="relative min-h-[70vh]">
-                <Image
-                  src={banner}
-                  alt={store.name}
-                  fill
-                  priority
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-primary/30 to-transparent" />
-                <div className="container relative flex min-h-[70vh] flex-col justify-end pb-10 text-white">
-                  <p className="text-xs font-extrabold uppercase tracking-widest text-white/70">
-                    {store.name}
-                  </p>
-                  <h1 className="mt-1 max-w-lg text-3xl font-extrabold uppercase leading-[1.05] sm:text-5xl">
-                    {hero.headline}
-                  </h1>
-                  {hero.subtext && (
-                    <p className="mt-3 max-w-sm text-sm text-white/80">
-                      {hero.subtext}
-                    </p>
-                  )}
-                  <a
-                    href="#catalogo"
-                    className="mt-6 inline-block w-fit rounded-full bg-white px-8 py-3 text-sm font-extrabold uppercase tracking-wide text-primary shadow-lg transition-transform hover:scale-105"
-                  >
-                    {hero.cta}
-                  </a>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="bg-gradient-to-br from-primary via-primary to-pink-400 px-4 py-16 text-white sm:py-20">
-              <div className="container">
-                <p className="text-xs font-extrabold uppercase tracking-widest text-white/60">
-                  {store.name}
-                </p>
-                <h1 className="mt-2 max-w-lg text-3xl font-extrabold uppercase leading-[1.05] sm:text-5xl">
-                  {hero.headline}
-                </h1>
-                {hero.subtext && (
-                  <p className="mt-3 max-w-sm text-sm text-white/80">
-                    {hero.subtext}
-                  </p>
-                )}
-                <a
-                  href="#catalogo"
-                  className="mt-6 inline-block rounded-full bg-white px-8 py-3 text-sm font-extrabold uppercase tracking-wide text-primary shadow-lg transition-transform hover:scale-105"
-                >
-                  {hero.cta}
-                </a>
-              </div>
-            </div>
-          )}
-        </section>
-      )}
+  const loNuevo = getBlock(theme, "lo-nuevo");
+  const colecciones = getBlock(theme, "colecciones");
+  const catalog = getBlock(theme, "catalog");
+  const about = getBlock(theme, "about");
 
-      {/* Featured "drops" */}
-      {!hasFilters && featured.length > 0 && (
-        <section className="border-b py-10">
+  const nodes: Record<string, ReactNode> = {
+    "lo-nuevo":
+      featured.length > 0 && loNuevo.enabled ? (
+        <section key="lo-nuevo" className="border-b py-10">
           <div className="container">
             <h2 className="text-xl font-extrabold uppercase tracking-tight">
-              Lo nuevo
+              {loNuevo.title}
             </h2>
-            <p className="text-sm text-muted-foreground">
-              Los últimos drops que no te podés perder
-            </p>
+            {loNuevo.subtitle && (
+              <p className="text-sm text-muted-foreground">{loNuevo.subtitle}</p>
+            )}
             <div className="mt-5 -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {featured.map((p) => (
                 <div key={p.id} className="w-44 shrink-0 sm:w-52">
@@ -121,40 +65,43 @@ export function StreetStorefront({
             </div>
           </div>
         </section>
-      )}
+      ) : null,
 
-      {/* Collections by category */}
-      {!hasFilters &&
-        productsByCategory.map((cat) => (
-          <section key={cat.id} className="border-b py-8">
-            <div className="container">
-              <div className="flex items-baseline justify-between">
-                <h2 className="text-lg font-extrabold uppercase tracking-tight">
-                  {cat.name}
-                </h2>
-                <Link
-                  href={`/${store.slug}?cat=${cat.slug}`}
-                  className="text-sm font-bold text-primary hover:underline"
-                >
-                  Ver todo
-                </Link>
+    colecciones:
+      productsByCategory.length > 0 && colecciones.enabled ? (
+        <div key="colecciones">
+          {productsByCategory.map((cat) => (
+            <section key={cat.id} className="border-b py-8">
+              <div className="container">
+                <div className="flex items-baseline justify-between">
+                  <h2 className="text-lg font-extrabold uppercase tracking-tight">
+                    {cat.name}
+                  </h2>
+                  <Link
+                    href={`/${store.slug}?cat=${cat.slug}`}
+                    className="text-sm font-bold text-primary hover:underline"
+                  >
+                    Ver todo
+                  </Link>
+                </div>
+                <div className="mt-4 -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {cat.items.map((p) => (
+                    <div key={p.id} className="w-44 shrink-0 sm:w-52">
+                      <StreetProductCard product={p} store={store} />
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="mt-4 -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {cat.items.map((p) => (
-                  <div key={p.id} className="w-44 shrink-0 sm:w-52">
-                    <StreetProductCard product={p} store={store} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        ))}
+            </section>
+          ))}
+        </div>
+      ) : null,
 
-      {/* Full catalog */}
-      <section id="catalogo" className="container scroll-mt-20 py-10">
+    catalog: (
+      <section key="catalog" id="catalogo" className="container scroll-mt-20 py-10">
         <CategoryChips categories={categories} />
         <h2 className="my-6 text-xl font-extrabold uppercase tracking-tight">
-          {heading}
+          {hasFilters ? heading : catalog.title}
         </h2>
 
         {products.length === 0 ? (
@@ -177,13 +124,17 @@ export function StreetStorefront({
           </div>
         )}
       </section>
+    ),
 
-      {/* Brand / community section */}
-      {!hasFilters && theme.about.text && (
-        <section className="border-t bg-gradient-to-b from-primary/5 to-transparent py-12">
+    about:
+      theme.about.text && about.enabled ? (
+        <section
+          key="about"
+          className="border-t bg-gradient-to-b from-primary/5 to-transparent py-12"
+        >
           <div className="container mx-auto max-w-2xl text-center">
             <h2 className="text-xl font-extrabold uppercase tracking-tight">
-              {theme.about.title}
+              {about.title}
             </h2>
             {store.address && (
               <p className="mt-1 text-xs font-bold uppercase tracking-widest text-primary">
@@ -195,7 +146,61 @@ export function StreetStorefront({
             </p>
           </div>
         </section>
+      ) : null,
+  };
+
+  return (
+    <main>
+      {/* Vibrant hero */}
+      {!hasFilters && (
+        <section className="relative overflow-hidden">
+          {banner ? (
+            <div className="relative min-h-[70vh]">
+              <Image src={banner} alt={store.name} fill priority className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-primary/30 to-transparent" />
+              <div className="container relative flex min-h-[70vh] flex-col justify-end pb-10 text-white">
+                <p className="text-xs font-extrabold uppercase tracking-widest text-white/70">
+                  {store.name}
+                </p>
+                <h1 className="mt-1 max-w-lg text-3xl font-extrabold uppercase leading-[1.05] sm:text-5xl">
+                  {hero.headline}
+                </h1>
+                {hero.subtext && (
+                  <p className="mt-3 max-w-sm text-sm text-white/80">{hero.subtext}</p>
+                )}
+                <a
+                  href="#catalogo"
+                  className="mt-6 inline-block w-fit rounded-full bg-white px-8 py-3 text-sm font-extrabold uppercase tracking-wide text-primary shadow-lg transition-transform hover:scale-105"
+                >
+                  {hero.cta}
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gradient-to-br from-primary via-primary to-pink-400 px-4 py-16 text-white sm:py-20">
+              <div className="container">
+                <p className="text-xs font-extrabold uppercase tracking-widest text-white/60">
+                  {store.name}
+                </p>
+                <h1 className="mt-2 max-w-lg text-3xl font-extrabold uppercase leading-[1.05] sm:text-5xl">
+                  {hero.headline}
+                </h1>
+                {hero.subtext && (
+                  <p className="mt-3 max-w-sm text-sm text-white/80">{hero.subtext}</p>
+                )}
+                <a
+                  href="#catalogo"
+                  className="mt-6 inline-block rounded-full bg-white px-8 py-3 text-sm font-extrabold uppercase tracking-wide text-primary shadow-lg transition-transform hover:scale-105"
+                >
+                  {hero.cta}
+                </a>
+              </div>
+            </div>
+          )}
+        </section>
       )}
+
+      {hasFilters ? nodes.catalog : theme.blockOrder.map((id) => nodes[id])}
     </main>
   );
 }

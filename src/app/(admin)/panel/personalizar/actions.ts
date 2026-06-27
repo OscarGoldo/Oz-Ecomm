@@ -37,6 +37,17 @@ const themeSchema = z.object({
     text: z.string().max(2000).default(""),
   }),
   sections: z.array(z.enum(["featured", "catalog", "about"])).max(10),
+  blocks: z
+    .record(
+      z.string().max(40),
+      z.object({
+        enabled: z.boolean(),
+        title: z.string().max(80).default(""),
+        subtitle: z.string().max(200).default(""),
+      }),
+    )
+    .default({}),
+  blockOrder: z.array(z.string().max(40)).max(30).default([]),
 });
 
 export type ThemeInput = z.input<typeof themeSchema>;

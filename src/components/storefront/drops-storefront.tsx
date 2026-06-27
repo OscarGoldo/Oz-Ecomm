@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { PackageSearch } from "lucide-react";
@@ -6,7 +7,7 @@ import { CategoryChips } from "@/components/storefront/category-chips";
 import { DropsProductCard } from "@/components/storefront/drops-product-card";
 import { DropsCountdown } from "@/components/storefront/drops-countdown";
 import type { Category, Product, Store } from "@/types/database";
-import type { StoreTheme } from "@/lib/theme";
+import { getBlock, type StoreTheme } from "@/lib/theme";
 
 interface DropsStorefrontProps {
   store: Store;
@@ -48,19 +49,133 @@ export function DropsStorefront({
         .filter((c) => c.items.length > 0)
     : [];
 
+  const ligas = getBlock(theme, "ligas");
+  const recien = getBlock(theme, "recien");
+  const masVendidos = getBlock(theme, "mas-vendidos");
+  const colecciones = getBlock(theme, "colecciones");
+  const catalog = getBlock(theme, "catalog");
+  const archivo = getBlock(theme, "archivo");
+  const countdown = getBlock(theme, "countdown");
+
+  const nodes: Record<string, ReactNode> = {
+    ligas:
+      categories.length > 0 && ligas.enabled ? (
+        <section key="ligas" className="border-b border-white/10">
+          <div className="container py-5">
+            <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {categories.map((cat) => (
+                <Link
+                  key={cat.id}
+                  href={`/${store.slug}?cat=${cat.slug}`}
+                  className="group flex w-20 shrink-0 flex-col items-center gap-2"
+                >
+                  <span
+                    className="grid size-16 place-items-center rounded-full border-2 border-white/15 bg-white/5 text-lg font-extrabold transition-colors group-hover:border-[hsl(var(--brand-accent))]"
+                    style={{ color: "hsl(var(--brand-accent))" }}
+                  >
+                    {initials(cat.name)}
+                  </span>
+                  <span className="line-clamp-1 text-center text-[11px] font-bold uppercase tracking-wide text-white/70">
+                    {cat.name}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null,
+
+    recien:
+      recent.length > 0 && recien.enabled ? (
+        <DropsRow key="recien" store={store} title={recien.title} items={recent} />
+      ) : null,
+
+    "mas-vendidos":
+      featured.length > 0 && masVendidos.enabled ? (
+        <DropsRow
+          key="mas-vendidos"
+          store={store}
+          title={masVendidos.title}
+          items={featured}
+          accent
+        />
+      ) : null,
+
+    colecciones:
+      collections.length > 0 && colecciones.enabled ? (
+        <div key="colecciones">
+          {collections.map((cat) => (
+            <DropsRow
+              key={cat.id}
+              store={store}
+              title={cat.name}
+              items={cat.items}
+              href={`/${store.slug}?cat=${cat.slug}`}
+            />
+          ))}
+        </div>
+      ) : null,
+
+    catalog: (
+      <section key="catalog" id="catalogo" className="container scroll-mt-20 py-10">
+        <CategoryChips categories={categories} />
+        <h2 className="my-6 text-xl font-extrabold uppercase tracking-tight text-white">
+          {hasFilters ? heading : catalog.title}
+        </h2>
+
+        {products.length === 0 ? (
+          <div className="grid place-items-center rounded-lg border border-dashed border-white/15 py-16 text-center">
+            <PackageSearch className="mb-3 size-8 text-white/30" />
+            <p className="font-bold uppercase text-white">
+              {hasFilters ? "Sin resultados" : "Próximo drop en camino"}
+            </p>
+            <p className="mt-1 text-sm text-white/50">
+              {hasFilters
+                ? "Probá con otra búsqueda o categoría."
+                : "Seguinos para no perderte el lanzamiento."}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {products.map((p) => (
+              <DropsProductCard key={p.id} product={p} store={store} />
+            ))}
+          </div>
+        )}
+      </section>
+    ),
+
+    archivo:
+      theme.about.text && archivo.enabled ? (
+        <section
+          key="archivo"
+          className="border-t border-white/10 bg-white/[0.02] py-14"
+        >
+          <div className="container mx-auto max-w-2xl text-center">
+            <p
+              className="text-[11px] font-extrabold uppercase tracking-[0.3em]"
+              style={{ color: "hsl(var(--brand-accent))" }}
+            >
+              {archivo.title}
+            </p>
+            <h2 className="mt-2 text-2xl font-extrabold uppercase text-white">
+              {theme.about.title}
+            </h2>
+            <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-white/60">
+              {theme.about.text}
+            </p>
+          </div>
+        </section>
+      ) : null,
+  };
+
   return (
     <main className="bg-background text-foreground">
       {/* Hero — campaign + countdown */}
       {!hasFilters && (
         <section className="relative overflow-hidden border-b border-white/10">
           {banner ? (
-            <Image
-              src={banner}
-              alt={store.name}
-              fill
-              priority
-              className="object-cover opacity-40"
-            />
+            <Image src={banner} alt={store.name} fill priority className="object-cover opacity-40" />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 to-black" />
           )}
@@ -87,113 +202,20 @@ export function DropsStorefront({
               >
                 {hero.cta}
               </a>
-              <div>
-                <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-white/50">
-                  El drop termina en
-                </p>
-                <DropsCountdown />
-              </div>
+              {countdown.enabled && (
+                <div>
+                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-white/50">
+                    El drop termina en
+                  </p>
+                  <DropsCountdown />
+                </div>
+              )}
             </div>
           </div>
         </section>
       )}
 
-      {/* Leagues / category nav with "escudos" */}
-      {!hasFilters && categories.length > 0 && (
-        <section className="border-b border-white/10">
-          <div className="container py-5">
-            <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {categories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  href={`/${store.slug}?cat=${cat.slug}`}
-                  className="group flex w-20 shrink-0 flex-col items-center gap-2"
-                >
-                  <span
-                    className="grid size-16 place-items-center rounded-full border-2 border-white/15 bg-white/5 text-lg font-extrabold text-white transition-colors group-hover:border-[hsl(var(--brand-accent))]"
-                    style={{ color: "hsl(var(--brand-accent))" }}
-                  >
-                    {initials(cat.name)}
-                  </span>
-                  <span className="line-clamp-1 text-center text-[11px] font-bold uppercase tracking-wide text-white/70">
-                    {cat.name}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Recién agregados */}
-      {!hasFilters && recent.length > 0 && (
-        <DropsRow store={store} title="Recién agregados" items={recent} />
-      )}
-
-      {/* Más vendidos (featured) */}
-      {!hasFilters && featured.length > 0 && (
-        <DropsRow store={store} title="Más vendidos" items={featured} accent />
-      )}
-
-      {/* Collections by category */}
-      {!hasFilters &&
-        collections.map((cat) => (
-          <DropsRow
-            key={cat.id}
-            store={store}
-            title={cat.name}
-            items={cat.items}
-            href={`/${store.slug}?cat=${cat.slug}`}
-          />
-        ))}
-
-      {/* Full catalog — dense grid */}
-      <section id="catalogo" className="container scroll-mt-20 py-10">
-        <CategoryChips categories={categories} />
-        <h2 className="my-6 text-xl font-extrabold uppercase tracking-tight text-white">
-          {heading}
-        </h2>
-
-        {products.length === 0 ? (
-          <div className="grid place-items-center rounded-lg border border-dashed border-white/15 py-16 text-center">
-            <PackageSearch className="mb-3 size-8 text-white/30" />
-            <p className="font-bold uppercase text-white">
-              {hasFilters ? "Sin resultados" : "Próximo drop en camino"}
-            </p>
-            <p className="mt-1 text-sm text-white/50">
-              {hasFilters
-                ? "Probá con otra búsqueda o categoría."
-                : "Seguinos para no perderte el lanzamiento."}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {products.map((p) => (
-              <DropsProductCard key={p.id} product={p} store={store} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Archive / editorial story */}
-      {!hasFilters && theme.about.text && (
-        <section className="border-t border-white/10 bg-white/[0.02] py-14">
-          <div className="container mx-auto max-w-2xl text-center">
-            <p
-              className="text-[11px] font-extrabold uppercase tracking-[0.3em]"
-              style={{ color: "hsl(var(--brand-accent))" }}
-            >
-              El archivo
-            </p>
-            <h2 className="mt-2 text-2xl font-extrabold uppercase text-white">
-              {theme.about.title}
-            </h2>
-            <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-white/60">
-              {theme.about.text}
-            </p>
-          </div>
-        </section>
-      )}
+      {hasFilters ? nodes.catalog : theme.blockOrder.map((id) => nodes[id])}
     </main>
   );
 }

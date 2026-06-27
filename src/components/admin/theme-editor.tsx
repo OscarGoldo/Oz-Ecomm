@@ -43,14 +43,17 @@ import {
   type ThemeInput,
 } from "@/app/(admin)/panel/personalizar/actions";
 import {
+  LAYOUT_BLOCKS,
   SECTION_LABELS,
   THEME_FONTS,
   THEME_PRESETS,
+  seedBlocks,
   type ButtonStyle,
   type CardStyle,
   type LayoutId,
   type SectionId,
   type StoreTheme,
+  type ThemeBlock,
   type ThemeFont,
 } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -140,6 +143,7 @@ export function ThemeEditor({
 
   const onList = theme.sections;
   const offList = ALL_SECTIONS.filter((s) => !onList.includes(s));
+  const blockDefs = LAYOUT_BLOCKS[theme.layout];
 
   function patch(p: Partial<StoreTheme>) {
     setTheme((t) => ({ ...t, ...p, preset: "custom" }));
@@ -147,12 +151,39 @@ export function ThemeEditor({
   function applyPreset(presetId: string) {
     const preset = THEME_PRESETS.find((p) => p.id === presetId);
     if (!preset) return;
+    const layout = presetId as LayoutId;
+    const seeded = seedBlocks(layout, {
+      blocks: theme.blocks,
+      blockOrder: theme.blockOrder,
+    });
     setTheme((t) => ({
       ...t,
       ...preset.theme,
       preset: presetId,
-      layout: presetId as LayoutId,
+      layout,
+      blocks: seeded.blocks,
+      blockOrder: seeded.blockOrder,
     }));
+  }
+  function patchBlock(id: string, partial: Partial<ThemeBlock>) {
+    setTheme((t) => {
+      const current = t.blocks[id] ?? { enabled: true, title: "", subtitle: "" };
+      return {
+        ...t,
+        blocks: { ...t.blocks, [id]: { ...current, ...partial } },
+        preset: "custom",
+      };
+    });
+  }
+  function moveBlock(index: number, dir: -1 | 1) {
+    setTheme((t) => {
+      const target = index + dir;
+      if (target < 0 || target >= t.blockOrder.length) return t;
+      const next = [...t.blockOrder];
+      const [m] = next.splice(index, 1);
+      next.splice(target, 0, m!);
+      return { ...t, blockOrder: next, preset: "custom" };
+    });
   }
   function toggleSection(id: SectionId, on: boolean) {
     setTheme((t) => {
@@ -319,53 +350,162 @@ export function ThemeEditor({
         </Card>
 
         {/* Sections */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Secciones de la home</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {onList.map((id, i) => (
-              <div key={id} className="flex items-center gap-2 rounded-lg border p-2.5">
-                <div className="flex flex-col">
-                  <button type="button" onClick={() => moveSection(i, -1)} disabled={i === 0} className="text-muted-foreground enabled:hover:text-foreground disabled:opacity-30">
-                    <ArrowUp className="size-3.5" />
-                  </button>
-                  <button type="button" onClick={() => moveSection(i, 1)} disabled={i === onList.length - 1} className="text-muted-foreground enabled:hover:text-foreground disabled:opacity-30">
-                    <ArrowDown className="size-3.5" />
-                  </button>
-                </div>
-                <span className="flex-1 text-sm font-medium">{SECTION_LABELS[id]}</span>
-                {id === "catalog" ? (
-                  <span className="text-xs text-muted-foreground">Siempre visible</span>
-                ) : (
-                  <Switch checked onCheckedChange={() => toggleSection(id, false)} />
-                )}
-              </div>
-            ))}
-            {offList.map((id) => (
-              <div key={id} className="flex items-center gap-2 rounded-lg border border-dashed p-2.5 opacity-70">
-                <span className="flex-1 text-sm font-medium">{SECTION_LABELS[id]}</span>
-                <Switch checked={false} onCheckedChange={() => toggleSection(id, true)} />
-              </div>
-            ))}
+        {blockDefs ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Secciones del diseño</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Activá, renombrá y reordená las secciones de tu home.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {theme.blockOrder.map((id, i) => {
+                const def = blockDefs.find((d) => d.id === id);
+                if (!def) return null;
+                const block = theme.blocks[id] ?? {
+                  enabled: true,
+                  title: "",
+                  subtitle: "",
+                };
+                return (
+                  <div key={id} className="rounded-lg border p-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col">
+                        <button
+                          type="button"
+                          onClick={() => moveBlock(i, -1)}
+                          disabled={i === 0}
+                          className="text-muted-foreground enabled:hover:text-foreground disabled:opacity-30"
+                        >
+                          <ArrowUp className="size-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveBlock(i, 1)}
+                          disabled={i === theme.blockOrder.length - 1}
+                          className="text-muted-foreground enabled:hover:text-foreground disabled:opacity-30"
+                        >
+                          <ArrowDown className="size-3.5" />
+                        </button>
+                      </div>
+                      <span className="flex-1 text-sm font-medium">{def.label}</span>
+                      {def.removable ? (
+                        <Switch
+                          checked={block.enabled}
+                          onCheckedChange={(v) => patchBlock(id, { enabled: v })}
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Fija</span>
+                      )}
+                    </div>
 
-            {onList.includes("about") && (
-              <div className="space-y-2 border-t pt-3">
-                <Input
-                  value={theme.about.title}
-                  onChange={(e) => patch({ about: { ...theme.about, title: e.target.value } })}
-                  placeholder="Título (ej. Sobre nosotros)"
-                />
-                <Textarea
-                  value={theme.about.text}
-                  onChange={(e) => patch({ about: { ...theme.about, text: e.target.value } })}
-                  placeholder="Contá la historia de tu tienda…"
-                  rows={3}
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    {block.enabled && def.fields.length > 0 && (
+                      <div className="mt-2.5 space-y-2 border-t pt-2.5">
+                        {def.fields.includes("title") && (
+                          <Input
+                            value={block.title}
+                            onChange={(e) => patchBlock(id, { title: e.target.value })}
+                            placeholder={def.defaultTitle}
+                            className="h-9"
+                          />
+                        )}
+                        {def.fields.includes("subtitle") && (
+                          <Input
+                            value={block.subtitle}
+                            onChange={(e) => patchBlock(id, { subtitle: e.target.value })}
+                            placeholder={def.defaultSubtitle ?? "Subtítulo"}
+                            className="h-9"
+                          />
+                        )}
+                        {def.fields.includes("body") && (
+                          <Textarea
+                            value={theme.about.text}
+                            onChange={(e) =>
+                              patch({ about: { ...theme.about, text: e.target.value } })
+                            }
+                            placeholder="Contá la historia de tu tienda…"
+                            rows={3}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Non-reorderable extras (e.g. countdown toggle) */}
+              {blockDefs
+                .filter((d) => !d.reorderable && d.removable)
+                .map((def) => {
+                  const block = theme.blocks[def.id] ?? {
+                    enabled: true,
+                    title: "",
+                    subtitle: "",
+                  };
+                  return (
+                    <div
+                      key={def.id}
+                      className="flex items-center gap-2 rounded-lg border border-dashed p-2.5"
+                    >
+                      <span className="flex-1 text-sm font-medium">{def.label}</span>
+                      <Switch
+                        checked={block.enabled}
+                        onCheckedChange={(v) => patchBlock(def.id, { enabled: v })}
+                      />
+                    </div>
+                  );
+                })}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Secciones de la home</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {onList.map((id, i) => (
+                <div key={id} className="flex items-center gap-2 rounded-lg border p-2.5">
+                  <div className="flex flex-col">
+                    <button type="button" onClick={() => moveSection(i, -1)} disabled={i === 0} className="text-muted-foreground enabled:hover:text-foreground disabled:opacity-30">
+                      <ArrowUp className="size-3.5" />
+                    </button>
+                    <button type="button" onClick={() => moveSection(i, 1)} disabled={i === onList.length - 1} className="text-muted-foreground enabled:hover:text-foreground disabled:opacity-30">
+                      <ArrowDown className="size-3.5" />
+                    </button>
+                  </div>
+                  <span className="flex-1 text-sm font-medium">{SECTION_LABELS[id]}</span>
+                  {id === "catalog" ? (
+                    <span className="text-xs text-muted-foreground">Siempre visible</span>
+                  ) : (
+                    <Switch checked onCheckedChange={() => toggleSection(id, false)} />
+                  )}
+                </div>
+              ))}
+              {offList.map((id) => (
+                <div key={id} className="flex items-center gap-2 rounded-lg border border-dashed p-2.5 opacity-70">
+                  <span className="flex-1 text-sm font-medium">{SECTION_LABELS[id]}</span>
+                  <Switch checked={false} onCheckedChange={() => toggleSection(id, true)} />
+                </div>
+              ))}
+
+              {onList.includes("about") && (
+                <div className="space-y-2 border-t pt-3">
+                  <Input
+                    value={theme.about.title}
+                    onChange={(e) => patch({ about: { ...theme.about, title: e.target.value } })}
+                    placeholder="Título (ej. Sobre nosotros)"
+                  />
+                  <Textarea
+                    value={theme.about.text}
+                    onChange={(e) => patch({ about: { ...theme.about, text: e.target.value } })}
+                    placeholder="Contá la historia de tu tienda…"
+                    rows={3}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Live preview */}

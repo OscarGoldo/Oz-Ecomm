@@ -32,6 +32,13 @@ export const LAYOUT_IDS: LayoutId[] = [
   "sports-drops",
 ];
 
+/** A configurable home section (Shopify-style block). */
+export interface ThemeBlock {
+  enabled: boolean;
+  title: string;
+  subtitle: string;
+}
+
 export interface StoreTheme {
   preset: string;
   /** Structural layout. "classic" = base layout. */
@@ -44,7 +51,53 @@ export interface StoreTheme {
   hero: { headline: string; subtext: string; ctaText: string };
   about: { title: string; text: string };
   sections: SectionId[];
+  /** Per-block content/visibility (keyed by block id). */
+  blocks: Record<string, ThemeBlock>;
+  /** Order of the reorderable blocks for the current layout. */
+  blockOrder: string[];
 }
+
+/** Definition of a configurable block, per layout. */
+export interface LayoutBlockDef {
+  id: string;
+  label: string;
+  defaultTitle: string;
+  defaultSubtitle?: string;
+  /** Which editable text fields to expose in the editor. */
+  fields: Array<"title" | "subtitle" | "body">;
+  /** Can be turned off by the owner. */
+  removable: boolean;
+  /** Participates in section ordering. */
+  reorderable: boolean;
+}
+
+/**
+ * Section catalog per layout. Only layouts listed here use the section
+ * builder; others fall back to the legacy "sections" control.
+ */
+export const LAYOUT_BLOCKS: Partial<Record<LayoutId, LayoutBlockDef[]>> = {
+  "fashion-athletic": [
+    { id: "lo-nuevo", label: "Lo nuevo (destacados)", defaultTitle: "Lo nuevo", fields: ["title"], removable: true, reorderable: true },
+    { id: "catalog", label: "Catálogo", defaultTitle: "Colección", fields: ["title"], removable: false, reorderable: true },
+    { id: "lifestyle", label: "En acción (galería)", defaultTitle: "En acción", fields: ["title"], removable: true, reorderable: true },
+    { id: "about", label: "Sobre la marca", defaultTitle: "Sobre nosotros", fields: ["title", "body"], removable: true, reorderable: true },
+  ],
+  "fashion-streetwear": [
+    { id: "lo-nuevo", label: "Lo nuevo (destacados)", defaultTitle: "Lo nuevo", defaultSubtitle: "Los últimos drops que no te podés perder", fields: ["title", "subtitle"], removable: true, reorderable: true },
+    { id: "colecciones", label: "Colecciones por categoría", defaultTitle: "Colecciones", fields: ["title"], removable: true, reorderable: true },
+    { id: "catalog", label: "Catálogo", defaultTitle: "Todo", fields: ["title"], removable: false, reorderable: true },
+    { id: "about", label: "Comunidad", defaultTitle: "Comunidad", fields: ["title", "body"], removable: true, reorderable: true },
+  ],
+  "sports-drops": [
+    { id: "ligas", label: "Navegación por categorías", defaultTitle: "Categorías", fields: [], removable: true, reorderable: true },
+    { id: "recien", label: "Recién agregados", defaultTitle: "Recién agregados", fields: ["title"], removable: true, reorderable: true },
+    { id: "mas-vendidos", label: "Más vendidos (destacados)", defaultTitle: "Más vendidos", fields: ["title"], removable: true, reorderable: true },
+    { id: "colecciones", label: "Colecciones por categoría", defaultTitle: "Colecciones", fields: ["title"], removable: true, reorderable: true },
+    { id: "catalog", label: "Catálogo", defaultTitle: "Todos los drops", fields: ["title"], removable: false, reorderable: true },
+    { id: "archivo", label: "El archivo (historia)", defaultTitle: "El archivo", fields: ["title", "body"], removable: true, reorderable: true },
+    { id: "countdown", label: "Contador en el hero", defaultTitle: "", fields: [], removable: true, reorderable: false },
+  ],
+};
 
 export const THEME_FONTS: { id: ThemeFont; label: string; cssVar: string }[] = [
   { id: "inter", label: "Inter", cssVar: "var(--font-inter)" },
@@ -70,6 +123,8 @@ export const DEFAULT_THEME: StoreTheme = {
   hero: { headline: "", subtext: "", ctaText: "" },
   about: { title: "Sobre nosotros", text: "" },
   sections: ["featured", "catalog"],
+  blocks: {},
+  blockOrder: [],
 };
 
 export const THEME_PRESETS: {
@@ -195,16 +250,69 @@ export const THEME_PRESETS: {
   },
 ];
 
+/**
+ * Build the block map + order for a layout, overlaying any saved customization
+ * over the registry defaults. Layouts without a registry get empty maps.
+ */
+export function seedBlocks(
+  layout: LayoutId,
+  saved?: { blocks?: Record<string, Partial<ThemeBlock>>; blockOrder?: string[] },
+): { blocks: Record<string, ThemeBlock>; blockOrder: string[] } {
+  const defs = LAYOUT_BLOCKS[layout];
+  if (!defs) return { blocks: {}, blockOrder: [] };
+
+  const savedBlocks = saved?.blocks ?? {};
+  const blocks: Record<string, ThemeBlock> = {};
+  for (const d of defs) {
+    const sv = savedBlocks[d.id] ?? {};
+    blocks[d.id] = {
+      enabled: typeof sv.enabled === "boolean" ? sv.enabled : true,
+      title: typeof sv.title === "string" ? sv.title : "",
+      subtitle: typeof sv.subtitle === "string" ? sv.subtitle : "",
+    };
+  }
+
+  const reorderable = defs.filter((d) => d.reorderable).map((d) => d.id);
+  const savedOrder = Array.isArray(saved?.blockOrder)
+    ? saved!.blockOrder!.filter((id) => reorderable.includes(id))
+    : [];
+  const blockOrder = [
+    ...savedOrder,
+    ...reorderable.filter((id) => !savedOrder.includes(id)),
+  ];
+
+  return { blocks, blockOrder };
+}
+
+/** Resolved block (registry default merged with saved override). */
+export function getBlock(
+  theme: StoreTheme,
+  id: string,
+): { enabled: boolean; title: string; subtitle: string } {
+  const def = (LAYOUT_BLOCKS[theme.layout] ?? []).find((d) => d.id === id);
+  const b = theme.blocks[id];
+  return {
+    enabled: b?.enabled ?? true,
+    title: (b?.title && b.title.trim()) || def?.defaultTitle || "",
+    subtitle: (b?.subtitle && b.subtitle.trim()) || def?.defaultSubtitle || "",
+  };
+}
+
 /** Merge a store's saved customization over defaults into a full theme. */
 export function resolveTheme(
   store: Pick<Store, "primary_color" | "customization">,
 ): StoreTheme {
   const c = (store.customization ?? {}) as Partial<StoreTheme>;
   const basePrimary = store.primary_color || DEFAULT_THEME.colors.primary;
+  const layout =
+    c.layout && LAYOUT_IDS.includes(c.layout) ? c.layout : DEFAULT_THEME.layout;
+  const seeded = seedBlocks(layout, {
+    blocks: c.blocks as Record<string, Partial<ThemeBlock>> | undefined,
+    blockOrder: c.blockOrder,
+  });
   return {
     preset: c.preset ?? DEFAULT_THEME.preset,
-    layout:
-      c.layout && LAYOUT_IDS.includes(c.layout) ? c.layout : DEFAULT_THEME.layout,
+    layout,
     colors: {
       primary: c.colors?.primary ?? basePrimary,
       accent: c.colors?.accent ?? DEFAULT_THEME.colors.accent,
@@ -232,6 +340,8 @@ export function resolveTheme(
             ["featured", "catalog", "about"].includes(s),
           )
         : DEFAULT_THEME.sections,
+    blocks: seeded.blocks,
+    blockOrder: seeded.blockOrder,
   };
 }
 
