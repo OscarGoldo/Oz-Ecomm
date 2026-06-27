@@ -9,13 +9,16 @@ import {
   Cpu,
   Dumbbell,
   Flame,
+  Flower,
   Gem,
   Loader2,
   Medal,
+  Plus,
   Save,
   Shirt,
   Sparkles,
   Store,
+  Trash2,
   Zap,
   type LucideIcon,
 } from "lucide-react";
@@ -58,6 +61,7 @@ import {
   type StoreTheme,
   type ThemeBlock,
   type ThemeFont,
+  type Testimonial,
 } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -70,6 +74,7 @@ const PRESET_ICONS: Record<string, LucideIcon> = {
   flame: Flame,
   gem: Gem,
   sparkles: Sparkles,
+  flower: Flower,
   cpu: Cpu,
   dumbbell: Dumbbell,
   zap: Zap,
@@ -148,6 +153,7 @@ export function ThemeEditor({
   const offList = ALL_SECTIONS.filter((s) => !onList.includes(s));
   const blockDefs = LAYOUT_BLOCKS[theme.layout];
   const mediaDefs = LAYOUT_MEDIA[theme.layout];
+  const showTestimonials = blockDefs?.some((d) => d.id === "testimonios");
 
   function patch(p: Partial<StoreTheme>) {
     setTheme((t) => ({ ...t, ...p, preset: "custom" }));
@@ -193,6 +199,29 @@ export function ThemeEditor({
     setTheme((t) => ({
       ...t,
       media: { ...t.media, [key]: next },
+      preset: "custom",
+    }));
+  }
+  function addTestimonial() {
+    setTheme((t) => ({
+      ...t,
+      testimonials: [...t.testimonials, { quote: "", author: "" }],
+      preset: "custom",
+    }));
+  }
+  function updateTestimonial(index: number, partial: Partial<Testimonial>) {
+    setTheme((t) => ({
+      ...t,
+      testimonials: t.testimonials.map((x, i) =>
+        i === index ? { ...x, ...partial } : x,
+      ),
+      preset: "custom",
+    }));
+  }
+  function removeTestimonial(index: number) {
+    setTheme((t) => ({
+      ...t,
+      testimonials: t.testimonials.filter((_, i) => i !== index),
       preset: "custom",
     }));
   }
@@ -542,6 +571,58 @@ export function ThemeEditor({
                   <p className="text-[11px] text-muted-foreground">{m.help}</p>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Testimonials */}
+        {showTestimonials && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Historias reales</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Testimonios de clientes que se muestran en la home.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {theme.testimonials.map((t, i) => (
+                <div key={i} className="space-y-2 rounded-lg border p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Historia {i + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeTestimonial(i)}
+                      className="text-muted-foreground hover:text-destructive"
+                      aria-label="Quitar"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                  <Textarea
+                    value={t.quote}
+                    onChange={(e) => updateTestimonial(i, { quote: e.target.value })}
+                    placeholder="“Mi piel nunca se sintió tan bien…”"
+                    rows={2}
+                  />
+                  <Input
+                    value={t.author}
+                    onChange={(e) => updateTestimonial(i, { author: e.target.value })}
+                    placeholder="Nombre del cliente"
+                    className="h-9"
+                  />
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addTestimonial}
+                className="w-full"
+              >
+                <Plus className="size-4" /> Agregar historia
+              </Button>
             </CardContent>
           </Card>
         )}

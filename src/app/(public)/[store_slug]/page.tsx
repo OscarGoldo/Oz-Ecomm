@@ -19,6 +19,7 @@ import { SportsStorefront } from "@/components/storefront/sports-storefront";
 import { DropsStorefront } from "@/components/storefront/drops-storefront";
 import { AccessoriesStorefront } from "@/components/storefront/accessories-storefront";
 import { BeautyStorefront } from "@/components/storefront/beauty-storefront";
+import { BeautyMinimalStorefront } from "@/components/storefront/beauty-minimal-storefront";
 import {
   getStoreBySlug,
   getStoreCategories,
@@ -195,6 +196,22 @@ export default async function StorefrontHome({
         featured={featured}
         hasFilters={hasFilters}
         heading={heading}
+        hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
+      />
+    );
+  }
+
+  if (theme.layout === "beauty-minimal") {
+    return (
+      <BeautyMinimalStorefront
+        store={store}
+        theme={theme}
+        categories={categories}
+        products={products}
+        featured={featured}
+        hasFilters={hasFilters}
+        heading={heading}
+        banner={banner}
         hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
       />
     );

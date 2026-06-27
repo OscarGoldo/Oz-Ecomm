@@ -44,6 +44,7 @@ export function StorePreview({
   const drops = theme.layout === "sports-drops";
   const accessories = theme.layout === "accessories";
   const beauty = theme.layout === "beauty";
+  const beautyMinimal = theme.layout === "beauty-minimal";
 
   function Card({ p }: { p: SampleProduct }) {
     if (accessories) {
@@ -61,6 +62,26 @@ export function StorePreview({
             {p.name}
           </p>
           <p className="text-[10px] font-bold">{formatUSD(p.price)}</p>
+        </div>
+      );
+    }
+    if (beautyMinimal) {
+      return (
+        <div className="text-center">
+          <div className="grid aspect-square place-items-center overflow-hidden rounded-xl bg-[#f6efe9] text-muted-foreground">
+            {p.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.image} alt="" className="h-full w-full object-contain p-2" />
+            ) : (
+              <StoreIcon className="size-5 opacity-30" />
+            )}
+          </div>
+          <p className="mt-1.5 text-[10px] font-medium">{p.name}</p>
+          <div className="mt-0.5 flex justify-center gap-0.5">
+            <span className="size-2 rounded-full bg-[#e8c4b8]" />
+            <span className="size-2 rounded-full bg-[#7b1e3b]" />
+          </div>
+          <p className="text-[10px] text-foreground/60">{formatUSD(p.price)}</p>
         </div>
       );
     }
@@ -318,6 +339,21 @@ export function StorePreview({
           <span className="mt-2 inline-block border-b border-foreground pb-0.5 text-[8px] uppercase tracking-[0.2em]">
             {theme.hero.ctaText || "Ver colección"}
           </span>
+        </div>
+      ) : beautyMinimal ? (
+        <div className="grid grid-cols-2 items-center gap-2 bg-gradient-to-b from-[#f7ece9] to-background px-4 py-5">
+          <div>
+            <p className="text-[7px] uppercase tracking-[0.3em] text-muted-foreground">
+              {storeName}
+            </p>
+            <p className="mt-1 text-base leading-tight" style={{ fontFamily: "var(--font-lora)" }}>
+              {theme.hero.headline || `Bienvenido a ${storeName}`}
+            </p>
+            <span className="mt-2 inline-block rounded-full bg-foreground px-3 py-1 text-[8px] font-medium text-background">
+              {theme.hero.ctaText || "Comprar"}
+            </span>
+          </div>
+          <div className="aspect-[4/5] rounded-xl bg-[#f1e6df]" />
         </div>
       ) : beauty ? (
         <div className="bg-gradient-to-b from-primary/15 to-transparent px-4 py-6 text-center">

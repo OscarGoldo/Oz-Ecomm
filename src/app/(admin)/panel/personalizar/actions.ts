@@ -17,7 +17,7 @@ const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Color inválido");
 const themeSchema = z.object({
   preset: z.string().max(40),
   layout: z
-    .enum(["classic", "fashion", "fashion-athletic", "fashion-streetwear", "accessories", "beauty", "tech", "sports", "sports-drops"])
+    .enum(["classic", "fashion", "fashion-athletic", "fashion-streetwear", "accessories", "beauty", "beauty-minimal", "tech", "sports", "sports-drops"])
     .default("classic"),
   colors: z.object({ primary: hex, accent: hex, surface: hex }),
   font: z.enum(["inter", "poppins", "montserrat", "lora"]),
@@ -55,6 +55,15 @@ const themeSchema = z.object({
       pressLogos: z.array(z.string().max(400)).max(12).default([]),
     })
     .default({ heroSlides: [], gallery: [], pressLogos: [] }),
+  testimonials: z
+    .array(
+      z.object({
+        quote: z.string().max(400).default(""),
+        author: z.string().max(80).default(""),
+      }),
+    )
+    .max(12)
+    .default([]),
 });
 
 export type ThemeInput = z.input<typeof themeSchema>;

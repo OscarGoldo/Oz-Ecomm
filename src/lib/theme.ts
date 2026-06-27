@@ -16,6 +16,7 @@ export type LayoutId =
   | "fashion-streetwear"
   | "accessories"
   | "beauty"
+  | "beauty-minimal"
   | "tech"
   | "sports"
   | "sports-drops";
@@ -27,6 +28,7 @@ export const LAYOUT_IDS: LayoutId[] = [
   "fashion-streetwear",
   "accessories",
   "beauty",
+  "beauty-minimal",
   "tech",
   "sports",
   "sports-drops",
@@ -37,6 +39,12 @@ export interface ThemeBlock {
   enabled: boolean;
   title: string;
   subtitle: string;
+}
+
+/** A customer testimonial / story (Belleza Minimal). */
+export interface Testimonial {
+  quote: string;
+  author: string;
 }
 
 /** Owner-uploaded image sets for the design (storage paths). */
@@ -67,6 +75,8 @@ export interface StoreTheme {
   blockOrder: string[];
   /** Owner-uploaded images. */
   media: ThemeMedia;
+  /** Customer stories (used by layouts that show testimonials). */
+  testimonials: Testimonial[];
 }
 
 export type MediaKey = keyof ThemeMedia;
@@ -86,6 +96,10 @@ export const LAYOUT_MEDIA: Partial<
   ],
   "sports-drops": [
     { key: "heroSlides", label: "Carrusel de campaña", help: "Imágenes de la campaña/drop que rotan en el hero.", max: 5 },
+  ],
+  "beauty-minimal": [
+    { key: "heroSlides", label: "Imagen de portada", help: "Producto o lanzamiento destacado del hero (podés poner varias y rotan).", max: 4 },
+    { key: "gallery", label: "Galería “Get the look”", help: "Fotos para combinar el look. Opcional.", max: 6 },
   ],
 };
 
@@ -121,6 +135,14 @@ export const LAYOUT_BLOCKS: Partial<Record<LayoutId, LayoutBlockDef[]>> = {
     { id: "galeria", label: "Galería lifestyle", defaultTitle: "El look", fields: ["title"], removable: true, reorderable: true },
     { id: "catalog", label: "Catálogo", defaultTitle: "Todo", fields: ["title"], removable: false, reorderable: true },
     { id: "about", label: "Comunidad", defaultTitle: "Comunidad", fields: ["title", "body"], removable: true, reorderable: true },
+  ],
+  "beauty-minimal": [
+    { id: "categorias", label: "Navegación por tipo", defaultTitle: "Comprá por categoría", fields: ["title"], removable: true, reorderable: true },
+    { id: "shop-all", label: "Shop All (best sellers)", defaultTitle: "Lo más querido", defaultSubtitle: "Los favoritos de la casa", fields: ["title", "subtitle"], removable: true, reorderable: true },
+    { id: "get-the-look", label: "Get the look (sets/combos)", defaultTitle: "Get the look", defaultSubtitle: "Combiná tus esenciales", fields: ["title", "subtitle"], removable: true, reorderable: true },
+    { id: "catalog", label: "Catálogo", defaultTitle: "Todo", fields: ["title"], removable: false, reorderable: true },
+    { id: "testimonios", label: "Historias reales", defaultTitle: "Historias reales", fields: ["title"], removable: true, reorderable: true },
+    { id: "historia", label: "Manifiesto de marca", defaultTitle: "Nuestra historia", fields: ["title", "body"], removable: true, reorderable: true },
   ],
   "sports-drops": [
     { id: "ligas", label: "Navegación por categorías", defaultTitle: "Categorías", fields: [], removable: true, reorderable: true },
@@ -160,6 +182,7 @@ export const DEFAULT_THEME: StoreTheme = {
   blocks: {},
   blockOrder: [],
   media: { heroSlides: [], gallery: [], pressLogos: [] },
+  testimonials: [],
 };
 
 export const THEME_PRESETS: {
@@ -239,6 +262,19 @@ export const THEME_PRESETS: {
     theme: {
       // Suave, pastel, cuidado y bienestar.
       colors: { primary: "#c2649a", accent: "#7fb6a1", surface: "#fdf6f8" },
+      font: "poppins",
+      buttonStyle: "rounded",
+      cardStyle: "soft",
+    },
+  },
+  {
+    id: "beauty-minimal",
+    label: "Belleza Minimal",
+    desc: "Suave · premium · aire",
+    icon: "flower",
+    theme: {
+      // Neutro y suave, rosado tenue, mucho aire (estilo Glossier).
+      colors: { primary: "#a8657a", accent: "#e7b6ae", surface: "#fcf8f6" },
       font: "poppins",
       buttonStyle: "rounded",
       cardStyle: "soft",
@@ -382,6 +418,14 @@ export function resolveTheme(
       gallery: cleanStrArray(c.media?.gallery),
       pressLogos: cleanStrArray(c.media?.pressLogos),
     },
+    testimonials: Array.isArray(c.testimonials)
+      ? c.testimonials
+          .filter(
+            (t): t is Testimonial =>
+              !!t && typeof t.quote === "string" && typeof t.author === "string",
+          )
+          .slice(0, 12)
+      : [],
   };
 }
 
