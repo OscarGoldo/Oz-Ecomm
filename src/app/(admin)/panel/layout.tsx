@@ -37,7 +37,7 @@ export default async function PanelLayout({
   return (
     <div style={brandStyle} className="min-h-dvh bg-muted/30">
       {/* Top bar */}
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background px-4">
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background px-4 print:hidden">
         <div className="flex items-center gap-2.5">
           <span className="grid size-9 place-items-center overflow-hidden rounded-lg bg-primary/10">
             {logo ? (
@@ -66,7 +66,7 @@ export default async function PanelLayout({
 
       <div className="mx-auto flex w-full max-w-6xl">
         {/* Desktop sidebar */}
-        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 border-r bg-background md:block">
+        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 border-r bg-background md:block print:hidden">
           <PanelSidebarNav badges={navBadges} />
         </aside>
 
@@ -76,7 +76,9 @@ export default async function PanelLayout({
         </main>
       </div>
 
-      <PanelBottomNav badges={navBadges} />
+      <div className="print:hidden">
+        <PanelBottomNav badges={navBadges} />
+      </div>
     </div>
   );
 }

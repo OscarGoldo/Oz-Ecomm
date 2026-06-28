@@ -5,6 +5,7 @@ import { es } from "date-fns/locale";
 import {
   Clock,
   DollarSign,
+  FileText,
   Package,
   Receipt,
   TrendingDown,
@@ -60,11 +61,19 @@ export default async function FinanzasPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Finanzas</h1>
-        <p className="text-sm text-muted-foreground">
-          Ingresos, márgenes, gastos y ganancia de tu tienda.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Finanzas</h1>
+          <p className="text-sm text-muted-foreground">
+            Ingresos, márgenes, gastos y ganancia de tu tienda.
+          </p>
+        </div>
+        <Link
+          href="/panel/finanzas/reportes"
+          className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted"
+        >
+          <FileText className="size-4" /> Reportes mensuales
+        </Link>
       </div>
 
       {/* This month */}

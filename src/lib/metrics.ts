@@ -1,7 +1,10 @@
-import { startOfDay, startOfMonth, subMonths } from "date-fns";
+import { addMonths, format, startOfDay, startOfMonth, subMonths } from "date-fns";
+import { es } from "date-fns/locale";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Order, OrderStatus, Product } from "@/types/database";
+
+type SupabaseServer = ReturnType<typeof createClient>;
 
 /** Statuses that count as a real sale (revenue). */
 export const SALES_STATUSES: OrderStatus[] = [
@@ -241,6 +244,259 @@ export async function getFinanceSummary(
     topProducts,
     recentSales: (recentSales ?? []) as Order[],
   };
+}
+
+/** Income/cost/expense aggregates for a single date range (one month). */
+interface RangeAgg {
+  incomeUsd: number;
+  incomeBs: number;
+  cogsUsd: number;
+  expensesUsd: number;
+  salesCount: number;
+  unitsSold: number;
+  customers: number;
+  expensesByCategory: { category: string; usd: number }[];
+  byMethod: { type: string; count: number; usd: number }[];
+  topProducts: { name: string; qty: number; revenue: number; profit: number }[];
+}
+
+async function computeRange(
+  supabase: SupabaseServer,
+  storeId: string,
+  startISO: string,
+  endISO: string,
+  startDate: string,
+  endDate: string,
+): Promise<RangeAgg> {
+  const [{ data: orders }, { data: exp }] = await Promise.all([
+    supabase
+      .from("orders")
+      .select("id, total, total_bs, payment_method_type, customer_phone")
+      .eq("store_id", storeId)
+      .in("status", SALES_STATUSES)
+      .gte("created_at", startISO)
+      .lt("created_at", endISO),
+    supabase
+      .from("expenses")
+      .select("amount, category, spent_at")
+      .eq("store_id", storeId)
+      .gte("spent_at", startDate)
+      .lt("spent_at", endDate),
+  ]);
+
+  const list = orders ?? [];
+  const ids = list.map((o) => o.id);
+  let items: {
+    order_id: string;
+    product_name: string;
+    quantity: number;
+    subtotal: number;
+    unit_cost: number;
+  }[] = [];
+  if (ids.length > 0) {
+    const { data } = await supabase
+      .from("order_items")
+      .select("order_id, product_name, quantity, subtotal, unit_cost")
+      .in("order_id", ids);
+    items = (data ?? []) as typeof items;
+  }
+
+  const productMap = new Map<string, { qty: number; revenue: number; profit: number }>();
+  let cogsUsd = 0;
+  let unitsSold = 0;
+  for (const it of items) {
+    const cost = Number(it.unit_cost) * it.quantity;
+    cogsUsd += cost;
+    unitsSold += it.quantity;
+    const p = productMap.get(it.product_name) ?? { qty: 0, revenue: 0, profit: 0 };
+    p.qty += it.quantity;
+    p.revenue += Number(it.subtotal);
+    p.profit += Number(it.subtotal) - cost;
+    productMap.set(it.product_name, p);
+  }
+
+  const methodMap = new Map<string, { count: number; usd: number }>();
+  const phones = new Set<string>();
+  let incomeUsd = 0;
+  let incomeBs = 0;
+  for (const o of list) {
+    incomeUsd += Number(o.total);
+    incomeBs += Number(o.total_bs ?? 0);
+    if (o.customer_phone) phones.add(o.customer_phone);
+    const key = o.payment_method_type ?? "other";
+    const cur = methodMap.get(key) ?? { count: 0, usd: 0 };
+    cur.count += 1;
+    cur.usd += Number(o.total);
+    methodMap.set(key, cur);
+  }
+
+  const catMap = new Map<string, number>();
+  let expensesUsd = 0;
+  for (const e of exp ?? []) {
+    const amt = Number(e.amount);
+    expensesUsd += amt;
+    const key = e.category || "Otros";
+    catMap.set(key, (catMap.get(key) ?? 0) + amt);
+  }
+
+  return {
+    incomeUsd,
+    incomeBs,
+    cogsUsd,
+    expensesUsd,
+    salesCount: list.length,
+    unitsSold,
+    customers: phones.size,
+    expensesByCategory: [...catMap.entries()]
+      .map(([category, usd]) => ({ category, usd }))
+      .sort((a, b) => b.usd - a.usd),
+    byMethod: [...methodMap.entries()]
+      .map(([type, v]) => ({ type, ...v }))
+      .sort((a, b) => b.usd - a.usd),
+    topProducts: [...productMap.entries()]
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5),
+  };
+}
+
+export interface MonthlyReport {
+  ym: string; // "2026-05"
+  label: string; // "Mayo 2026"
+  // Balance / P&L
+  incomeUsd: number;
+  incomeBs: number;
+  cogsUsd: number;
+  grossUsd: number;
+  expensesUsd: number;
+  netUsd: number;
+  marginPct: number;
+  expensesByCategory: { category: string; usd: number }[];
+  // Metrics
+  salesCount: number;
+  unitsSold: number;
+  avgTicketUsd: number;
+  customers: number;
+  topProducts: { name: string; qty: number; revenue: number; profit: number }[];
+  byMethod: { type: string; count: number; usd: number }[];
+  // vs previous month
+  prevIncomeUsd: number;
+  prevNetUsd: number;
+  incomeGrowthPct: number | null;
+  netGrowthPct: number | null;
+}
+
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Full report for a single month ("YYYY-MM"), with vs-previous-month deltas. */
+export async function getMonthlyReport(
+  storeId: string,
+  ym: string,
+): Promise<MonthlyReport> {
+  const supabase = createClient();
+  const [yStr, mStr] = ym.split("-");
+  const year = Number(yStr);
+  const monthIdx = Number(mStr) - 1;
+  const monthStart = new Date(year, monthIdx, 1);
+  const nextStart = addMonths(monthStart, 1);
+  const prevStart = subMonths(monthStart, 1);
+
+  const fmtDate = (d: Date) => format(d, "yyyy-MM-dd");
+
+  const [cur, prev] = await Promise.all([
+    computeRange(
+      supabase,
+      storeId,
+      monthStart.toISOString(),
+      nextStart.toISOString(),
+      fmtDate(monthStart),
+      fmtDate(nextStart),
+    ),
+    computeRange(
+      supabase,
+      storeId,
+      prevStart.toISOString(),
+      monthStart.toISOString(),
+      fmtDate(prevStart),
+      fmtDate(monthStart),
+    ),
+  ]);
+
+  const grossUsd = cur.incomeUsd - cur.cogsUsd;
+  const netUsd = grossUsd - cur.expensesUsd;
+  const prevNetUsd = prev.incomeUsd - prev.cogsUsd - prev.expensesUsd;
+
+  return {
+    ym,
+    label: cap(format(monthStart, "MMMM yyyy", { locale: es })),
+    incomeUsd: cur.incomeUsd,
+    incomeBs: cur.incomeBs,
+    cogsUsd: cur.cogsUsd,
+    grossUsd,
+    expensesUsd: cur.expensesUsd,
+    netUsd,
+    marginPct: cur.incomeUsd > 0 ? (grossUsd / cur.incomeUsd) * 100 : 0,
+    expensesByCategory: cur.expensesByCategory,
+    salesCount: cur.salesCount,
+    unitsSold: cur.unitsSold,
+    avgTicketUsd: cur.salesCount ? cur.incomeUsd / cur.salesCount : 0,
+    customers: cur.customers,
+    topProducts: cur.topProducts,
+    byMethod: cur.byMethod,
+    prevIncomeUsd: prev.incomeUsd,
+    prevNetUsd,
+    incomeGrowthPct:
+      prev.incomeUsd > 0
+        ? ((cur.incomeUsd - prev.incomeUsd) / prev.incomeUsd) * 100
+        : null,
+    netGrowthPct:
+      prevNetUsd > 0 ? ((netUsd - prevNetUsd) / prevNetUsd) * 100 : null,
+  };
+}
+
+/** Months (newest first) that have any activity, for the report picker. */
+export async function getAvailableReportMonths(
+  storeId: string,
+): Promise<{ ym: string; label: string }[]> {
+  const supabase = createClient();
+  const [{ data: firstOrder }, { data: firstExpense }] = await Promise.all([
+    supabase
+      .from("orders")
+      .select("created_at")
+      .eq("store_id", storeId)
+      .order("created_at", { ascending: true })
+      .limit(1),
+    supabase
+      .from("expenses")
+      .select("spent_at")
+      .eq("store_id", storeId)
+      .order("spent_at", { ascending: true })
+      .limit(1),
+  ]);
+
+  const dates: Date[] = [];
+  if (firstOrder?.[0]?.created_at) dates.push(new Date(firstOrder[0].created_at));
+  if (firstExpense?.[0]?.spent_at) dates.push(new Date(firstExpense[0].spent_at));
+
+  const now = new Date();
+  const earliest =
+    dates.length > 0
+      ? startOfMonth(new Date(Math.min(...dates.map((d) => d.getTime()))))
+      : startOfMonth(subMonths(now, 1));
+
+  const months: { ym: string; label: string }[] = [];
+  let cursor = startOfMonth(now);
+  // Cap at 36 months to keep the list sane.
+  for (let i = 0; i < 36 && cursor >= earliest; i++) {
+    months.push({
+      ym: format(cursor, "yyyy-MM"),
+      label: cap(format(cursor, "MMMM yyyy", { locale: es })),
+    });
+    cursor = subMonths(cursor, 1);
+  }
+  return months;
 }
 
 /** Recent expenses for the Finanzas page. */
