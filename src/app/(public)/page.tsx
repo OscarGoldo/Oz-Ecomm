@@ -22,17 +22,17 @@ const features = [
   {
     icon: BadgeDollarSign,
     title: "Doble moneda USD / Bs",
-    text: "Mostrá precios en dólares con su equivalente en bolívares.",
+    text: "Muestra precios en dólares con su equivalente en bolívares.",
   },
   {
     icon: Wallet,
     title: "Pagos locales",
-    text: "Pago Móvil, Zelle, Binance o efectivo. Subí el comprobante y listo.",
+    text: "Pago Móvil, Zelle, Binance o efectivo. Sube el comprobante y listo.",
   },
   {
     icon: PackageCheck,
     title: "Pedidos ordenados",
-    text: "Confirmá pagos y seguí cada entrega en un solo lugar.",
+    text: "Confirma pagos y sigue cada entrega en un solo lugar.",
   },
   {
     icon: Palette,
@@ -42,14 +42,14 @@ const features = [
   {
     icon: ClipboardCheck,
     title: "Sin complicaciones",
-    text: "Cargás productos y empezás a vender. Sin código, sin tarjeta.",
+    text: "Cargas productos y empiezas a vender. Sin código, sin tarjeta.",
   },
 ];
 
 const steps = [
-  { n: "1", title: "Registrate", text: "Creá tu tienda con tu email en un minuto." },
-  { n: "2", title: "Cargá productos", text: "Subí fotos, precios y stock desde el panel." },
-  { n: "3", title: "Vendé", text: "Compartí tu link y recibí pedidos al instante." },
+  { n: "1", title: "Regístrate", text: "Crea tu tienda con tu correo en un minuto." },
+  { n: "2", title: "Carga productos", text: "Sube fotos, precios y stock desde el panel." },
+  { n: "3", title: "Vende", text: "Comparte tu link y recibe pedidos al instante." },
 ];
 
 export default function LandingPage() {
@@ -84,7 +84,7 @@ export default function LandingPage() {
       {/* How it works */}
       <section className="container py-16">
         <h2 className="text-center text-3xl font-bold tracking-tight sm:text-4xl">
-          Empezá en 3 pasos
+          Empieza en 3 pasos
         </h2>
         <div className="mx-auto mt-10 grid max-w-4xl gap-6 sm:grid-cols-3">
           {steps.map((s) => (
@@ -106,7 +106,7 @@ export default function LandingPage() {
             Tu tienda online te está esperando
           </h2>
           <p className="max-w-md text-primary-foreground/90">
-            Creala gratis hoy y empezá a recibir pedidos ordenados.
+            Créala gratis hoy y empieza a recibir pedidos ordenados.
           </p>
           <Button asChild size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90">
             <Link href="/crear-tienda">
