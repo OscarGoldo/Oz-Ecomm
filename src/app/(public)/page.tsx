@@ -12,6 +12,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { HeroSignup } from "@/components/storefront/hero-signup";
+import { LandingHeader } from "@/components/landing/landing-header";
 
 const features = [
   {
@@ -56,24 +57,7 @@ export default function LandingPage() {
   return (
     <main className="min-h-dvh bg-background">
       {/* Nav */}
-      <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2 font-bold">
-            <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <Store className="size-5" />
-            </span>
-            OzShop
-          </div>
-          <div className="flex items-center gap-1 sm:gap-3">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/login">Iniciar sesión</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/crear-tienda">Crear tienda</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <LandingHeader />
 
       {/* Hero */}
       <section className="container grid items-center gap-10 py-14 sm:py-20 lg:grid-cols-2">
