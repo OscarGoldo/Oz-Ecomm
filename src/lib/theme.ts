@@ -41,10 +41,16 @@ export interface ThemeBlock {
   subtitle: string;
 }
 
-/** A customer testimonial / story (Belleza Minimal). */
+/** A customer testimonial / story (Belleza Minimal, Streetwear). */
 export interface Testimonial {
   quote: string;
   author: string;
+}
+
+/** A physical store location (Streetwear). */
+export interface Location {
+  name: string;
+  address: string;
 }
 
 /** Owner-uploaded image sets for the design (storage paths). */
@@ -77,6 +83,10 @@ export interface StoreTheme {
   media: ThemeMedia;
   /** Customer stories (used by layouts that show testimonials). */
   testimonials: Testimonial[];
+  /** Physical store locations (used by layouts that show a store list). */
+  locations: Location[];
+  /** Optional hero video URL (.mp4/.webm) for layouts that support it. */
+  heroVideoUrl: string;
 }
 
 export type MediaKey = keyof ThemeMedia;
@@ -130,11 +140,13 @@ export const LAYOUT_BLOCKS: Partial<Record<LayoutId, LayoutBlockDef[]>> = {
     { id: "about", label: "Sobre la marca", defaultTitle: "Sobre nosotros", fields: ["title", "body"], removable: true, reorderable: true },
   ],
   "fashion-streetwear": [
-    { id: "lo-nuevo", label: "Lo nuevo (destacados)", defaultTitle: "Lo nuevo", defaultSubtitle: "Los últimos drops que no te podés perder", fields: ["title", "subtitle"], removable: true, reorderable: true },
-    { id: "colecciones", label: "Colecciones por categoría", defaultTitle: "Colecciones", fields: ["title"], removable: true, reorderable: true },
+    { id: "lo-nuevo", label: "New in (destacados)", defaultTitle: "New in", defaultSubtitle: "Lo último que llegó 🔥", fields: ["title", "subtitle"], removable: true, reorderable: true },
+    { id: "colecciones", label: "Colecciones / drops", defaultTitle: "Colecciones", fields: ["title"], removable: true, reorderable: true },
     { id: "galeria", label: "Galería lifestyle", defaultTitle: "El look", fields: ["title"], removable: true, reorderable: true },
-    { id: "catalog", label: "Catálogo", defaultTitle: "Todo", fields: ["title"], removable: false, reorderable: true },
-    { id: "about", label: "Comunidad", defaultTitle: "Comunidad", fields: ["title", "body"], removable: true, reorderable: true },
+    { id: "catalog", label: "Catálogo", defaultTitle: "Toda la tienda", fields: ["title"], removable: false, reorderable: true },
+    { id: "testimonios", label: "Reseñas de clientes", defaultTitle: "Lo que dicen de nosotros", fields: ["title"], removable: true, reorderable: true },
+    { id: "locales", label: "Nuestras tiendas", defaultTitle: "Nuestras tiendas", defaultSubtitle: "Vení a conocernos", fields: ["title", "subtitle"], removable: true, reorderable: true },
+    { id: "marca", label: "Sobre la marca", defaultTitle: "La marca", defaultSubtitle: "Est. 2017 · Caracas", fields: ["title", "subtitle", "body"], removable: true, reorderable: true },
   ],
   "beauty-minimal": [
     { id: "categorias", label: "Navegación por tipo", defaultTitle: "Comprá por categoría", fields: ["title"], removable: true, reorderable: true },
@@ -183,7 +195,12 @@ export const DEFAULT_THEME: StoreTheme = {
   blockOrder: [],
   media: { heroSlides: [], gallery: [], pressLogos: [] },
   testimonials: [],
+  locations: [],
+  heroVideoUrl: "",
 };
+
+/** Layouts that expose a hero video URL field in the editor. */
+export const LAYOUT_HERO_VIDEO: LayoutId[] = ["fashion-streetwear"];
 
 export const THEME_PRESETS: {
   id: string;
@@ -232,12 +249,13 @@ export const THEME_PRESETS: {
   {
     id: "fashion-streetwear",
     label: "Streetwear",
-    desc: "Urbano · vibrante",
+    desc: "Urbano · comunidad",
     icon: "flame",
     theme: {
-      colors: { primary: "#db2777", accent: "#facc15", surface: "#ffffff" },
-      font: "poppins",
-      buttonStyle: "rounded",
+      // Crema + negro bold, magenta como acento estrella (estilo paw3r).
+      colors: { primary: "#141414", accent: "#ec1c8e", surface: "#f6f1ea" },
+      font: "montserrat",
+      buttonStyle: "square",
       cardStyle: "soft",
     },
   },
@@ -426,6 +444,15 @@ export function resolveTheme(
           )
           .slice(0, 12)
       : [],
+    locations: Array.isArray(c.locations)
+      ? c.locations
+          .filter(
+            (l): l is Location =>
+              !!l && typeof l.name === "string" && typeof l.address === "string",
+          )
+          .slice(0, 20)
+      : [],
+    heroVideoUrl: typeof c.heroVideoUrl === "string" ? c.heroVideoUrl : "",
   };
 }
 

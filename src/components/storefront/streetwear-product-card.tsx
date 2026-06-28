@@ -41,8 +41,8 @@ export function StreetProductCard({
   const cover = getImageUrl(product.images[0]);
   const available = isAvailable(product);
 
-  const colorOption = product.variant_options?.find(
-    (o) => /color|colour/i.test(o.name),
+  const colorOption = product.variant_options?.find((o) =>
+    /color|colour/i.test(o.name),
   );
   const colorDots = colorOption
     ? colorOption.values
@@ -57,14 +57,14 @@ export function StreetProductCard({
       : null;
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border-2 border-transparent bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary hover:shadow-lg">
+    <div className="group relative flex flex-col">
       <Link
         href={`/${store.slug}/producto/${product.slug}`}
         className="absolute inset-0 z-10"
         aria-label={product.name}
       />
 
-      <div className="relative aspect-square overflow-hidden bg-white">
+      <div className="relative aspect-[4/5] overflow-hidden bg-white">
         {cover ? (
           <Image
             src={cover}
@@ -72,8 +72,8 @@ export function StreetProductCard({
             fill
             sizes="(max-width: 640px) 50vw, 25vw"
             className={cn(
-              "object-cover transition-transform duration-300 group-hover:scale-110",
-              !available && "opacity-40 grayscale",
+              "object-cover transition-transform duration-300 group-hover:scale-105",
+              !available && "opacity-50",
             )}
           />
         ) : (
@@ -82,55 +82,32 @@ export function StreetProductCard({
           </span>
         )}
 
-        <div className="absolute left-2 top-2 flex flex-col gap-1">
+        {/* Badges */}
+        <div className="absolute left-0 top-0 flex flex-col items-start">
           {product.featured && available && (
-            <span className="rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
-              NEW
+            <span
+              className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest text-white"
+              style={{ background: "hsl(var(--brand-accent))" }}
+            >
+              New in
             </span>
           )}
           {discount && available && (
-            <span className="rounded-full bg-foreground px-2.5 py-0.5 text-[10px] font-bold text-background shadow-sm">
+            <span className="bg-foreground px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest text-background">
               -{discount}%
             </span>
           )}
         </div>
 
         {!available && (
-          <span className="absolute inset-x-0 bottom-0 bg-foreground/90 py-2 text-center text-xs font-bold uppercase tracking-wider text-background">
-            Sold Out
+          <span className="absolute inset-x-0 bottom-0 bg-foreground/90 py-2 text-center text-xs font-extrabold uppercase tracking-[0.2em] text-background">
+            Sold out
           </span>
         )}
-      </div>
 
-      <div className="space-y-1.5 p-3">
-        <p className="line-clamp-2 text-sm font-bold leading-snug">
-          {product.name}
-        </p>
-
-        {colorDots.length > 0 && (
-          <div className="flex gap-1.5">
-            {colorDots.map((c) => (
-              <span
-                key={c.name}
-                className="size-4 rounded-full ring-2 ring-white shadow-sm"
-                style={{ background: c.hex! }}
-                title={c.name}
-              />
-            ))}
-          </div>
-        )}
-
-        <div className="font-extrabold text-primary">
-          <Price
-            amountUsd={product.price}
-            compareAtUsd={product.compare_at_price}
-            exchangeRate={store.exchange_rate}
-            showBs={store.show_bs_prices}
-          />
-        </div>
-
+        {/* Quick-buy on hover (desktop) */}
         {available && (
-          <div className="relative z-20">
+          <div className="absolute inset-x-0 bottom-0 z-20 translate-y-full p-2 transition-transform duration-200 group-hover:translate-y-0">
             <AddToCartButton
               storeId={store.id}
               storeSlug={store.slug}
@@ -139,9 +116,41 @@ export function StreetProductCard({
               image={cover}
               hasVariants={Boolean(product.variant_options?.length)}
               href={`/${store.slug}/producto/${product.slug}`}
+              className="rounded-none font-extrabold uppercase tracking-widest text-white hover:brightness-110"
             />
           </div>
         )}
+      </div>
+
+      <div className="mt-2.5 space-y-1">
+        <p className="line-clamp-1 text-sm font-bold uppercase tracking-wide">
+          {product.name}
+        </p>
+
+        {colorDots.length > 0 && (
+          <div className="flex gap-1.5">
+            {colorDots.map((c) => (
+              <span
+                key={c.name}
+                className="size-3.5 rounded-full ring-1 ring-black/15"
+                style={{ background: c.hex! }}
+                title={c.name}
+              />
+            ))}
+          </div>
+        )}
+
+        <div
+          className="font-extrabold"
+          style={{ color: "hsl(var(--brand-accent))" }}
+        >
+          <Price
+            amountUsd={product.price}
+            compareAtUsd={product.compare_at_price}
+            exchangeRate={store.exchange_rate}
+            showBs={store.show_bs_prices}
+          />
+        </div>
       </div>
     </div>
   );

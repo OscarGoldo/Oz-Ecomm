@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { PackageSearch } from "lucide-react";
+import { MapPin, PackageSearch, Star } from "lucide-react";
 
 import { CategoryChips } from "@/components/storefront/category-chips";
 import { StreetProductCard } from "@/components/storefront/streetwear-product-card";
@@ -22,6 +22,24 @@ interface StreetStorefrontProps {
   hero: { headline: string; subtext: string; cta: string };
 }
 
+/** Bold uppercase section heading with a magenta accent bar. */
+function SectionHead({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="mb-5">
+      <h2 className="flex items-center gap-3 text-2xl font-extrabold uppercase tracking-tight sm:text-3xl">
+        <span
+          className="inline-block h-6 w-1.5"
+          style={{ background: "hsl(var(--brand-accent))" }}
+        />
+        {title}
+      </h2>
+      {subtitle && (
+        <p className="mt-1 pl-[18px] text-sm text-muted-foreground">{subtitle}</p>
+      )}
+    </div>
+  );
+}
+
 export function StreetStorefront({
   store,
   theme,
@@ -37,7 +55,7 @@ export function StreetStorefront({
     ? categories
         .map((cat) => ({
           ...cat,
-          items: products.filter((p) => p.category_id === cat.id).slice(0, 8),
+          items: products.filter((p) => p.category_id === cat.id).slice(0, 10),
         }))
         .filter((c) => c.items.length > 0)
     : [];
@@ -48,27 +66,25 @@ export function StreetStorefront({
   const galleryImages = theme.media.gallery
     .map((p) => getImageUrl(p))
     .filter((u): u is string => Boolean(u));
+  const heroVideo = theme.heroVideoUrl.trim();
 
   const loNuevo = getBlock(theme, "lo-nuevo");
   const colecciones = getBlock(theme, "colecciones");
   const galeria = getBlock(theme, "galeria");
   const catalog = getBlock(theme, "catalog");
-  const about = getBlock(theme, "about");
+  const testimonios = getBlock(theme, "testimonios");
+  const locales = getBlock(theme, "locales");
+  const marca = getBlock(theme, "marca");
 
   const nodes: Record<string, ReactNode> = {
     "lo-nuevo":
       featured.length > 0 && loNuevo.enabled ? (
         <section key="lo-nuevo" className="border-b py-10">
           <div className="container">
-            <h2 className="text-xl font-extrabold uppercase tracking-tight">
-              {loNuevo.title}
-            </h2>
-            {loNuevo.subtitle && (
-              <p className="text-sm text-muted-foreground">{loNuevo.subtitle}</p>
-            )}
-            <div className="mt-5 -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <SectionHead title={loNuevo.title} subtitle={loNuevo.subtitle} />
+            <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {featured.map((p) => (
-                <div key={p.id} className="w-44 shrink-0 sm:w-52">
+                <div key={p.id} className="w-44 shrink-0 sm:w-56">
                   <StreetProductCard product={p} store={store} />
                 </div>
               ))}
@@ -81,22 +97,27 @@ export function StreetStorefront({
       productsByCategory.length > 0 && colecciones.enabled ? (
         <div key="colecciones">
           {productsByCategory.map((cat) => (
-            <section key={cat.id} className="border-b py-8">
+            <section key={cat.id} className="border-b py-9">
               <div className="container">
-                <div className="flex items-baseline justify-between">
-                  <h2 className="text-lg font-extrabold uppercase tracking-tight">
+                <div className="mb-5 flex items-end justify-between">
+                  <h2 className="flex items-center gap-3 text-xl font-extrabold uppercase tracking-tight sm:text-2xl">
+                    <span
+                      className="inline-block h-5 w-1.5"
+                      style={{ background: "hsl(var(--brand-accent))" }}
+                    />
                     {cat.name}
                   </h2>
                   <Link
                     href={`/${store.slug}?cat=${cat.slug}`}
-                    className="text-sm font-bold text-primary hover:underline"
+                    className="text-xs font-extrabold uppercase tracking-widest hover:underline"
+                    style={{ color: "hsl(var(--brand-accent))" }}
                   >
-                    Ver todo
+                    Ver todo →
                   </Link>
                 </div>
-                <div className="mt-4 -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {cat.items.map((p) => (
-                    <div key={p.id} className="w-44 shrink-0 sm:w-52">
+                    <div key={p.id} className="w-44 shrink-0 sm:w-56">
                       <StreetProductCard product={p} store={store} />
                     </div>
                   ))}
@@ -111,15 +132,10 @@ export function StreetStorefront({
       galleryImages.length >= 2 && galeria.enabled ? (
         <section key="galeria" className="border-b py-10">
           <div className="container">
-            <h2 className="mb-5 text-xl font-extrabold uppercase tracking-tight">
-              {galeria.title}
-            </h2>
+            <SectionHead title={galeria.title} />
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
               {galleryImages.slice(0, 8).map((img, i) => (
-                <div
-                  key={i}
-                  className="relative aspect-square overflow-hidden rounded-2xl"
-                >
+                <div key={i} className="relative aspect-square overflow-hidden">
                   <Image
                     src={img}
                     alt=""
@@ -137,24 +153,28 @@ export function StreetStorefront({
     catalog: (
       <section key="catalog" id="catalogo" className="container scroll-mt-20 py-10">
         <CategoryChips categories={categories} />
-        <h2 className="my-6 text-xl font-extrabold uppercase tracking-tight">
-          {hasFilters ? heading : catalog.title}
-        </h2>
+        <div className="my-6">
+          {hasFilters ? (
+            <h2 className="text-2xl font-extrabold uppercase tracking-tight">{heading}</h2>
+          ) : (
+            <SectionHead title={catalog.title} />
+          )}
+        </div>
 
         {products.length === 0 ? (
-          <div className="grid place-items-center rounded-2xl border-2 border-dashed py-16 text-center">
+          <div className="grid place-items-center border-2 border-dashed py-16 text-center">
             <PackageSearch className="mb-3 size-8 text-muted-foreground/40" />
-            <p className="font-bold uppercase">
+            <p className="font-extrabold uppercase">
               {hasFilters ? "Sin resultados" : "Próximamente"}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
               {hasFilters
                 ? "Probá con otra búsqueda o categoría."
-                : "Estamos preparando algo increíble."}
+                : "Se viene algo grande 👀"}
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 lg:grid-cols-4">
             {products.map((p) => (
               <StreetProductCard key={p.id} product={p} store={store} />
             ))}
@@ -163,24 +183,85 @@ export function StreetStorefront({
       </section>
     ),
 
-    about:
-      theme.about.text && about.enabled ? (
-        <section
-          key="about"
-          className="border-t bg-gradient-to-b from-primary/5 to-transparent py-12"
-        >
-          <div className="container mx-auto max-w-2xl text-center">
-            <h2 className="text-xl font-extrabold uppercase tracking-tight">
-              {about.title}
+    testimonios:
+      theme.testimonials.length > 0 && testimonios.enabled ? (
+        <section key="testimonios" className="border-b bg-foreground py-12 text-background">
+          <div className="container">
+            <h2 className="mb-8 text-center text-2xl font-extrabold uppercase tracking-tight sm:text-3xl">
+              {testimonios.title}
             </h2>
-            {store.address && (
-              <p className="mt-1 text-xs font-bold uppercase tracking-widest text-primary">
-                {store.address}
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {theme.testimonials.map((t, i) => (
+                <figure key={i} className="border border-background/15 p-5">
+                  <div
+                    className="mb-2 flex gap-0.5"
+                    style={{ color: "hsl(var(--brand-accent))" }}
+                  >
+                    {Array.from({ length: 5 }).map((_, s) => (
+                      <Star key={s} className="size-4 fill-current" />
+                    ))}
+                  </div>
+                  <blockquote className="text-sm leading-relaxed text-background/90">
+                    “{t.quote}”
+                  </blockquote>
+                  {t.author && (
+                    <figcaption className="mt-3 text-xs font-extrabold uppercase tracking-widest text-background/60">
+                      {t.author}
+                    </figcaption>
+                  )}
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null,
+
+    locales:
+      theme.locations.length > 0 && locales.enabled ? (
+        <section key="locales" className="border-b py-12">
+          <div className="container">
+            <SectionHead title={locales.title} subtitle={locales.subtitle} />
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {theme.locations.map((l, i) => (
+                <div key={i} className="flex items-start gap-3 border p-4">
+                  <MapPin
+                    className="mt-0.5 size-5 shrink-0"
+                    style={{ color: "hsl(var(--brand-accent))" }}
+                  />
+                  <div className="min-w-0">
+                    <p className="font-extrabold uppercase tracking-wide">{l.name}</p>
+                    {l.address && (
+                      <p className="text-sm text-muted-foreground">{l.address}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null,
+
+    marca:
+      (theme.about.text || marca.subtitle) && marca.enabled ? (
+        <section
+          key="marca"
+          className="py-16 text-center"
+          style={{ background: "hsl(var(--brand-accent))" }}
+        >
+          <div className="container mx-auto max-w-2xl text-white">
+            <h2 className="text-3xl font-extrabold uppercase tracking-tight sm:text-4xl">
+              {marca.title}
+            </h2>
+            {marca.subtitle && (
+              <p className="mt-2 text-sm font-bold uppercase tracking-[0.25em] text-white/80">
+                {marca.subtitle}
               </p>
             )}
-            <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-              {theme.about.text}
-            </p>
+            {theme.about.text && (
+              <p className="mt-5 whitespace-pre-line leading-relaxed text-white/90">
+                {theme.about.text}
+              </p>
+            )}
           </div>
         </section>
       ) : null,
@@ -188,52 +269,42 @@ export function StreetStorefront({
 
   return (
     <main>
-      {/* Vibrant hero */}
+      {/* Bold hero: video → carousel → gradient */}
       {!hasFilters && (
-        <section className="relative overflow-hidden">
-          {heroImages.length || banner ? (
-            <div className="relative min-h-[70vh]">
-              <HeroSlides slides={heroImages} fallback={banner} alt={store.name} />
-              <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-primary/30 to-transparent" />
-              <div className="container relative flex min-h-[70vh] flex-col justify-end pb-10 text-white">
-                <p className="text-xs font-extrabold uppercase tracking-widest text-white/70">
-                  {store.name}
-                </p>
-                <h1 className="mt-1 max-w-lg text-3xl font-extrabold uppercase leading-[1.05] sm:text-5xl">
-                  {hero.headline}
-                </h1>
-                {hero.subtext && (
-                  <p className="mt-3 max-w-sm text-sm text-white/80">{hero.subtext}</p>
-                )}
-                <a
-                  href="#catalogo"
-                  className="mt-6 inline-block w-fit rounded-full bg-white px-8 py-3 text-sm font-extrabold uppercase tracking-wide text-primary shadow-lg transition-transform hover:scale-105"
-                >
-                  {hero.cta}
-                </a>
-              </div>
-            </div>
+        <section className="relative flex min-h-[78vh] items-end overflow-hidden bg-foreground">
+          {heroVideo ? (
+            <video
+              className="absolute inset-0 h-full w-full object-cover"
+              src={heroVideo}
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : heroImages.length || banner ? (
+            <HeroSlides slides={heroImages} fallback={banner} alt={store.name} />
           ) : (
-            <div className="bg-gradient-to-br from-primary via-primary to-pink-400 px-4 py-16 text-white sm:py-20">
-              <div className="container">
-                <p className="text-xs font-extrabold uppercase tracking-widest text-white/60">
-                  {store.name}
-                </p>
-                <h1 className="mt-2 max-w-lg text-3xl font-extrabold uppercase leading-[1.05] sm:text-5xl">
-                  {hero.headline}
-                </h1>
-                {hero.subtext && (
-                  <p className="mt-3 max-w-sm text-sm text-white/80">{hero.subtext}</p>
-                )}
-                <a
-                  href="#catalogo"
-                  className="mt-6 inline-block rounded-full bg-white px-8 py-3 text-sm font-extrabold uppercase tracking-wide text-primary shadow-lg transition-transform hover:scale-105"
-                >
-                  {hero.cta}
-                </a>
-              </div>
-            </div>
+            <div className="absolute inset-0 bg-gradient-to-br from-foreground to-foreground/70" />
           )}
+          <div className="absolute inset-0 bg-black/35" />
+          <div className="container relative pb-12 text-white sm:pb-16">
+            <p className="text-xs font-extrabold uppercase tracking-[0.3em] text-white/70">
+              {store.name}
+            </p>
+            <h1 className="mt-2 max-w-2xl text-4xl font-extrabold uppercase leading-[0.95] sm:text-6xl">
+              {hero.headline}
+            </h1>
+            {hero.subtext && (
+              <p className="mt-3 max-w-md text-sm text-white/85">{hero.subtext}</p>
+            )}
+            <a
+              href="#catalogo"
+              className="mt-7 inline-block px-9 py-3.5 text-sm font-extrabold uppercase tracking-widest text-white transition-transform hover:scale-105"
+              style={{ background: "hsl(var(--brand-accent))" }}
+            >
+              {hero.cta}
+            </a>
+          </div>
         </section>
       )}
 

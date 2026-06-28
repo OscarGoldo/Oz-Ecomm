@@ -48,6 +48,7 @@ import {
 } from "@/app/(admin)/panel/personalizar/actions";
 import {
   LAYOUT_BLOCKS,
+  LAYOUT_HERO_VIDEO,
   LAYOUT_MEDIA,
   SECTION_LABELS,
   THEME_FONTS,
@@ -56,6 +57,7 @@ import {
   type ButtonStyle,
   type CardStyle,
   type LayoutId,
+  type Location,
   type MediaKey,
   type SectionId,
   type StoreTheme,
@@ -154,6 +156,8 @@ export function ThemeEditor({
   const blockDefs = LAYOUT_BLOCKS[theme.layout];
   const mediaDefs = LAYOUT_MEDIA[theme.layout];
   const showTestimonials = blockDefs?.some((d) => d.id === "testimonios");
+  const showLocations = blockDefs?.some((d) => d.id === "locales");
+  const showHeroVideo = LAYOUT_HERO_VIDEO.includes(theme.layout);
 
   function patch(p: Partial<StoreTheme>) {
     setTheme((t) => ({ ...t, ...p, preset: "custom" }));
@@ -222,6 +226,27 @@ export function ThemeEditor({
     setTheme((t) => ({
       ...t,
       testimonials: t.testimonials.filter((_, i) => i !== index),
+      preset: "custom",
+    }));
+  }
+  function addLocation() {
+    setTheme((t) => ({
+      ...t,
+      locations: [...t.locations, { name: "", address: "" }],
+      preset: "custom",
+    }));
+  }
+  function updateLocation(index: number, partial: Partial<Location>) {
+    setTheme((t) => ({
+      ...t,
+      locations: t.locations.map((x, i) => (i === index ? { ...x, ...partial } : x)),
+      preset: "custom",
+    }));
+  }
+  function removeLocation(index: number) {
+    setTheme((t) => ({
+      ...t,
+      locations: t.locations.filter((_, i) => i !== index),
       preset: "custom",
     }));
   }
@@ -557,6 +582,21 @@ export function ThemeEditor({
               </p>
             </CardHeader>
             <CardContent className="space-y-5">
+              {showHeroVideo && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Video de portada (URL .mp4)</Label>
+                  <Input
+                    value={theme.heroVideoUrl}
+                    onChange={(e) => patch({ heroVideoUrl: e.target.value })}
+                    placeholder="https://…/video.mp4"
+                    className="h-9"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Si lo ponés, reemplaza la imagen del hero. Usá un enlace
+                    directo a un archivo .mp4 o .webm.
+                  </p>
+                </div>
+              )}
               {mediaDefs.map((m) => (
                 <div key={m.key} className="space-y-1.5">
                   <Label className="text-xs">{m.label}</Label>
@@ -622,6 +662,58 @@ export function ThemeEditor({
                 className="w-full"
               >
                 <Plus className="size-4" /> Agregar historia
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Locations */}
+        {showLocations && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Nuestras tiendas</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Tus locales físicos. Poneles nombres con personalidad.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {theme.locations.map((l, i) => (
+                <div key={i} className="space-y-2 rounded-lg border p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Tienda {i + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeLocation(i)}
+                      className="text-muted-foreground hover:text-destructive"
+                      aria-label="Quitar"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                  <Input
+                    value={l.name}
+                    onChange={(e) => updateLocation(i, { name: e.target.value })}
+                    placeholder="Nombre (ej. La Cueva)"
+                    className="h-9"
+                  />
+                  <Input
+                    value={l.address}
+                    onChange={(e) => updateLocation(i, { address: e.target.value })}
+                    placeholder="Dirección / ciudad"
+                    className="h-9"
+                  />
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addLocation}
+                className="w-full"
+              >
+                <Plus className="size-4" /> Agregar tienda
               </Button>
             </CardContent>
           </Card>

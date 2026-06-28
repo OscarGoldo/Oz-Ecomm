@@ -64,6 +64,16 @@ const themeSchema = z.object({
     )
     .max(12)
     .default([]),
+  locations: z
+    .array(
+      z.object({
+        name: z.string().max(80).default(""),
+        address: z.string().max(200).default(""),
+      }),
+    )
+    .max(20)
+    .default([]),
+  heroVideoUrl: z.string().max(400).default(""),
 });
 
 export type ThemeInput = z.input<typeof themeSchema>;
