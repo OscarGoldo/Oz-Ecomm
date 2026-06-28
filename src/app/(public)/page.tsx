@@ -5,14 +5,13 @@ import {
   PackageCheck,
   Palette,
   Smartphone,
-  Sparkles,
   Store,
   Wallet,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { HeroSignup } from "@/components/storefront/hero-signup";
 import { LandingHeader } from "@/components/landing/landing-header";
+import { LandingHero } from "@/components/landing/landing-hero";
 
 const features = [
   {
@@ -60,58 +59,7 @@ export default function LandingPage() {
       <LandingHeader />
 
       {/* Hero */}
-      <section className="container grid items-center gap-10 py-14 sm:py-20 lg:grid-cols-2">
-        <div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            <Sparkles className="size-3.5" /> Ecommerce para PYMEs de Venezuela
-          </span>
-          <h1 className="mt-4 text-balance text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
-            Creá tu tienda online y empezá a vender hoy
-          </h1>
-          <p className="mt-5 max-w-md text-lg text-muted-foreground">
-            Catálogo, carrito, pagos locales y gestión de pedidos. Dejá el
-            desorden de Instagram y WhatsApp y ordená tu negocio.
-          </p>
-          <div className="mt-7">
-            <HeroSignup />
-            <p className="mt-2 text-sm text-muted-foreground">
-              Gratis. Sin tarjeta. Tu tienda lista en minutos.
-            </p>
-          </div>
-        </div>
-
-        {/* Storefront mock */}
-        <div className="relative mx-auto w-full max-w-sm">
-          <div className="overflow-hidden rounded-[2rem] border bg-card shadow-2xl">
-            <div className="flex items-center gap-2 bg-primary px-4 py-3 text-primary-foreground">
-              <span className="grid size-7 place-items-center rounded-md bg-white/90 text-xs font-bold text-primary">
-                AF
-              </span>
-              <span className="text-sm font-semibold">Mi Tienda</span>
-              <span className="ml-auto size-4 rounded-full bg-white/30" />
-            </div>
-            <div className="bg-gradient-to-br from-primary/15 to-transparent p-4">
-              <div className="h-3 w-24 rounded bg-foreground/10" />
-              <div className="mt-2 h-6 w-40 rounded bg-foreground/15" />
-            </div>
-            <div className="grid grid-cols-2 gap-3 p-4">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="overflow-hidden rounded-xl border">
-                  <div className="aspect-square bg-muted" />
-                  <div className="space-y-1.5 p-2.5">
-                    <div className="h-2.5 w-full rounded bg-foreground/10" />
-                    <div className="h-3 w-12 rounded bg-primary/70" />
-                    <div className="h-6 w-full rounded-lg bg-primary" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="absolute -right-3 -top-3 rotate-6 rounded-xl bg-success px-3 py-1.5 text-sm font-bold text-success-foreground shadow-lg">
-            ¡Nuevo pedido! 🎉
-          </div>
-        </div>
-      </section>
+      <LandingHero />
 
       {/* Features */}
       <section className="border-t bg-muted/30">
