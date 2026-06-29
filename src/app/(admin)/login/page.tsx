@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Store } from "lucide-react";
 
+import { OzLogo } from "@/components/landing/oz-logo";
 import {
   Card,
   CardContent,
@@ -31,14 +31,8 @@ export default async function LoginPage({
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-muted/40 px-4 py-10">
       <div className="w-full max-w-sm">
-        <Link
-          href="/"
-          className="mb-6 flex items-center justify-center gap-2 text-lg font-bold"
-        >
-          <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-            <Store className="size-5" />
-          </span>
-          OzShop
+        <Link href="/" className="mb-6 flex justify-center">
+          <OzLogo />
         </Link>
 
         <Card>
