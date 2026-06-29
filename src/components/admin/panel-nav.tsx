@@ -89,7 +89,7 @@ export function PanelSidebarNav({ badges = {} }: NavProps) {
 export function PanelBottomNav({ badges = {} }: NavProps) {
   const pathname = usePathname();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t bg-background md:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-border/40 bg-background/70 backdrop-blur-xl backdrop-saturate-150 md:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {NAV_ITEMS.map((item) => {
         const active = isActive(pathname, item.href);
         const badge = badges[item.href];
