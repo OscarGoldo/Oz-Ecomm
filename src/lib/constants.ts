@@ -38,6 +38,7 @@ export const PAYMENT_METHOD_META: Record<
   cash: { label: "Efectivo" },
   transfer: { label: "Transferencia" },
   other: { label: "Otro" },
+  paypal: { label: "PayPal / Tarjeta" },
 };
 
 export const ROLE_META: Record<UserRole, { label: string }> = {
@@ -62,6 +63,7 @@ export const PAYMENT_TYPE_FIELDS: Record<
     { key: "titular", label: "Titular" },
   ],
   binance: [{ key: "email_o_id", label: "Email o ID de Binance" }],
+  paypal: [],
   transfer: [
     { key: "banco", label: "Banco" },
     { key: "cuenta", label: "N° de cuenta" },
@@ -80,4 +82,5 @@ export const PAYMENT_TYPE_DEFAULT_PROOF: Record<PaymentMethodType, boolean> = {
   transfer: true,
   cash: false,
   other: false,
+  paypal: false,
 };

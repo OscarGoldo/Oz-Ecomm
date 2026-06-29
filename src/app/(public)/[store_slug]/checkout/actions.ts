@@ -8,6 +8,11 @@ import { clearCart } from "@/lib/cart-actions";
 import { formatUSD, usdToBs } from "@/lib/format";
 import { newOrderEmail, sendEmail } from "@/lib/email";
 import { evaluateCoupon, findCouponByCode } from "@/lib/coupons";
+import {
+  capturePaypalOrder,
+  createPaypalOrder,
+  paypalCredsFromDetails,
+} from "@/lib/paypal";
 import type { Coupon, CouponType, OrderStatus } from "@/types/database";
 
 const checkoutSchema = z.object({
@@ -26,11 +31,13 @@ const checkoutSchema = z.object({
   payment_method_id: z.string().uuid("Elegí un método de pago"),
   payment_reference: z.string().trim().optional(),
   payment_proof_path: z.string().trim().optional(),
+  paypal_order_id: z.string().trim().optional(),
   coupon_code: z.string().trim().optional(),
   notes: z.string().trim().optional(),
 });
 
 export type CheckoutInput = z.input<typeof checkoutSchema>;
+type CheckoutData = z.infer<typeof checkoutSchema>;
 
 export interface CheckoutResult {
   ok: boolean;
@@ -68,20 +75,60 @@ export async function previewCoupon(
   };
 }
 
-export async function createOrder(
-  input: CheckoutInput,
-): Promise<CheckoutResult> {
-  const parsed = checkoutSchema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
-  }
-  const data = parsed.data;
+type AdminDb = ReturnType<typeof createAdminClient>;
 
-  const db = createAdminClient();
+interface OrderItemDraft {
+  product_id: string;
+  product_name: string;
+  variant_id: string | null;
+  variant_name: string | null;
+  quantity: number;
+  unit_price: number;
+  unit_cost: number;
+  subtotal: number;
+}
 
-  // Store (and its delivery options + rate snapshot).
-  // select("*") so the new delivery-fee columns degrade gracefully if migration
-  // 0004 hasn't been applied yet (they read as undefined → no shipping).
+interface OrderDraft {
+  store: Record<string, unknown> & {
+    id: string;
+    name: string;
+    active: boolean;
+    show_bs_prices: boolean;
+    exchange_rate: number | null;
+    offers_delivery: boolean;
+    offers_pickup: boolean;
+    delivery_fee: number | null;
+    free_delivery_min: number | null;
+  };
+  method: {
+    id: string;
+    type: string;
+    requires_proof: boolean;
+    active: boolean;
+    details: unknown;
+  };
+  orderItems: OrderItemDraft[];
+  subtotal: number;
+  discount: number;
+  couponFreeShipping: boolean;
+  appliedCoupon: Coupon | null;
+  shipping: number;
+  total: number;
+  totalBs: number | null;
+  variantStockUpdates: { id: string; newStock: number }[];
+  productDecrement: Map<string, number>;
+  productStockById: Map<string, number>;
+}
+
+/**
+ * Validate the request + cart and compute the order draft (items, totals,
+ * stock changes). Shared by the manual checkout and the PayPal flow so the
+ * money math lives in one place. Does NOT insert anything.
+ */
+async function buildOrderDraft(
+  db: AdminDb,
+  data: CheckoutData,
+): Promise<{ ok: true; draft: OrderDraft } | { ok: false; error: string }> {
   const { data: store } = await db
     .from("stores")
     .select("*")
@@ -91,7 +138,6 @@ export async function createOrder(
     return { ok: false, error: "La tienda no está disponible" };
   }
 
-  // Fulfillment validation.
   if (data.fulfillment_type === "delivery") {
     if (!store.offers_delivery) {
       return { ok: false, error: "La tienda no ofrece delivery" };
@@ -103,21 +149,16 @@ export async function createOrder(
     return { ok: false, error: "La tienda no ofrece retiro" };
   }
 
-  // Payment method.
   const { data: method } = await db
     .from("payment_methods")
-    .select("id, type, requires_proof, active")
+    .select("id, type, requires_proof, active, details")
     .eq("id", data.payment_method_id)
     .eq("store_id", store.id)
     .maybeSingle();
   if (!method || !method.active) {
     return { ok: false, error: "Método de pago no válido" };
   }
-  if (method.requires_proof && !data.payment_proof_path) {
-    return { ok: false, error: "Subí el comprobante de pago" };
-  }
 
-  // Cart (server-side source of truth).
   const cart = readCartForStore(store.id);
   if (cart.items.length === 0) {
     return { ok: false, error: "Tu carrito está vacío" };
@@ -146,24 +187,17 @@ export async function createOrder(
   const byId = new Map((products ?? []).map((p) => [p.id, p]));
   const variantById = new Map((variants ?? []).map((v) => [v.id, v]));
 
-  const orderItems: {
-    product_id: string;
-    product_name: string;
-    variant_id: string | null;
-    variant_name: string | null;
-    quantity: number;
-    unit_price: number;
-    unit_cost: number;
-    subtotal: number;
-  }[] = [];
+  const orderItems: OrderItemDraft[] = [];
   const variantStockUpdates: { id: string; newStock: number }[] = [];
   const productDecrement = new Map<string, number>();
+  const productStockById = new Map<string, number>();
 
   for (const item of cart.items) {
     const product = byId.get(item.id);
     if (!product || product.status !== "active") {
       return { ok: false, error: "Un producto ya no está disponible. Revisá tu carrito." };
     }
+    productStockById.set(product.id, product.stock);
     const qty = item.qty;
 
     if (item.variantId) {
@@ -194,7 +228,6 @@ export async function createOrder(
       continue;
     }
 
-    // A variant product must be ordered with a chosen variant.
     const opts = product.variant_options;
     if (Array.isArray(opts) && opts.length > 0) {
       return { ok: false, error: `Elegí las opciones de "${product.name}".` };
@@ -237,8 +270,6 @@ export async function createOrder(
     appliedCoupon = coupon;
   }
 
-  // Shipping: flat delivery_fee for delivery orders, waived if subtotal reaches
-  // the free-delivery threshold or a free-shipping coupon applies. Pickup free.
   const deliveryFee = Number(store.delivery_fee ?? 0);
   const freeMin = store.free_delivery_min;
   const baseShipping =
@@ -250,14 +281,117 @@ export async function createOrder(
   const shipping = couponFreeShipping ? 0 : baseShipping;
 
   const total = Math.max(0, subtotal + shipping - discount);
-  const totalBs = store.show_bs_prices
-    ? usdToBs(total, store.exchange_rate)
-    : null;
+  const totalBs = store.show_bs_prices ? usdToBs(total, store.exchange_rate) : null;
 
-  // Cash → accepted immediately; proof methods → wait for owner confirmation.
-  const status: OrderStatus = method.requires_proof
-    ? "pending_confirmation"
-    : "confirmed";
+  return {
+    ok: true,
+    draft: {
+      store,
+      method,
+      orderItems,
+      subtotal,
+      discount,
+      couponFreeShipping,
+      appliedCoupon,
+      shipping,
+      total,
+      totalBs,
+      variantStockUpdates,
+      productDecrement,
+      productStockById,
+    },
+  };
+}
+
+/**
+ * Step 1 of a PayPal payment: create the PayPal order for the real (server
+ * computed) total. The browser then shows the PayPal/card buttons for it.
+ */
+export async function createPaypalOrderAction(
+  input: CheckoutInput,
+): Promise<{ ok: boolean; error?: string; paypalOrderId?: string }> {
+  const parsed = checkoutSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  const db = createAdminClient();
+  const result = await buildOrderDraft(db, parsed.data);
+  if (!result.ok) return { ok: false, error: result.error };
+  const { draft } = result;
+
+  if (draft.method.type !== "paypal") {
+    return { ok: false, error: "Método no válido" };
+  }
+  const creds = paypalCredsFromDetails(draft.method.details);
+  if (!creds) return { ok: false, error: "PayPal no está configurado en la tienda" };
+  if (draft.total <= 0) return { ok: false, error: "El total no es válido" };
+
+  const res = await createPaypalOrder(creds, draft.total, {
+    description: `Pedido en ${draft.store.name}`,
+  });
+  if (!res.ok) return { ok: false, error: "No se pudo iniciar el pago con PayPal" };
+  return { ok: true, paypalOrderId: res.id };
+}
+
+export async function createOrder(
+  input: CheckoutInput,
+): Promise<CheckoutResult> {
+  const parsed = checkoutSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+  const data = parsed.data;
+
+  const db = createAdminClient();
+  const result = await buildOrderDraft(db, data);
+  if (!result.ok) return { ok: false, error: result.error };
+  const {
+    store,
+    method,
+    orderItems,
+    subtotal,
+    discount,
+    appliedCoupon,
+    shipping,
+    total,
+    totalBs,
+    variantStockUpdates,
+    productDecrement,
+    productStockById,
+  } = result.draft;
+
+  // Decide status + payment proof depending on the method.
+  let status: OrderStatus;
+  let paymentReference = data.payment_reference || null;
+  let paymentProof = data.payment_proof_path || null;
+
+  if (method.type === "paypal") {
+    // Capture the online payment now; only create the order if it succeeds.
+    const creds = paypalCredsFromDetails(method.details);
+    if (!creds) return { ok: false, error: "PayPal no está configurado en la tienda" };
+    if (!data.paypal_order_id) {
+      return { ok: false, error: "El pago de PayPal no se completó" };
+    }
+    const cap = await capturePaypalOrder(creds, data.paypal_order_id);
+    if (!cap.ok) {
+      return { ok: false, error: "No se pudo confirmar el pago con PayPal" };
+    }
+    if (Math.abs(cap.amount - total) > 0.01) {
+      return {
+        ok: false,
+        error: "El monto cobrado no coincide con el pedido. Contactá a la tienda.",
+      };
+    }
+    status = "confirmed";
+    paymentReference = cap.captureId;
+    paymentProof = null;
+  } else {
+    if (method.requires_proof && !data.payment_proof_path) {
+      return { ok: false, error: "Subí el comprobante de pago" };
+    }
+    status = method.requires_proof ? "pending_confirmation" : "confirmed";
+  }
 
   const { data: order, error: orderErr } = await db
     .from("orders")
@@ -279,8 +413,8 @@ export async function createOrder(
       total_bs: totalBs,
       exchange_rate: store.exchange_rate,
       payment_method_type: method.type,
-      payment_proof_url: data.payment_proof_path || null,
-      payment_reference: data.payment_reference || null,
+      payment_proof_url: paymentProof,
+      payment_reference: paymentReference,
       status,
       notes: data.notes || null,
       confirmed_at: status === "confirmed" ? new Date().toISOString() : null,
@@ -300,7 +434,6 @@ export async function createOrder(
     return { ok: false, error: "No se pudo crear el pedido. Intentá de nuevo." };
   }
 
-  // Count the coupon use.
   if (appliedCoupon) {
     await db
       .from("coupons")
@@ -308,8 +441,7 @@ export async function createOrder(
       .eq("id", appliedCoupon.id);
   }
 
-  // Decrement stock now only for immediately-confirmed (cash) orders.
-  // Proof orders decrement when the owner confirms payment (Phase 5).
+  // Decrement stock now only for immediately-confirmed orders (cash + PayPal).
   if (status === "confirmed") {
     await Promise.all([
       ...variantStockUpdates.map((u) =>
@@ -319,7 +451,7 @@ export async function createOrder(
           .eq("id", u.id),
       ),
       ...[...productDecrement.entries()].map(([pid, dec]) => {
-        const base = byId.get(pid)?.stock ?? 0;
+        const base = productStockById.get(pid) ?? 0;
         return db
           .from("products")
           .update({ stock: Math.max(0, base - dec) })

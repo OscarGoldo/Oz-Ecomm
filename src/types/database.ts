@@ -22,7 +22,8 @@ export type PaymentMethodType =
   | "binance"
   | "cash"
   | "transfer"
-  | "other";
+  | "other"
+  | "paypal";
 
 export type FulfillmentType = "delivery" | "pickup";
 

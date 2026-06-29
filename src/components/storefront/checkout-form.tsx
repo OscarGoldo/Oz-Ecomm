@@ -33,7 +33,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PaymentProofUpload } from "@/components/storefront/payment-proof-upload";
-import { createOrder, previewCoupon } from "@/app/(public)/[store_slug]/checkout/actions";
+import { PaypalButtons } from "@/components/storefront/paypal-buttons";
+import {
+  createOrder,
+  previewCoupon,
+  type CheckoutInput,
+} from "@/app/(public)/[store_slug]/checkout/actions";
 import { formatBs, formatUSD, usdToBs } from "@/lib/format";
 import { getImageUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
@@ -189,11 +194,18 @@ export function CheckoutForm({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function onSubmit(values: FormValues) {
+  /** Build + validate the checkout payload (shared by manual submit + PayPal). */
+  function buildInput(): CheckoutInput | null {
+    const values = getValues();
+    if (values.customer_name.trim().length < 2) {
+      setStep(1);
+      toast.error("Ingresá tu nombre");
+      return null;
+    }
     if (values.customer_phone.trim().length < 6) {
       setStep(1);
       toast.error("Ingresá tu teléfono");
-      return;
+      return null;
     }
     if (
       values.fulfillment_type === "delivery" &&
@@ -201,19 +213,13 @@ export function CheckoutForm({
     ) {
       setStep(1);
       toast.error("Ingresá la dirección de entrega");
-      return;
+      return null;
     }
     if (!selectedMethod) {
       toast.error("Elegí un método de pago");
-      return;
+      return null;
     }
-    if (selectedMethod.requires_proof && !proofPath) {
-      toast.error("Subí el comprobante de pago");
-      return;
-    }
-
-    setSubmitting(true);
-    const res = await createOrder({
+    return {
       store_id: store.id,
       customer_name: values.customer_name,
       customer_phone: values.customer_phone,
@@ -226,7 +232,23 @@ export function CheckoutForm({
       payment_proof_path: proofPath || undefined,
       coupon_code: coupon?.code || undefined,
       notes: values.notes || undefined,
-    });
+    };
+  }
+
+  async function onSubmit() {
+    if (!selectedMethod) {
+      toast.error("Elegí un método de pago");
+      return;
+    }
+    if (selectedMethod.requires_proof && !proofPath) {
+      toast.error("Subí el comprobante de pago");
+      return;
+    }
+    const input = buildInput();
+    if (!input) return;
+
+    setSubmitting(true);
+    const res = await createOrder(input);
     setSubmitting(false);
 
     if (!res.ok || !res.orderId) {
@@ -240,8 +262,14 @@ export function CheckoutForm({
     selectedMethod && typeof selectedMethod.details === "object" && selectedMethod.details
       ? (selectedMethod.details as Record<string, unknown>)
       : {};
+  const isPaypal = selectedMethod?.type === "paypal";
+  const paypalClientId =
+    typeof details.client_id === "string" ? details.client_id : undefined;
   const detailEntries = Object.entries(details).filter(
-    ([, v]) => typeof v === "string" && v.length > 0,
+    ([key, v]) =>
+      typeof v === "string" &&
+      v.length > 0 &&
+      !["client_id", "secret", "sandbox"].includes(key),
   ) as [string, string][];
 
   return (
@@ -409,7 +437,25 @@ export function CheckoutForm({
                 </div>
               )}
 
-              {selectedMethod && (
+              {isPaypal && selectedMethod ? (
+                <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    Pagás con PayPal, tarjeta de crédito o débito. Tu pedido se
+                    confirma al instante.
+                  </p>
+                  {paypalClientId ? (
+                    <PaypalButtons
+                      clientId={paypalClientId}
+                      getInput={buildInput}
+                      onSuccess={(id) => router.push(`/${store.slug}/pedido/${id}`)}
+                    />
+                  ) : (
+                    <p className="text-sm text-destructive">
+                      PayPal no está configurado correctamente.
+                    </p>
+                  )}
+                </div>
+              ) : selectedMethod ? (
                 <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
                   {detailEntries.length > 0 && (
                     <ul className="space-y-1.5">
@@ -464,7 +510,7 @@ export function CheckoutForm({
                     </p>
                   )}
                 </div>
-              )}
+              ) : null}
             </CardContent>
           </Card>
 
@@ -538,13 +584,17 @@ export function CheckoutForm({
             </CardContent>
           </Card>
 
-          <Button type="submit" size="lg" className="w-full" disabled={submitting}>
-            {submitting ? <Loader2 className="animate-spin" /> : <Lock />}
-            Confirmar pedido · {formatUSD(total)}
-          </Button>
-          <p className="text-center text-xs text-muted-foreground">
-            Al confirmar, la tienda recibe tu pedido para procesarlo.
-          </p>
+          {!isPaypal && (
+            <>
+              <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+                {submitting ? <Loader2 className="animate-spin" /> : <Lock />}
+                Confirmar pedido · {formatUSD(total)}
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                Al confirmar, la tienda recibe tu pedido para procesarlo.
+              </p>
+            </>
+          )}
         </div>
       </form>
     </div>

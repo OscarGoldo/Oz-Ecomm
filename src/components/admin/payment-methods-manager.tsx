@@ -48,6 +48,7 @@ const TYPES: PaymentMethodType[] = [
   "binance",
   "transfer",
   "cash",
+  "paypal",
   "other",
 ];
 
@@ -275,6 +276,62 @@ export function PaymentMethodsManager({
               </div>
             )}
 
+            {form.type === "paypal" && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="pp-client">Client ID</Label>
+                  <Input
+                    id="pp-client"
+                    value={form.details.client_id ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        details: { ...f.details, client_id: e.target.value },
+                      }))
+                    }
+                    placeholder="AY..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pp-secret">Secret</Label>
+                  <Input
+                    id="pp-secret"
+                    type="password"
+                    value={form.details.secret ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        details: { ...f.details, secret: e.target.value },
+                      }))
+                    }
+                    placeholder="••••••••"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Se guarda de forma segura en el servidor y nunca se muestra a
+                    tus clientes.
+                  </p>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="pr-3">
+                    <p className="text-sm font-medium">Modo de prueba (Sandbox)</p>
+                    <p className="text-xs text-muted-foreground">
+                      Activado: pagos de prueba, sin dinero real. Desactivá para
+                      cobrar de verdad.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.details.sandbox !== "false"}
+                    onCheckedChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        details: { ...f.details, sandbox: v ? "true" : "false" },
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="pm-instructions">Instrucciones (opcional)</Label>
               <Textarea
@@ -288,18 +345,20 @@ export function PaymentMethodsManager({
               />
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div>
-                <p className="text-sm font-medium">Pedir comprobante</p>
-                <p className="text-xs text-muted-foreground">
-                  El cliente sube la foto del pago al finalizar.
-                </p>
+            {form.type !== "paypal" && (
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <p className="text-sm font-medium">Pedir comprobante</p>
+                  <p className="text-xs text-muted-foreground">
+                    El cliente sube la foto del pago al finalizar.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.requires_proof}
+                  onCheckedChange={(v) => setForm((f) => ({ ...f, requires_proof: v }))}
+                />
               </div>
-              <Switch
-                checked={form.requires_proof}
-                onCheckedChange={(v) => setForm((f) => ({ ...f, requires_proof: v }))}
-              />
-            </div>
+            )}
 
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={close} type="button">

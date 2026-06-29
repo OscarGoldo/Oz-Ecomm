@@ -25,12 +25,22 @@ export default async function CheckoutPage({
   }
 
   const supabase = createClient();
-  const { data: paymentMethods } = await supabase
+  const { data: paymentMethodsRaw } = await supabase
     .from("payment_methods")
     .select("*")
     .eq("store_id", store.id)
     .eq("active", true)
     .order("display_order");
+
+  // Never expose the PayPal secret to the browser; keep client_id (public).
+  const paymentMethods = (paymentMethodsRaw ?? []).map((m) => {
+    if (m.details && typeof m.details === "object") {
+      const safe = { ...(m.details as Record<string, unknown>) };
+      delete safe.secret;
+      return { ...m, details: safe };
+    }
+    return m;
+  });
 
   return (
     <main className="container max-w-5xl py-6">
