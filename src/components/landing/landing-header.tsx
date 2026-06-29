@@ -29,10 +29,10 @@ export function LandingHeader() {
     <div className="sticky top-0 z-50 px-3 pt-3 sm:px-4 sm:pt-4">
       <header
         className={cn(
-          "mx-auto flex max-w-5xl items-center justify-between gap-4 rounded-full border border-black/5 bg-white/95 backdrop-blur transition-all duration-300",
+          "mx-auto flex max-w-5xl items-center justify-between gap-4 rounded-full border transition-all duration-300",
           scrolled
-            ? "px-4 py-2 shadow-lg shadow-black/[0.08]"
-            : "px-5 py-3 shadow-md shadow-black/[0.04]",
+            ? "border-white/40 bg-white/50 px-4 py-2 shadow-lg shadow-black/5 backdrop-blur-xl backdrop-saturate-150"
+            : "border-black/5 bg-white/95 px-5 py-3 shadow-md shadow-black/[0.04] backdrop-blur",
         )}
       >
         {/* Left: logo */}
