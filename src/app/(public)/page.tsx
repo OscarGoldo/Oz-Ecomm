@@ -5,13 +5,13 @@ import {
   PackageCheck,
   Palette,
   Smartphone,
-  Store,
   Wallet,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingHero } from "@/components/landing/landing-hero";
+import { OzLogo } from "@/components/landing/oz-logo";
 
 const features = [
   {
@@ -119,12 +119,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t">
         <div className="container flex flex-col items-center justify-between gap-3 py-8 text-sm text-muted-foreground sm:flex-row">
-          <div className="flex items-center gap-2 font-semibold text-foreground">
-            <span className="grid size-6 place-items-center rounded bg-primary text-primary-foreground">
-              <Store className="size-3.5" />
-            </span>
-            OzShop
-          </div>
+          <OzLogo />
           <span>© {new Date().getFullYear()} · Hecho en Venezuela 🇻🇪</span>
           <div className="flex gap-4">
             <Link href="/crear-tienda" className="hover:text-foreground">
