@@ -19,7 +19,8 @@ import {
   updateStoreSettings,
   type StoreSettingsInput,
 } from "@/app/(admin)/panel/configuracion/actions";
-import type { Store } from "@/types/database";
+import { cn } from "@/lib/utils";
+import type { RateSource, Store } from "@/types/database";
 
 interface FormValues {
   name: string;
@@ -32,12 +33,14 @@ interface FormValues {
   address: string;
   show_bs_prices: boolean;
   exchange_rate: string;
-  auto_exchange_rate: boolean;
+  usdt_rate: string;
+  rate_source: RateSource;
 }
 
 export interface BcvDisplay {
   usd: number | null;
   eur: number | null;
+  paralelo: number | null;
   updated_at: string | null;
 }
 
@@ -71,13 +74,14 @@ export function StoreSettingsForm({
       address: store.address ?? "",
       show_bs_prices: store.show_bs_prices,
       exchange_rate: store.exchange_rate != null ? String(store.exchange_rate) : "",
-      auto_exchange_rate: store.auto_exchange_rate ?? false,
+      usdt_rate: store.usdt_rate != null ? String(store.usdt_rate) : "",
+      rate_source: store.rate_source ?? (store.auto_exchange_rate ? "bcv" : "manual"),
     },
   });
 
   const color = watch("primary_color");
   const showBs = watch("show_bs_prices");
-  const autoRate = watch("auto_exchange_rate");
+  const rateSource = watch("rate_source");
 
   async function onSubmit(values: FormValues) {
     setSubmitting(true);
@@ -93,8 +97,16 @@ export function StoreSettingsForm({
       email: values.email || "",
       address: values.address || null,
       show_bs_prices: values.show_bs_prices,
-      exchange_rate: values.exchange_rate === "" ? null : values.exchange_rate,
-      auto_exchange_rate: values.auto_exchange_rate,
+      rate_source: values.rate_source,
+      usdt_rate: values.usdt_rate === "" ? null : values.usdt_rate,
+      exchange_rate:
+        values.rate_source === "bcv"
+          ? bcvRates?.usd != null
+            ? String(bcvRates.usd)
+            : values.exchange_rate || null
+          : values.exchange_rate === ""
+            ? null
+            : values.exchange_rate,
     };
     const res = await updateStoreSettings(input);
     setSubmitting(false);
@@ -247,73 +259,102 @@ export function StoreSettingsForm({
               onCheckedChange={(v) => setValue("show_bs_prices", v)}
             />
           </div>
+
+          {/* Which rate converts prices */}
           <div className="space-y-2">
-            <Label htmlFor="exchange_rate">Tasa del día (Bs por USD)</Label>
+            <Label>¿Con qué tasa se calculan los Bs?</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {(
+                [
+                  { id: "bcv", label: "BCV", sub: "Automática" },
+                  { id: "usdt", label: "USDT", sub: "Binance" },
+                  { id: "manual", label: "Manual", sub: "Tú la pones" },
+                ] as const
+              ).map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setValue("rate_source", o.id)}
+                  className={cn(
+                    "rounded-lg border p-2.5 text-center transition-colors",
+                    rateSource === o.id
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "hover:border-primary/40",
+                  )}
+                >
+                  <p className="text-sm font-semibold">{o.label}</p>
+                  <p className="text-[11px] text-muted-foreground">{o.sub}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {rateSource === "bcv" && (
+            <p className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
+              Tu tienda usa el <strong>BCV oficial</strong>
+              {bcvRates?.usd ? ` (Bs ${bcvRates.usd.toFixed(2)})` : ""} y se
+              actualiza solo cada mañana.
+            </p>
+          )}
+
+          {rateSource === "manual" && (
+            <div className="space-y-2">
+              <Label htmlFor="exchange_rate">Tasa manual (Bs por USD)</Label>
+              <Input
+                id="exchange_rate"
+                type="number"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
+                {...register("exchange_rate")}
+                placeholder="Ej. 95.00"
+              />
+            </div>
+          )}
+
+          {/* USDT rate (always editable: used for prices if selected, shown as reference) */}
+          <div className="space-y-2">
+            <Label htmlFor="usdt_rate">Tasa USDT / Binance (Bs por USDT)</Label>
             <Input
-              id="exchange_rate"
+              id="usdt_rate"
               type="number"
               step="0.01"
               min="0"
               inputMode="decimal"
-              {...register("exchange_rate")}
-              placeholder="Ej. 95.00"
+              {...register("usdt_rate")}
+              placeholder="Ej. 110.00"
             />
             <p className="text-xs text-muted-foreground">
-              Se usa para calcular los Bs en tu tienda.
+              {rateSource === "usdt"
+                ? "Se usa para calcular los Bs de tu tienda."
+                : "Se muestra de referencia en el resumen. Actualízala cuando cambie."}
             </p>
           </div>
 
-          {/* BCV rates */}
+          {/* Reference rates (today) */}
           <div className="rounded-lg border bg-muted/30 p-3">
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-medium">Tasa oficial BCV</p>
+              <p className="text-sm font-medium">Tasas de hoy (referencia)</p>
               {bcvRates?.updated_at && (
                 <span className="text-xs text-muted-foreground">
                   {format(new Date(bcvRates.updated_at), "d MMM, HH:mm", { locale: es })}
                 </span>
               )}
             </div>
-            {bcvRates && (bcvRates.usd || bcvRates.eur) ? (
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  disabled={!bcvRates.usd}
-                  onClick={() => bcvRates.usd && setValue("exchange_rate", String(bcvRates.usd))}
-                  className="rounded-lg border bg-background p-2.5 text-left transition-colors hover:border-primary disabled:opacity-50"
-                >
-                  <p className="text-xs text-muted-foreground">Dólar 🇺🇸</p>
-                  <p className="font-semibold">{bcvRates.usd ? `Bs ${Number(bcvRates.usd).toFixed(2)}` : "—"}</p>
-                  <p className="text-[11px] font-medium text-primary">Usar esta tasa</p>
-                </button>
-                <button
-                  type="button"
-                  disabled={!bcvRates.eur}
-                  onClick={() => bcvRates.eur && setValue("exchange_rate", String(bcvRates.eur))}
-                  className="rounded-lg border bg-background p-2.5 text-left transition-colors hover:border-primary disabled:opacity-50"
-                >
-                  <p className="text-xs text-muted-foreground">Euro 🇪🇺</p>
-                  <p className="font-semibold">{bcvRates.eur ? `Bs ${Number(bcvRates.eur).toFixed(2)}` : "—"}</p>
-                  <p className="text-[11px] font-medium text-primary">Usar esta tasa</p>
-                </button>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg border bg-background p-2.5">
+                <p className="text-xs text-muted-foreground">BCV 🇻🇪</p>
+                <p className="font-semibold">
+                  {bcvRates?.usd ? `Bs ${bcvRates.usd.toFixed(2)}` : "—"}
+                </p>
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Todavía no hay datos del BCV (se actualizan cada mañana).
-              </p>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div className="pr-3">
-              <p className="text-sm font-medium">Actualizar con el BCV automáticamente</p>
-              <p className="text-xs text-muted-foreground">
-                Cada día a las 8:00 am tu tasa se pone igual a la del BCV.
-              </p>
+              <div className="rounded-lg border bg-background p-2.5">
+                <p className="text-xs text-muted-foreground">Paralelo</p>
+                <p className="font-semibold">
+                  {bcvRates?.paralelo ? `Bs ${bcvRates.paralelo.toFixed(2)}` : "—"}
+                </p>
+              </div>
             </div>
-            <Switch
-              checked={autoRate}
-              onCheckedChange={(v) => setValue("auto_exchange_rate", v)}
-            />
           </div>
         </CardContent>
       </Card>

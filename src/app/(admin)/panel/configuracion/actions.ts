@@ -36,7 +36,8 @@ const storeSchema = z.object({
   address: optStr,
   show_bs_prices: z.boolean().default(true),
   exchange_rate: z.coerce.number().positive("Tasa inválida").nullable().optional(),
-  auto_exchange_rate: z.boolean().default(false),
+  usdt_rate: z.coerce.number().positive("Tasa USDT inválida").nullable().optional(),
+  rate_source: z.enum(["bcv", "usdt", "manual"]).default("manual"),
 });
 
 export type StoreSettingsInput = z.input<typeof storeSchema>;
@@ -57,6 +58,18 @@ export async function updateStoreSettings(
     return { ok: false, error: "No autorizado" };
   }
 
+  // The effective exchange_rate (used everywhere for Bs conversion) depends on
+  // which source the merchant picked. USDT/manual are set here; BCV keeps
+  // auto-updating via the daily cron.
+  const usdt = d.usdt_rate ?? null;
+  const manualRate = d.exchange_rate ?? null;
+  const effectiveRate =
+    d.rate_source === "usdt"
+      ? usdt
+      : d.rate_source === "bcv"
+        ? manualRate // current BCV value sent by the form; cron keeps it fresh
+        : manualRate;
+
   const supabase = createClient();
   const { error } = await supabase
     .from("stores")
@@ -72,10 +85,12 @@ export async function updateStoreSettings(
       email: d.email ? d.email : null,
       address: d.address?.trim() ? d.address.trim() : null,
       show_bs_prices: d.show_bs_prices,
-      exchange_rate: d.exchange_rate ?? null,
-      auto_exchange_rate: d.auto_exchange_rate,
+      exchange_rate: effectiveRate,
+      usdt_rate: usdt,
+      rate_source: d.rate_source,
+      auto_exchange_rate: d.rate_source === "bcv",
       exchange_rate_updated_at:
-        d.exchange_rate != null ? new Date().toISOString() : null,
+        effectiveRate != null ? new Date().toISOString() : null,
     })
     .eq("id", storeId);
 

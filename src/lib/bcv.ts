@@ -1,12 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 
-// Official BCV rates via dolarapi (clean JSON, no scraping needed).
+// Venezuela rates via dolarapi (clean JSON, no scraping needed).
 const USD_URL = "https://ve.dolarapi.com/v1/dolares/oficial";
 const EUR_URL = "https://ve.dolarapi.com/v1/euros/oficial";
+const PARALELO_URL = "https://ve.dolarapi.com/v1/dolares/paralelo";
 
 export interface BcvRates {
   usd: number | null;
   eur: number | null;
+  paralelo: number | null;
   date: string | null;
 }
 
@@ -20,34 +22,46 @@ async function fetchOne(url: string): Promise<{ promedio?: number; fechaActualiz
   }
 }
 
-/** Fetch the current BCV USD + EUR rates from the source. */
+/** Fetch the current BCV USD/EUR + parallel rates from the source. */
 export async function fetchBcvRates(): Promise<BcvRates | null> {
-  const [u, e] = await Promise.all([fetchOne(USD_URL), fetchOne(EUR_URL)]);
+  const [u, e, p] = await Promise.all([
+    fetchOne(USD_URL),
+    fetchOne(EUR_URL),
+    fetchOne(PARALELO_URL),
+  ]);
   const usd = typeof u?.promedio === "number" ? u.promedio : null;
   const eur = typeof e?.promedio === "number" ? e.promedio : null;
-  if (usd == null && eur == null) return null;
-  return { usd, eur, date: u?.fechaActualizacion ?? e?.fechaActualizacion ?? null };
+  const paralelo = typeof p?.promedio === "number" ? p.promedio : null;
+  if (usd == null && eur == null && paralelo == null) return null;
+  return {
+    usd,
+    eur,
+    paralelo,
+    date: u?.fechaActualizacion ?? e?.fechaActualizacion ?? p?.fechaActualizacion ?? null,
+  };
 }
 
 export interface CachedBcvRates {
   usd: number | null;
   eur: number | null;
+  paralelo: number | null;
   source_date: string | null;
   updated_at: string;
 }
 
-/** Read the cached BCV rates (refreshed daily by the cron). */
+/** Read the cached market rates (refreshed daily by the cron). */
 export async function getCachedBcvRates(): Promise<CachedBcvRates | null> {
   const supabase = createClient();
   const { data } = await supabase
     .from("bcv_rates")
-    .select("usd, eur, source_date, updated_at")
+    .select("usd, eur, paralelo, source_date, updated_at")
     .eq("id", "current")
     .maybeSingle();
   if (!data) return null;
   return {
     usd: data.usd != null ? Number(data.usd) : null,
     eur: data.eur != null ? Number(data.eur) : null,
+    paralelo: data.paralelo != null ? Number(data.paralelo) : null,
     source_date: data.source_date,
     updated_at: data.updated_at,
   };
