@@ -37,7 +37,7 @@ export function LandingHeader() {
       >
         {/* Left: logo */}
         <Link href="/" className="flex shrink-0 items-center">
-          <OzLogo className="h-7 w-auto" />
+          <OzLogo className="h-9 w-auto" />
         </Link>
 
         {/* Center: nav */}

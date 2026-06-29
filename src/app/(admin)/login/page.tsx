@@ -32,7 +32,7 @@ export default async function LoginPage({
     <main className="flex min-h-dvh flex-col items-center justify-center bg-muted/40 px-4 py-10">
       <div className="w-full max-w-sm">
         <Link href="/" className="mb-6 flex justify-center">
-          <OzLogo />
+          <OzLogo className="h-12 w-auto" />
         </Link>
 
         <Card>
