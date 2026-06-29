@@ -1,13 +1,12 @@
 import Link from "next/link";
-import { Store } from "lucide-react";
+
+import { OzLogoMark } from "@/components/landing/oz-logo";
 
 export default function NotFound() {
   return (
     <main className="grid min-h-dvh place-items-center bg-muted/30 px-4">
       <div className="text-center">
-        <span className="mx-auto mb-4 grid size-12 place-items-center rounded-xl bg-primary text-primary-foreground">
-          <Store className="size-6" />
-        </span>
+        <OzLogoMark className="mx-auto mb-4 h-12 w-auto" />
         <p className="text-5xl font-bold tracking-tight">404</p>
         <p className="mt-2 text-muted-foreground">
           No encontramos lo que buscabas.

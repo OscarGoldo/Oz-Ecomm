@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { OzLogoMark } from "@/components/landing/oz-logo";
+import { OzLogo } from "@/components/landing/oz-logo";
 
 const NAV = [
   { label: "Soluciones", href: "#soluciones" },
@@ -36,12 +36,8 @@ export function LandingHeader() {
         )}
       >
         {/* Left: logo */}
-        <Link href="/" className="flex shrink-0 items-center gap-2 text-primary">
-          <OzLogoMark className="size-8" />
-          <span className="text-lg tracking-tight">
-            <span className="font-extrabold">Oz</span>
-            <span className="font-medium">Shop</span>
-          </span>
+        <Link href="/" className="flex shrink-0 items-center">
+          <OzLogo className="h-7 w-auto" />
         </Link>
 
         {/* Center: nav */}

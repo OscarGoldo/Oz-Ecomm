@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Store } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { SignupForm } from "@/components/storefront/signup-form";
+import { OzLogo } from "@/components/landing/oz-logo";
 
 export const metadata: Metadata = {
   title: { absolute: "Creá tu tienda · OzShop" },
@@ -17,11 +18,8 @@ export default function CrearTiendaPage({
   return (
     <main className="min-h-dvh bg-muted/30">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold">
-          <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-            <Store className="size-5" />
-          </span>
-          OzShop
+        <Link href="/" className="flex items-center">
+          <OzLogo className="h-7 w-auto" />
         </Link>
         <Link
           href="/login"
