@@ -13,8 +13,6 @@ export type Json =
 export type UserRole = "super_admin" | "store_owner" | "store_staff";
 
 export type SubscriptionStatus = "active" | "paused" | "cancelled";
-/** Which exchange rate a store uses to convert prices to Bs. */
-export type RateSource = "bcv" | "usdt" | "manual";
 
 export type ProductStatus = "active" | "draft" | "archived";
 
@@ -69,8 +67,6 @@ export interface Database {
           show_bs_prices: boolean;
           exchange_rate: number | null;
           exchange_rate_updated_at: string | null;
-          usdt_rate: number | null;
-          rate_source: RateSource;
           offers_delivery: boolean;
           delivery_note: string | null;
           offers_pickup: boolean;
@@ -101,8 +97,6 @@ export interface Database {
           show_bs_prices?: boolean;
           exchange_rate?: number | null;
           exchange_rate_updated_at?: string | null;
-          usdt_rate?: number | null;
-          rate_source?: RateSource;
           offers_delivery?: boolean;
           delivery_note?: string | null;
           offers_pickup?: boolean;
@@ -308,7 +302,6 @@ export interface Database {
           id: string;
           usd: number | null;
           eur: number | null;
-          paralelo: number | null;
           source_date: string | null;
           updated_at: string;
         };
@@ -316,7 +309,6 @@ export interface Database {
           id?: string;
           usd?: number | null;
           eur?: number | null;
-          paralelo?: number | null;
           source_date?: string | null;
           updated_at?: string;
         };

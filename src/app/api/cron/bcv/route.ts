@@ -31,7 +31,6 @@ export async function GET(request: NextRequest) {
     id: "current",
     usd: rates.usd,
     eur: rates.eur,
-    paralelo: rates.paralelo,
     source_date: rates.date,
     updated_at: now,
   });

@@ -16,11 +16,9 @@ import {
   WelcomeChecklist,
   type ChecklistStep,
 } from "@/components/admin/welcome-checklist";
-import { RatesStrip } from "@/components/admin/rates-strip";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardMetrics } from "@/lib/metrics";
-import { getCachedBcvRates } from "@/lib/bcv";
 import { formatBs, formatUSD } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Resumen" };
@@ -29,7 +27,6 @@ export default async function DashboardPage() {
   const { user, store } = await requireStoreUser();
   const firstName = user.full_name.split(" ")[0] ?? user.full_name;
   const m = await getDashboardMetrics(store.id);
-  const rates = await getCachedBcvRates();
 
   // Setup checklist for new stores.
   const supabase = createClient();
@@ -101,16 +98,6 @@ export default async function DashboardPage() {
           />
         </Link>
       </div>
-
-      {/* Exchange rates reference */}
-      {store.show_bs_prices && (
-        <RatesStrip
-          bcv={rates?.usd ?? null}
-          paralelo={rates?.paralelo ?? null}
-          usdt={store.usdt_rate ?? null}
-          active={store.rate_source ?? "manual"}
-        />
-      )}
 
       {/* Recent orders */}
       <section className="rounded-xl border bg-card">

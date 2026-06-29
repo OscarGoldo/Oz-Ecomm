@@ -14,23 +14,12 @@ export default async function ConfiguracionPage() {
   // Prefer cached rates (refreshed by the cron); fall back to a live fetch.
   const cached = await getCachedBcvRates();
   let bcvRates: BcvDisplay | null =
-    cached && (cached.usd || cached.eur || cached.paralelo)
-      ? {
-          usd: cached.usd,
-          eur: cached.eur,
-          paralelo: cached.paralelo,
-          updated_at: cached.updated_at,
-        }
+    cached && (cached.usd || cached.eur)
+      ? { usd: cached.usd, eur: cached.eur, updated_at: cached.updated_at }
       : null;
   if (!bcvRates) {
     const live = await fetchBcvRates();
-    if (live)
-      bcvRates = {
-        usd: live.usd,
-        eur: live.eur,
-        paralelo: live.paralelo,
-        updated_at: live.date,
-      };
+    if (live) bcvRates = { usd: live.usd, eur: live.eur, updated_at: live.date };
   }
 
   return (
