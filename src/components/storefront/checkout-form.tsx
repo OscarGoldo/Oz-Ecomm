@@ -434,22 +434,11 @@ export function CheckoutForm({
               )}
 
               {isPaypal && selectedMethod ? (
-                <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+                <div className="rounded-lg border bg-muted/30 p-3">
                   <p className="text-xs text-muted-foreground">
-                    Pagás con PayPal, tarjeta de crédito o débito. Tu pedido se
-                    confirma al instante.
+                    Pagás con PayPal, tarjeta de crédito o débito. Confirmás el
+                    pago más abajo. Tu pedido se confirma al instante.
                   </p>
-                  {paypalClientId ? (
-                    <PaypalButtons
-                      clientId={paypalClientId}
-                      getInput={buildInput}
-                      onSuccess={(id) => router.push(`/${store.slug}/pedido/${id}`)}
-                    />
-                  ) : (
-                    <p className="text-sm text-destructive">
-                      PayPal no está configurado correctamente.
-                    </p>
-                  )}
                 </div>
               ) : selectedMethod ? (
                 <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
@@ -580,7 +569,24 @@ export function CheckoutForm({
             </CardContent>
           </Card>
 
-          {!isPaypal && (
+          {isPaypal ? (
+            paypalClientId ? (
+              <div className="rounded-xl border bg-card p-4">
+                <PaypalButtons
+                  clientId={paypalClientId}
+                  getInput={buildInput}
+                  onSuccess={(id) => router.push(`/${store.slug}/pedido/${id}`)}
+                />
+                <p className="mt-2 text-center text-xs text-muted-foreground">
+                  Pago seguro procesado por PayPal · {formatUSD(total)}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-destructive">
+                PayPal no está configurado correctamente.
+              </p>
+            )
+          ) : (
             <>
               <Button type="submit" size="lg" className="w-full" disabled={submitting}>
                 {submitting ? <Loader2 className="animate-spin" /> : <Lock />}
