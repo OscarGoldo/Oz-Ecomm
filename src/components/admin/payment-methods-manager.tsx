@@ -122,10 +122,17 @@ export function PaymentMethodsManager({
 
   async function save() {
     setSaving(true);
+    // For PayPal, persist the payout method even if the dropdown was left on
+    // its default (otherwise it's never written and the super admin sees it
+    // as "not configured").
+    const details =
+      form.type === "paypal"
+        ? { payout_method: form.details.payout_method || "zelle", ...form.details }
+        : form.details;
     const input = {
       type: form.type,
       label: form.label,
-      details: form.details,
+      details,
       requires_proof: form.requires_proof,
       instructions: form.instructions || null,
     };

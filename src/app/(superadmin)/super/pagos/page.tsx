@@ -122,11 +122,13 @@ export default async function SuperPayoutsPage() {
                 <div className="min-w-0">
                   <p className="font-semibold">{r.store.name}</p>
                   <p className="text-xs text-muted-foreground">/{r.store.slug}</p>
-                  {r.payout.method ? (
+                  {r.payout.method || r.payout.account || r.payout.holder ? (
                     <p className="mt-1 text-sm">
                       Pagar por{" "}
                       <span className="font-medium">
-                        {PAYOUT_METHOD_LABELS[r.payout.method as PayoutMethod] ??
+                        {PAYOUT_METHOD_LABELS[
+                          (r.payout.method ?? "zelle") as PayoutMethod
+                        ] ??
                           r.payout.method}
                       </span>
                       {r.payout.account ? ` · ${r.payout.account}` : ""}
