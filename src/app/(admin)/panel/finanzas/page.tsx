@@ -17,9 +17,11 @@ import { ExpensesManager } from "@/components/admin/expenses-manager";
 import { PayrollManager } from "@/components/admin/payroll-manager";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getFinanceSummary, getRecentExpenses } from "@/lib/metrics";
 import { formatBs, formatUSD } from "@/lib/format";
 import { PAYMENT_METHOD_META } from "@/lib/constants";
+import { PAYMENT_PROOFS_BUCKET } from "@/lib/storage";
 import type { Employee, Expense, PaymentMethodType } from "@/types/database";
 
 export const metadata: Metadata = { title: "Finanzas" };
@@ -41,6 +43,41 @@ export default async function FinanzasPage() {
   ]);
   const employees = (employeeRows ?? []) as Employee[];
   const rate = store.exchange_rate;
+
+  // Payouts received from the platform (PayPal earnings settled by OzShop).
+  const { data: payoutOrders } = await supabase
+    .from("orders")
+    .select("paid_out_at, payment_net, total, payout_proof_url, payout_reference")
+    .eq("store_id", store.id)
+    .eq("payment_method_type", "paypal")
+    .not("paid_out_at", "is", null)
+    .order("paid_out_at", { ascending: false });
+
+  const payoutGroups = new Map<
+    string,
+    { date: string; amount: number; proof: string | null; reference: string | null }
+  >();
+  for (const o of payoutOrders ?? []) {
+    const key = o.paid_out_at as string;
+    const g =
+      payoutGroups.get(key) ??
+      { date: key, amount: 0, proof: o.payout_proof_url, reference: o.payout_reference };
+    g.amount += o.payment_net != null ? Number(o.payment_net) : Number(o.total);
+    payoutGroups.set(key, g);
+  }
+  const admin = createAdminClient();
+  const payouts = await Promise.all(
+    [...payoutGroups.values()].map(async (p) => {
+      let proofUrl: string | null = null;
+      if (p.proof) {
+        const { data } = await admin.storage
+          .from(PAYMENT_PROOFS_BUCKET)
+          .createSignedUrl(p.proof, 3600);
+        proofUrl = data?.signedUrl ?? null;
+      }
+      return { ...p, proofUrl };
+    }),
+  );
 
   // Estimated monthly payroll, normalising every frequency + currency to USD.
   const payrollMonthlyUsd = employees.reduce((sum, e) => {
@@ -75,6 +112,44 @@ export default async function FinanzasPage() {
           <FileText className="size-4" /> Reportes mensuales
         </Link>
       </div>
+
+      {/* Payouts received from the platform */}
+      {payouts.length > 0 && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-sm font-semibold">Pagos recibidos de OzShop</h2>
+            <p className="text-xs text-muted-foreground">
+              Lo que te transfirió la plataforma por tus ventas con PayPal/tarjeta
+              (neto, ya descontada la comisión del procesador).
+            </p>
+          </div>
+          <ul className="divide-y rounded-xl border bg-card">
+            {payouts.map((p) => (
+              <li key={p.date} className="flex items-center justify-between gap-3 p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{formatUSD(p.amount)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(p.date), "d MMM yyyy, HH:mm", { locale: es })}
+                    {p.reference ? ` · ${p.reference}` : ""}
+                  </p>
+                </div>
+                {p.proofUrl ? (
+                  <a
+                    href={p.proofUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-muted"
+                  >
+                    Ver comprobante
+                  </a>
+                ) : (
+                  <span className="shrink-0 text-xs text-muted-foreground">Sin comprobante</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* This month */}
       <section className="space-y-3">

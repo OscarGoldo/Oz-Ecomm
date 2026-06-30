@@ -89,7 +89,8 @@ export async function capturePaypalOrder(
   c: PaypalCreds,
   paypalOrderId: string,
 ): Promise<
-  { ok: true; captureId: string; amount: number } | { ok: false; error: string }
+  | { ok: true; captureId: string; amount: number; fee: number; net: number }
+  | { ok: false; error: string }
 > {
   const token = await getAccessToken(c);
   if (!token) return { ok: false, error: "auth" };
@@ -105,7 +106,16 @@ export async function capturePaypalOrder(
     const j = (await res.json().catch(() => null)) as {
       status?: string;
       purchase_units?: {
-        payments?: { captures?: { id?: string; amount?: { value?: string } }[] };
+        payments?: {
+          captures?: {
+            id?: string;
+            amount?: { value?: string };
+            seller_receivable_breakdown?: {
+              paypal_fee?: { value?: string };
+              net_amount?: { value?: string };
+            };
+          }[];
+        };
       }[];
     } | null;
     if (!res.ok || j?.status !== "COMPLETED") {
@@ -113,7 +123,10 @@ export async function capturePaypalOrder(
     }
     const cap = j.purchase_units?.[0]?.payments?.captures?.[0];
     const amount = cap?.amount?.value ? Number(cap.amount.value) : 0;
-    return { ok: true, captureId: cap?.id ?? paypalOrderId, amount };
+    const breakdown = cap?.seller_receivable_breakdown;
+    const fee = breakdown?.paypal_fee?.value ? Number(breakdown.paypal_fee.value) : 0;
+    const net = breakdown?.net_amount?.value ? Number(breakdown.net_amount.value) : amount - fee;
+    return { ok: true, captureId: cap?.id ?? paypalOrderId, amount, fee, net };
   } catch {
     return { ok: false, error: "capture" };
   }

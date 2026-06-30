@@ -258,6 +258,11 @@ export interface Database {
           payment_method_type: string | null;
           payment_proof_url: string | null;
           payment_reference: string | null;
+          payment_fee: number | null;
+          payment_net: number | null;
+          paid_out_at: string | null;
+          payout_proof_url: string | null;
+          payout_reference: string | null;
           status: OrderStatus;
           notes: string | null;
           confirmed_at: string | null;
@@ -287,6 +292,11 @@ export interface Database {
           payment_method_type?: string | null;
           payment_proof_url?: string | null;
           payment_reference?: string | null;
+          payment_fee?: number | null;
+          payment_net?: number | null;
+          paid_out_at?: string | null;
+          payout_proof_url?: string | null;
+          payout_reference?: string | null;
           status?: OrderStatus;
           notes?: string | null;
           confirmed_at?: string | null;

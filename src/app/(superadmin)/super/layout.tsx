@@ -25,6 +25,20 @@ export default async function SuperLayout({
             </span>
           </Link>
           <div className="flex items-center gap-3">
+            <nav className="flex items-center gap-1">
+              <Link
+                href="/super"
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                Tiendas
+              </Link>
+              <Link
+                href="/super/pagos"
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                Pagos
+              </Link>
+            </nav>
             <span className="hidden text-sm text-muted-foreground sm:inline">
               {user.email}
             </span>

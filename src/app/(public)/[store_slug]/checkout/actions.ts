@@ -365,6 +365,8 @@ export async function createOrder(
   let status: OrderStatus;
   let paymentReference = data.payment_reference || null;
   let paymentProof = data.payment_proof_path || null;
+  let paymentFee: number | null = null;
+  let paymentNet: number | null = null;
 
   if (method.type === "paypal") {
     // Capture the online payment now; only create the order if it succeeds.
@@ -386,6 +388,8 @@ export async function createOrder(
     status = "confirmed";
     paymentReference = cap.captureId;
     paymentProof = null;
+    paymentFee = cap.fee;
+    paymentNet = cap.net;
   } else {
     if (method.requires_proof && !data.payment_proof_path) {
       return { ok: false, error: "Subí el comprobante de pago" };
@@ -415,6 +419,8 @@ export async function createOrder(
       payment_method_type: method.type,
       payment_proof_url: paymentProof,
       payment_reference: paymentReference,
+      payment_fee: paymentFee,
+      payment_net: paymentNet,
       status,
       notes: data.notes || null,
       confirmed_at: status === "confirmed" ? new Date().toISOString() : null,

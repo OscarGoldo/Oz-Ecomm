@@ -41,6 +41,15 @@ export const PAYMENT_METHOD_META: Record<
   paypal: { label: "PayPal / Tarjeta" },
 };
 
+/** How the platform pays a tenant their PayPal earnings. */
+export const PAYOUT_METHODS = ["zelle", "pago_movil", "binance"] as const;
+export type PayoutMethod = (typeof PAYOUT_METHODS)[number];
+export const PAYOUT_METHOD_LABELS: Record<PayoutMethod, string> = {
+  zelle: "Zelle",
+  pago_movil: "Pago Móvil",
+  binance: "Binance",
+};
+
 export const ROLE_META: Record<UserRole, { label: string }> = {
   super_admin: { label: "Super Admin" },
   store_owner: { label: "Dueño" },

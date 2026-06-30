@@ -39,6 +39,8 @@ import {
   PAYMENT_METHOD_META,
   PAYMENT_TYPE_DEFAULT_PROOF,
   PAYMENT_TYPE_FIELDS,
+  PAYOUT_METHODS,
+  PAYOUT_METHOD_LABELS,
 } from "@/lib/constants";
 import type { PaymentMethod, PaymentMethodType } from "@/types/database";
 
@@ -277,11 +279,80 @@ export function PaymentMethodsManager({
             )}
 
             {form.type === "paypal" && (
-              <p className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-                Los pagos con PayPal y tarjeta se procesan de forma segura a
-                través de la plataforma. El cliente paga el total online y el
-                pedido se confirma al instante. No necesitás configurar nada más.
-              </p>
+              <div className="space-y-4">
+                <p className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+                  Los pagos con PayPal y tarjeta se procesan de forma segura a
+                  través de la plataforma. El cliente paga el total online y el
+                  pedido se confirma al instante. Aplican comisiones del
+                  procesador de pago, que se descuentan de lo que recibís.
+                </p>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">¿Cómo querés que te paguemos?</p>
+                  <p className="text-xs text-muted-foreground">
+                    La plataforma te transfiere lo recaudado por PayPal por este
+                    medio.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Método de cobro</Label>
+                  <Select
+                    value={form.details.payout_method ?? "zelle"}
+                    onValueChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        details: { ...f.details, payout_method: v },
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAYOUT_METHODS.map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {PAYOUT_METHOD_LABELS[p]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="po-holder">Titular</Label>
+                    <Input
+                      id="po-holder"
+                      value={form.details.payout_holder ?? ""}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          details: { ...f.details, payout_holder: e.target.value },
+                        }))
+                      }
+                      placeholder="Nombre del titular"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="po-account">
+                      {form.details.payout_method === "pago_movil"
+                        ? "Teléfono / Cédula / Banco"
+                        : form.details.payout_method === "binance"
+                          ? "Email o ID de Binance"
+                          : "Email de Zelle"}
+                    </Label>
+                    <Input
+                      id="po-account"
+                      value={form.details.payout_account ?? ""}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          details: { ...f.details, payout_account: e.target.value },
+                        }))
+                      }
+                      placeholder="Datos para recibir el pago"
+                    />
+                  </div>
+                </div>
+              </div>
             )}
 
             <div className="space-y-2">
