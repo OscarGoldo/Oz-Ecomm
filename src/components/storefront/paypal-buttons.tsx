@@ -78,11 +78,10 @@ export function PaypalButtons({
           style: { layout: "vertical", shape: "rect", label: "pay" },
           createOrder: async () => {
             const input = getInput();
-            if (!input) throw new Error("invalid-form");
+            if (!input) throw new Error("Completá tus datos primero");
             const res = await createPaypalOrderAction(input);
             if (!res.ok || !res.paypalOrderId) {
-              toast.error(res.error ?? "No se pudo iniciar el pago");
-              throw new Error("create-failed");
+              throw new Error(res.error ?? "No se pudo iniciar el pago");
             }
             return res.paypalOrderId;
           },
@@ -99,8 +98,16 @@ export function PaypalButtons({
             }
             onSuccess(res.orderId);
           },
-          onError: () => {
-            toast.error("Hubo un problema con el pago. Intentá de nuevo.");
+          onError: (err) => {
+            // Surface the real reason (helps diagnose mobile-only failures).
+            console.error("PayPal error", err);
+            const msg =
+              err instanceof Error && err.message
+                ? err.message
+                : typeof err === "string" && err
+                  ? err
+                  : "Hubo un problema con el pago. Intentá de nuevo.";
+            toast.error(msg.slice(0, 200));
           },
         })
         .render(containerRef.current)
