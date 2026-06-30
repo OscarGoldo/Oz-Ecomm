@@ -277,59 +277,11 @@ export function PaymentMethodsManager({
             )}
 
             {form.type === "paypal" && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="pp-client">Client ID</Label>
-                  <Input
-                    id="pp-client"
-                    value={form.details.client_id ?? ""}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        details: { ...f.details, client_id: e.target.value },
-                      }))
-                    }
-                    placeholder="AY..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pp-secret">Secret</Label>
-                  <Input
-                    id="pp-secret"
-                    type="password"
-                    value={form.details.secret ?? ""}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        details: { ...f.details, secret: e.target.value },
-                      }))
-                    }
-                    placeholder="••••••••"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Se guarda de forma segura en el servidor y nunca se muestra a
-                    tus clientes.
-                  </p>
-                </div>
-                <div className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="pr-3">
-                    <p className="text-sm font-medium">Modo de prueba (Sandbox)</p>
-                    <p className="text-xs text-muted-foreground">
-                      Activado: pagos de prueba, sin dinero real. Desactivá para
-                      cobrar de verdad.
-                    </p>
-                  </div>
-                  <Switch
-                    checked={form.details.sandbox !== "false"}
-                    onCheckedChange={(v) =>
-                      setForm((f) => ({
-                        ...f,
-                        details: { ...f.details, sandbox: v ? "true" : "false" },
-                      }))
-                    }
-                  />
-                </div>
-              </div>
+              <p className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+                Los pagos con PayPal y tarjeta se procesan de forma segura a
+                través de la plataforma. El cliente paga el total online y el
+                pedido se confirma al instante. No necesitás configurar nada más.
+              </p>
             )}
 
             <div className="space-y-2">

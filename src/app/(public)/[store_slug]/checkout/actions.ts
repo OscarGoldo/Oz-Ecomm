@@ -11,7 +11,7 @@ import { evaluateCoupon, findCouponByCode } from "@/lib/coupons";
 import {
   capturePaypalOrder,
   createPaypalOrder,
-  paypalCredsFromDetails,
+  paypalCredsFromEnv,
 } from "@/lib/paypal";
 import type { Coupon, CouponType, OrderStatus } from "@/types/database";
 
@@ -323,8 +323,8 @@ export async function createPaypalOrderAction(
   if (draft.method.type !== "paypal") {
     return { ok: false, error: "Método no válido" };
   }
-  const creds = paypalCredsFromDetails(draft.method.details);
-  if (!creds) return { ok: false, error: "PayPal no está configurado en la tienda" };
+  const creds = paypalCredsFromEnv();
+  if (!creds) return { ok: false, error: "PayPal no está disponible por el momento" };
   if (draft.total <= 0) return { ok: false, error: "El total no es válido" };
 
   const res = await createPaypalOrder(creds, draft.total, {
@@ -368,8 +368,8 @@ export async function createOrder(
 
   if (method.type === "paypal") {
     // Capture the online payment now; only create the order if it succeeds.
-    const creds = paypalCredsFromDetails(method.details);
-    if (!creds) return { ok: false, error: "PayPal no está configurado en la tienda" };
+    const creds = paypalCredsFromEnv();
+    if (!creds) return { ok: false, error: "PayPal no está disponible por el momento" };
     if (!data.paypal_order_id) {
       return { ok: false, error: "El pago de PayPal no se completó" };
     }

@@ -12,18 +12,23 @@ function apiBase(sandbox: boolean): string {
     : "https://api-m.paypal.com";
 }
 
-/** Read PayPal credentials from a payment_method.details JSON. */
-export function paypalCredsFromDetails(
-  details: unknown,
-): PaypalCreds | null {
-  if (!details || typeof details !== "object") return null;
-  const d = details as Record<string, unknown>;
-  const clientId = typeof d.client_id === "string" ? d.client_id.trim() : "";
-  const secret = typeof d.secret === "string" ? d.secret.trim() : "";
+/**
+ * Platform-wide PayPal credentials from env (a single account for all stores).
+ *   NEXT_PUBLIC_PAYPAL_CLIENT_ID — public, also used by the browser SDK
+ *   PAYPAL_SECRET                — server-only
+ *   PAYPAL_SANDBOX               — "false" for live; anything else = sandbox
+ */
+export function paypalCredsFromEnv(): PaypalCreds | null {
+  const clientId = (process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? "").trim();
+  const secret = (process.env.PAYPAL_SECRET ?? "").trim();
   if (!clientId || !secret) return null;
-  // Default to sandbox unless explicitly set to live ("false").
-  const sandbox = d.sandbox !== "false" && d.sandbox !== false;
+  const sandbox = process.env.PAYPAL_SANDBOX !== "false";
   return { clientId, secret, sandbox };
+}
+
+/** The public client id for the browser SDK (empty if not configured). */
+export function paypalClientId(): string {
+  return (process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? "").trim();
 }
 
 async function getAccessToken(c: PaypalCreds): Promise<string | null> {

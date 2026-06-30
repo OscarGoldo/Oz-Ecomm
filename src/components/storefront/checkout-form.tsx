@@ -263,13 +263,9 @@ export function CheckoutForm({
       ? (selectedMethod.details as Record<string, unknown>)
       : {};
   const isPaypal = selectedMethod?.type === "paypal";
-  const paypalClientId =
-    typeof details.client_id === "string" ? details.client_id : undefined;
+  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
   const detailEntries = Object.entries(details).filter(
-    ([key, v]) =>
-      typeof v === "string" &&
-      v.length > 0 &&
-      !["client_id", "secret", "sandbox"].includes(key),
+    ([, v]) => typeof v === "string" && v.length > 0,
   ) as [string, string][];
 
   return (
