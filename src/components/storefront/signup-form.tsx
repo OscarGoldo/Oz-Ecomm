@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { CheckCircle2, ExternalLink, Loader2, Rocket } from "lucide-react";
@@ -20,6 +20,8 @@ interface FormValues {
   password: string;
   whatsapp: string;
   primary_color: string;
+  /** Honeypot: hidden field humans never fill. */
+  website: string;
 }
 
 interface Success {
@@ -31,6 +33,8 @@ interface Success {
 export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<Success | null>(null);
+  // When the form was rendered (server rejects instant bot submissions).
+  const startedAt = useRef(Date.now());
 
   const {
     register,
@@ -46,6 +50,7 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
       password: "",
       whatsapp: "",
       primary_color: "#2563EB",
+      website: "",
     },
   });
 
@@ -62,6 +67,8 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
       password: values.password,
       whatsapp: values.whatsapp || undefined,
       primary_color: values.primary_color || undefined,
+      website: values.website,
+      form_ts: startedAt.current,
     });
     setSubmitting(false);
     if (!res.ok || !res.slug) {
@@ -117,6 +124,18 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
       onSubmit={handleSubmit(onSubmit)}
       className="space-y-4 rounded-2xl border bg-card p-6 sm:p-8"
     >
+      {/* Honeypot: hidden from humans; bots that fill it get rejected. */}
+      <div className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
+        <label htmlFor="website">No completes este campo</label>
+        <input
+          id="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          {...register("website")}
+        />
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="store_name">Nombre de tu tienda *</Label>
         <Input

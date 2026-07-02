@@ -22,6 +22,10 @@ const schema = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional(),
   whatsapp: z.string().trim().optional(),
+  /** Honeypot: hidden field humans never fill. */
+  website: z.string().optional(),
+  /** Timestamp of when the form was rendered (bot speed check). */
+  form_ts: z.coerce.number().optional(),
 });
 
 export type SignupInput = z.input<typeof schema>;
@@ -34,6 +38,28 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
   }
   const d = parsed.data;
   const db = createAdminClient();
+
+  // ── Anti-spam guards ───────────────────────────────────────────────────────
+  // Honeypot: bots fill hidden fields; humans never see it.
+  if (d.website && d.website.trim() !== "") {
+    return { ok: false, error: "No se pudo crear la tienda. Intenta de nuevo." };
+  }
+  // Bots submit instantly; a human takes at least a few seconds.
+  if (!d.form_ts || Date.now() - d.form_ts < 3000) {
+    return { ok: false, error: "Completa el formulario e intenta de nuevo." };
+  }
+  // Surge guard: cap global signups per hour to stop mass flooding.
+  const hourAgo = new Date(Date.now() - 3600_000).toISOString();
+  const { count: recentSignups } = await db
+    .from("stores")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", hourAgo);
+  if ((recentSignups ?? 0) >= 15) {
+    return {
+      ok: false,
+      error: "Estamos recibiendo muchos registros. Intenta de nuevo en un rato.",
+    };
+  }
 
   // Email must be free.
   const { data: existingUser } = await db

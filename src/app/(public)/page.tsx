@@ -121,12 +121,18 @@ export default function LandingPage() {
         <div className="container flex flex-col items-center justify-between gap-3 py-8 text-sm text-muted-foreground sm:flex-row">
           <OzLogo />
           <span>© {new Date().getFullYear()} · Hecho en Venezuela 🇻🇪</span>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap justify-center gap-4">
             <Link href="/crear-tienda" className="hover:text-foreground">
               Crear tienda
             </Link>
             <Link href="/login" className="hover:text-foreground">
               Ingresar
+            </Link>
+            <Link href="/terminos" className="hover:text-foreground">
+              Términos
+            </Link>
+            <Link href="/privacidad" className="hover:text-foreground">
+              Privacidad
             </Link>
           </div>
         </div>

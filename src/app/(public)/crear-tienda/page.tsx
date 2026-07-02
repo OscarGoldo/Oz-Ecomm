@@ -41,6 +41,17 @@ export default function CrearTiendaPage({
           En un minuto tenés tu tienda online lista para vender.
         </p>
         <SignupForm prefillEmail={searchParams.email ?? ""} />
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Al crear tu tienda aceptas los{" "}
+          <Link href="/terminos" className="font-medium text-primary hover:underline">
+            Términos y condiciones
+          </Link>{" "}
+          y la{" "}
+          <Link href="/privacidad" className="font-medium text-primary hover:underline">
+            Política de privacidad
+          </Link>
+          .
+        </p>
       </div>
     </main>
   );
