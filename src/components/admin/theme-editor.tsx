@@ -16,6 +16,7 @@ import {
   Plus,
   Save,
   Shirt,
+  Smartphone,
   Sparkles,
   Store,
   Trash2,
@@ -88,6 +89,7 @@ const PRESET_ICONS: Record<string, LucideIcon> = {
   sparkles: Sparkles,
   flower: Flower,
   cpu: Cpu,
+  smartphone: Smartphone,
   dumbbell: Dumbbell,
   zap: Zap,
 };

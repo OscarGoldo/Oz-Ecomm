@@ -40,6 +40,7 @@ export function StorePreview({
   const fashionAthletic = theme.layout === "fashion-athletic";
   const fashionStreet = theme.layout === "fashion-streetwear";
   const tech = theme.layout === "tech";
+  const techDiscover = theme.layout === "tech-discover";
   const sports = theme.layout === "sports";
   const drops = theme.layout === "sports-drops";
   const accessories = theme.layout === "accessories";
@@ -130,6 +131,27 @@ export function StorePreview({
             </p>
             <p className="text-[10px] font-bold">{formatUSD(p.price)}</p>
             <div className="grid h-5 place-items-center rounded-sm bg-primary text-[8px] font-bold uppercase text-primary-foreground">
+              Agregar
+            </div>
+          </div>
+        </div>
+      );
+    }
+    if (techDiscover) {
+      return (
+        <div className="rounded-xl bg-card p-1.5 shadow-sm">
+          <div className="grid aspect-square place-items-center overflow-hidden rounded-lg bg-muted/60 text-muted-foreground">
+            {p.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.image} alt="" className="h-full w-full object-contain p-1.5" />
+            ) : (
+              <StoreIcon className="size-5 opacity-30" />
+            )}
+          </div>
+          <div className="space-y-1 p-1">
+            <p className="line-clamp-1 text-[9px] font-semibold">{p.name}</p>
+            <p className="text-[10px] font-bold">{formatUSD(p.price)}</p>
+            <div className="grid h-5 place-items-center rounded-full bg-primary text-[8px] font-semibold text-primary-foreground">
               Agregar
             </div>
           </div>
@@ -383,6 +405,34 @@ export function StorePreview({
           <span className="relative mt-2 inline-block -skew-x-6 bg-foreground px-2 py-0.5 text-[8px] font-extrabold uppercase italic text-background">
             {theme.hero.ctaText || "Comprar"}
           </span>
+        </div>
+      ) : techDiscover ? (
+        <div className="bg-background p-3">
+          <div className="rounded-2xl bg-primary p-3 text-primary-foreground">
+            <p className="text-sm font-bold leading-tight">
+              {theme.hero.headline || `Bienvenido a ${storeName}`}
+            </p>
+            {theme.hero.subtext ? (
+              <span className="mt-1.5 inline-block rounded-full bg-white px-2 py-0.5 text-[8px] font-bold text-primary">
+                {theme.hero.subtext}
+              </span>
+            ) : (
+              <span className="mt-1.5 inline-block rounded-full bg-white px-2 py-0.5 text-[8px] font-bold text-primary">
+                {theme.hero.ctaText || "Ver productos"}
+              </span>
+            )}
+          </div>
+          <div className="mt-2 flex gap-1">
+            <span className="rounded-full bg-primary px-2 py-0.5 text-[8px] font-semibold text-primary-foreground">
+              Todas
+            </span>
+            <span className="rounded-full border bg-card px-2 py-0.5 text-[8px] text-muted-foreground">
+              Celulares
+            </span>
+            <span className="rounded-full border bg-card px-2 py-0.5 text-[8px] text-muted-foreground">
+              Audio
+            </span>
+          </div>
         </div>
       ) : tech ? (
         <div className="bg-[#0b1220] p-4 text-white">

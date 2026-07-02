@@ -18,6 +18,7 @@ export type LayoutId =
   | "beauty"
   | "beauty-minimal"
   | "tech"
+  | "tech-discover"
   | "sports"
   | "sports-drops";
 
@@ -30,6 +31,7 @@ export const LAYOUT_IDS: LayoutId[] = [
   "beauty",
   "beauty-minimal",
   "tech",
+  "tech-discover",
   "sports",
   "sports-drops",
 ];
@@ -111,6 +113,9 @@ export const LAYOUT_MEDIA: Partial<
     { key: "heroSlides", label: "Imagen de portada", help: "Producto o lanzamiento destacado del hero (podés poner varias y rotan).", max: 4 },
     { key: "gallery", label: "Galería “Get the look”", help: "Fotos para combinar el look. Opcional.", max: 6 },
   ],
+  "tech-discover": [
+    { key: "heroSlides", label: "Imagen del banner", help: "Foto del producto o promo que aparece en el banner de arriba (fondo transparente queda mejor).", max: 4 },
+  ],
 };
 
 /** Definition of a configurable block, per layout. */
@@ -155,6 +160,13 @@ export const LAYOUT_BLOCKS: Partial<Record<LayoutId, LayoutBlockDef[]>> = {
     { id: "catalog", label: "Catálogo", defaultTitle: "Todo", fields: ["title"], removable: false, reorderable: true },
     { id: "testimonios", label: "Historias reales", defaultTitle: "Historias reales", fields: ["title"], removable: true, reorderable: true },
     { id: "historia", label: "Manifiesto de marca", defaultTitle: "Nuestra historia", fields: ["title", "body"], removable: true, reorderable: true },
+  ],
+  "tech-discover": [
+    { id: "promo", label: "Banner de promo", defaultTitle: "", fields: [], removable: true, reorderable: true },
+    { id: "categorias", label: "Categorías (pills)", defaultTitle: "Categorías", fields: ["title"], removable: true, reorderable: true },
+    { id: "destacados", label: "Destacados", defaultTitle: "Lo más vendido", fields: ["title"], removable: true, reorderable: true },
+    { id: "catalog", label: "Catálogo", defaultTitle: "Todos los productos", fields: ["title"], removable: false, reorderable: true },
+    { id: "about", label: "Sobre la tienda", defaultTitle: "Sobre nosotros", fields: ["title", "body"], removable: true, reorderable: true },
   ],
   "sports-drops": [
     { id: "ligas", label: "Navegación por categorías", defaultTitle: "Categorías", fields: [], removable: true, reorderable: true },
@@ -342,6 +354,20 @@ export const THEME_PRESETS: {
       font: "montserrat",
       buttonStyle: "square",
       cardStyle: "bordered",
+    },
+  },
+  {
+    id: "tech-discover",
+    label: "Descubre",
+    desc: "Estilo app · moderno",
+    icon: "smartphone",
+    category: "tech",
+    theme: {
+      // App-like: fondo claro, verde vibrante, tarjetas muy redondeadas.
+      colors: { primary: "#22c55e", accent: "#16a34a", surface: "#f7f8fa" },
+      font: "poppins",
+      buttonStyle: "rounded",
+      cardStyle: "soft",
     },
   },
   {
