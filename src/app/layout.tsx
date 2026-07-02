@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
-import { Inter, Lora, Montserrat, Poppins } from "next/font/google";
+import {
+  Bebas_Neue,
+  Inter,
+  Lora,
+  Montserrat,
+  Playfair_Display,
+  Poppins,
+  Space_Grotesk,
+} from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -22,6 +30,23 @@ const montserrat = Montserrat({
 const lora = Lora({
   subsets: ["latin"],
   variable: "--font-lora",
+  display: "swap",
+});
+// Display fonts: per-template heading identities (see LAYOUT_CHROME).
+const bebas = Bebas_Neue({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-bebas",
+  display: "swap",
+});
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+});
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space",
   display: "swap",
 });
 
@@ -49,7 +74,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${poppins.variable} ${montserrat.variable} ${lora.variable}`}
+      className={`${inter.variable} ${poppins.variable} ${montserrat.variable} ${lora.variable} ${bebas.variable} ${playfair.variable} ${spaceGrotesk.variable}`}
     >
       <body className="font-sans">
         {children}

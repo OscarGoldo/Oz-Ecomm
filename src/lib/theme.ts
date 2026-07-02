@@ -450,6 +450,74 @@ export function getBlock(
   };
 }
 
+/** Per-template chrome: header/footer style + heading display font. */
+export interface LayoutChrome {
+  /** Header bar style. */
+  header: "brand" | "light" | "dark";
+  /** Extra classes for the store name in the header. */
+  headerName?: string;
+  /** Cart badge uses the accent color (instead of white/primary). */
+  accentCart?: boolean;
+  /** Footer style. */
+  footer: "light" | "dark" | "editorial";
+  /** CSS var of the display font for headings (falls back to body font). */
+  headingFont?: string;
+}
+
+export const LAYOUT_CHROME: Record<LayoutId, LayoutChrome> = {
+  classic: { header: "brand", footer: "light" },
+  fashion: {
+    header: "dark",
+    headerName: "text-sm font-light uppercase tracking-[0.3em]",
+    footer: "dark",
+  },
+  "fashion-athletic": {
+    header: "light",
+    headerName: "text-sm font-medium uppercase tracking-[0.3em]",
+    footer: "editorial",
+    headingFont: "var(--font-space)",
+  },
+  "fashion-streetwear": {
+    header: "light",
+    headerName: "text-lg font-extrabold uppercase tracking-tight",
+    accentCart: true,
+    footer: "dark",
+    headingFont: "var(--font-bebas)",
+  },
+  accessories: {
+    header: "light",
+    headerName: "text-lg tracking-wide",
+    footer: "editorial",
+    headingFont: "var(--font-playfair)",
+  },
+  beauty: { header: "light", footer: "light" },
+  "beauty-minimal": {
+    header: "light",
+    headerName: "text-lg tracking-wide",
+    footer: "editorial",
+    headingFont: "var(--font-playfair)",
+  },
+  tech: { header: "dark", footer: "dark", headingFont: "var(--font-space)" },
+  "tech-discover": {
+    header: "light",
+    footer: "light",
+    headingFont: "var(--font-space)",
+  },
+  sports: {
+    header: "brand",
+    headerName: "font-extrabold uppercase italic",
+    footer: "light",
+    headingFont: "var(--font-bebas)",
+  },
+  "sports-drops": {
+    header: "dark",
+    headerName: "font-extrabold uppercase tracking-wide",
+    accentCart: true,
+    footer: "dark",
+    headingFont: "var(--font-bebas)",
+  },
+};
+
 /** Merge a store's saved customization over defaults into a full theme. */
 export function resolveTheme(
   store: Pick<Store, "primary_color" | "customization">,
@@ -534,6 +602,9 @@ export function themeStyle(theme: StoreTheme): CSSProperties {
     "--radius": theme.buttonStyle === "square" ? "0.25rem" : "0.9rem",
     fontFamily: `${fontVar}, system-ui, sans-serif`,
   };
+  // Per-template display font for headings (used by .storefront h1/h2/h3).
+  const headingFont = LAYOUT_CHROME[theme.layout]?.headingFont;
+  if (headingFont) style["--font-heading"] = headingFont;
   const primary = hexToHslTriplet(theme.colors.primary);
   const accent = hexToHslTriplet(theme.colors.accent);
   const surface = hexToHslTriplet(theme.colors.surface);

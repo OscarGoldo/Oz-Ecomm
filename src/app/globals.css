@@ -52,3 +52,11 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+/* Storefront headings adopt the template's display font (--font-heading is
+   set per layout in themeStyle; falls back to the body font). */
+.storefront h1,
+.storefront h2,
+.storefront h3 {
+  font-family: var(--font-heading, inherit);
+}

@@ -10,7 +10,7 @@ import { getImageUrl } from "@/lib/storage";
 import type { Category, Product, Store } from "@/types/database";
 import { getBlock, type StoreTheme } from "@/lib/theme";
 
-const SERIF = { fontFamily: "var(--font-lora)" } as const;
+const SERIF = { fontFamily: "var(--font-heading, var(--font-lora))" } as const;
 
 interface BeautyMinimalStorefrontProps {
   store: Store;

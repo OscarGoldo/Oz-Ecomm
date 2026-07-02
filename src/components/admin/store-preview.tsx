@@ -4,7 +4,12 @@ import { Search, ShoppingCart, Store as StoreIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { formatUSD } from "@/lib/format";
-import { themeStyle, type SectionId, type StoreTheme } from "@/lib/theme";
+import {
+  LAYOUT_CHROME,
+  themeStyle,
+  type SectionId,
+  type StoreTheme,
+} from "@/lib/theme";
 
 export interface SampleProduct {
   name: string;
@@ -340,21 +345,49 @@ export function StorePreview({
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between border-b bg-background px-3 py-2.5">
-        <div className="flex items-center gap-2">
-          <span className="grid size-7 place-items-center overflow-hidden rounded-md bg-primary/10">
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoUrl} alt="" className="size-7 object-cover" />
-            ) : (
-              <StoreIcon className="size-4 text-primary" />
+      {/* Header (per-template chrome) */}
+      {(() => {
+        const chrome = LAYOUT_CHROME[theme.layout];
+        const h = chrome.header;
+        return (
+          <div
+            className={cn(
+              "flex items-center justify-between px-3 py-2.5",
+              h === "brand" && "bg-primary text-primary-foreground",
+              h === "light" && "border-b bg-background",
+              h === "dark" && "border-b border-white/10 bg-neutral-950 text-white",
             )}
-          </span>
-          <span className="text-sm font-semibold">{storeName}</span>
-        </div>
-        <ShoppingCart className="size-4 text-foreground" />
-      </div>
+          >
+            <div className="flex min-w-0 items-center gap-2">
+              <span
+                className={cn(
+                  "grid size-7 shrink-0 place-items-center overflow-hidden rounded-md",
+                  h === "light" ? "bg-primary/10" : "bg-white",
+                )}
+              >
+                {logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logoUrl} alt="" className="size-7 object-cover" />
+                ) : (
+                  <StoreIcon
+                    className={cn(
+                      "size-4",
+                      h === "dark" ? "text-neutral-900" : "text-primary",
+                    )}
+                  />
+                )}
+              </span>
+              <span
+                className={cn(chrome.headerName ?? "font-semibold", "truncate text-sm")}
+                style={{ fontFamily: "var(--font-heading, inherit)" }}
+              >
+                {storeName}
+              </span>
+            </div>
+            <ShoppingCart className="size-4 shrink-0" />
+          </div>
+        );
+      })()}
 
       {/* Hero */}
       {accessories ? (
@@ -375,7 +408,10 @@ export function StorePreview({
             <p className="text-[7px] uppercase tracking-[0.3em] text-muted-foreground">
               {storeName}
             </p>
-            <p className="mt-1 text-base leading-tight" style={{ fontFamily: "var(--font-lora)" }}>
+            <p
+              className="mt-1 text-base leading-tight"
+              style={{ fontFamily: "var(--font-heading, var(--font-lora))" }}
+            >
               {theme.hero.headline || `Bienvenido a ${storeName}`}
             </p>
             <span className="mt-2 inline-block rounded-full bg-foreground px-3 py-1 text-[8px] font-medium text-background">

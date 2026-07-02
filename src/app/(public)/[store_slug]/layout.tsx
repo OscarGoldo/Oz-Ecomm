@@ -20,7 +20,10 @@ export default async function StoreLayout({
   const theme = resolveTheme(store);
 
   return (
-    <div style={themeStyle(theme)} className="flex min-h-dvh flex-col bg-background">
+    <div
+      style={themeStyle(theme)}
+      className="storefront flex min-h-dvh flex-col bg-background"
+    >
       {theme.announcement.enabled && theme.announcement.text &&
         (theme.layout === "fashion-athletic" || theme.layout === "sports-drops" ? (
           <div
@@ -45,9 +48,9 @@ export default async function StoreLayout({
             {theme.announcement.text}
           </div>
         ))}
-      <StorefrontHeader store={store} cartCount={cartCount} />
+      <StorefrontHeader store={store} cartCount={cartCount} layout={theme.layout} />
       <div className="flex-1">{children}</div>
-      <StorefrontFooter store={store} />
+      <StorefrontFooter store={store} layout={theme.layout} />
     </div>
   );
 }
