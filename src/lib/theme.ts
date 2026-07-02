@@ -202,11 +202,28 @@ export const DEFAULT_THEME: StoreTheme = {
 /** Layouts that expose a hero video URL field in the editor. */
 export const LAYOUT_HERO_VIDEO: LayoutId[] = ["fashion-streetwear"];
 
+/** Template categories: the picker groups presets under these. */
+export const TEMPLATE_CATEGORIES: { id: string; label: string }[] = [
+  { id: "classic", label: "Clásico" },
+  { id: "fashion", label: "Moda" },
+  { id: "accessories", label: "Accesorios" },
+  { id: "beauty", label: "Belleza" },
+  { id: "tech", label: "Tecnología" },
+  { id: "sports", label: "Deportes" },
+  // Próximas: "Estilo de Vida y Hogar" y "Librería" (cuando tengan plantillas).
+];
+
 export const THEME_PRESETS: {
   id: string;
   label: string;
   desc: string;
   icon: string;
+  /** Picker grouping (TEMPLATE_CATEGORIES id). */
+  category: string;
+  /** The category's base template. */
+  standard?: boolean;
+  /** Reference site this template is inspired by. */
+  inspiration?: string;
   theme: Pick<StoreTheme, "colors" | "font" | "buttonStyle" | "cardStyle">;
 }[] = [
   {
@@ -214,6 +231,8 @@ export const THEME_PRESETS: {
     label: "Clásico",
     desc: "Versátil",
     icon: "store",
+    category: "classic",
+    standard: true,
     theme: {
       colors: { primary: "#2563EB", accent: "#f59e0b", surface: "#ffffff" },
       font: "inter",
@@ -226,6 +245,8 @@ export const THEME_PRESETS: {
     label: "Moda",
     desc: "Indumentaria",
     icon: "shirt",
+    category: "fashion",
+    standard: true,
     theme: {
       // Minimalista monocromo, estética editorial.
       colors: { primary: "#1f2937", accent: "#b08968", surface: "#faf9f7" },
@@ -239,6 +260,8 @@ export const THEME_PRESETS: {
     label: "Atleta Editorial",
     desc: "Ropa premium · lifestyle",
     icon: "medal",
+    category: "fashion",
+    inspiration: "https://www.cutsclothing.com",
     theme: {
       colors: { primary: "#292524", accent: "#a8917a", surface: "#fafaf9" },
       font: "inter",
@@ -251,6 +274,8 @@ export const THEME_PRESETS: {
     label: "Streetwear",
     desc: "Urbano · comunidad",
     icon: "flame",
+    category: "fashion",
+    inspiration: "https://paw3r.com",
     theme: {
       // Crema + negro bold, magenta como acento estrella (estilo paw3r).
       colors: { primary: "#141414", accent: "#ec1c8e", surface: "#f6f1ea" },
@@ -264,6 +289,8 @@ export const THEME_PRESETS: {
     label: "Accesorios",
     desc: "Joyería · premium",
     icon: "gem",
+    category: "accessories",
+    standard: true,
     theme: {
       // Elegante, dorado, serif sofisticado.
       colors: { primary: "#3f3328", accent: "#c9a227", surface: "#fbf7ef" },
@@ -277,6 +304,8 @@ export const THEME_PRESETS: {
     label: "Belleza",
     desc: "Salud y belleza",
     icon: "sparkles",
+    category: "beauty",
+    standard: true,
     theme: {
       // Suave, pastel, cuidado y bienestar.
       colors: { primary: "#c2649a", accent: "#7fb6a1", surface: "#fdf6f8" },
@@ -290,6 +319,8 @@ export const THEME_PRESETS: {
     label: "Belleza Minimal",
     desc: "Suave · premium · aire",
     icon: "flower",
+    category: "beauty",
+    inspiration: "https://www.glossier.com",
     theme: {
       // Neutro y suave, rosado tenue, mucho aire (estilo Glossier).
       colors: { primary: "#a8657a", accent: "#e7b6ae", surface: "#fcf8f6" },
@@ -303,6 +334,8 @@ export const THEME_PRESETS: {
     label: "Tecnología",
     desc: "Electrónica",
     icon: "cpu",
+    category: "tech",
+    standard: true,
     theme: {
       // Moderno, alto contraste, líneas marcadas.
       colors: { primary: "#1e40af", accent: "#06b6d4", surface: "#f8fafc" },
@@ -316,6 +349,8 @@ export const THEME_PRESETS: {
     label: "Deportes",
     desc: "Energético",
     icon: "dumbbell",
+    category: "sports",
+    standard: true,
     theme: {
       // Vibrante y dinámico, naranja + negro atlético.
       colors: { primary: "#ea580c", accent: "#0f172a", surface: "#ffffff" },
@@ -329,6 +364,8 @@ export const THEME_PRESETS: {
     label: "Drops",
     desc: "Coleccionables · hype",
     icon: "zap",
+    category: "sports",
+    inspiration: "https://www.repzarg.com",
     theme: {
       // Oscuro premium, acento neón, estética de drops/coleccionista.
       colors: { primary: "#101014", accent: "#a3e635", surface: "#0a0a0c" },

@@ -51,6 +51,7 @@ import {
   LAYOUT_HERO_VIDEO,
   LAYOUT_MEDIA,
   SECTION_LABELS,
+  TEMPLATE_CATEGORIES,
   THEME_FONTS,
   THEME_PRESETS,
   seedBlocks,
@@ -68,6 +69,15 @@ import {
 import { cn } from "@/lib/utils";
 
 const ALL_SECTIONS: SectionId[] = ["featured", "catalog", "about"];
+
+/** Display host of an inspiration URL (e.g. "paw3r.com"). */
+function inspirationHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
 
 const PRESET_ICONS: Record<string, LucideIcon> = {
   store: Store,
@@ -150,6 +160,12 @@ export function ThemeEditor({
   const router = useRouter();
   const [theme, setTheme] = useState<StoreTheme>(initialTheme);
   const [saving, setSaving] = useState(false);
+  // Template category being browsed (starts on the current layout's category).
+  const [category, setCategory] = useState<string>(
+    () =>
+      THEME_PRESETS.find((p) => p.id === initialTheme.layout)?.category ??
+      "classic",
+  );
 
   const onList = theme.sections;
   const offList = ALL_SECTIONS.filter((s) => !onList.includes(s));
@@ -282,42 +298,77 @@ export function ThemeEditor({
     <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[1fr_360px]">
       {/* Controls */}
       <div className="order-2 space-y-5 lg:order-1">
-        {/* Presets */}
+        {/* Presets: pick a category, then a template within it */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Plantillas</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Elegí la categoría de tu negocio y después una plantilla.
+            </p>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {THEME_PRESETS.map((p) => {
-              const Icon = PRESET_ICONS[p.icon] ?? Store;
-              const active = theme.layout === p.id;
-              return (
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-1.5">
+              {TEMPLATE_CATEGORIES.map((c) => (
                 <button
-                  key={p.id}
+                  key={c.id}
                   type="button"
-                  onClick={() => applyPreset(p.id)}
+                  onClick={() => setCategory(c.id)}
                   className={cn(
-                    "overflow-hidden rounded-xl border text-left transition-colors",
-                    active ? "border-primary ring-1 ring-primary" : "hover:border-primary/40",
+                    "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                    category === c.id
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "hover:border-primary/40",
                   )}
                 >
-                  <div
-                    className="flex h-12 items-center justify-between px-3"
-                    style={{ background: p.theme.colors.primary }}
-                  >
-                    <Icon className="size-5 text-white/90" />
-                    <span
-                      className="size-4 rounded-full ring-2 ring-white/40"
-                      style={{ background: p.theme.colors.accent }}
-                    />
-                  </div>
-                  <div className="p-2.5">
-                    <p className="text-xs font-semibold">{p.label}</p>
-                    <p className="text-[11px] text-muted-foreground">{p.desc}</p>
-                  </div>
+                  {c.label}
                 </button>
-              );
-            })}
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {THEME_PRESETS.filter((p) => p.category === category).map((p) => {
+                const Icon = PRESET_ICONS[p.icon] ?? Store;
+                const active = theme.layout === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => applyPreset(p.id)}
+                    className={cn(
+                      "overflow-hidden rounded-xl border text-left transition-colors",
+                      active ? "border-primary ring-1 ring-primary" : "hover:border-primary/40",
+                    )}
+                  >
+                    <div
+                      className="flex h-12 items-center justify-between px-3"
+                      style={{ background: p.theme.colors.primary }}
+                    >
+                      <Icon className="size-5 text-white/90" />
+                      <span
+                        className="size-4 rounded-full ring-2 ring-white/40"
+                        style={{ background: p.theme.colors.accent }}
+                      />
+                    </div>
+                    <div className="p-2.5">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs font-semibold">{p.label}</p>
+                        {p.standard && (
+                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+                            Estándar
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">{p.desc}</p>
+                      {p.inspiration && (
+                        <p className="mt-0.5 truncate text-[10px] text-muted-foreground/70">
+                          Inspirada en {inspirationHost(p.inspiration)}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
 
