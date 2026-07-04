@@ -1,9 +1,23 @@
 "use server";
 
+import { headers } from "next/headers";
 import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isReservedSlug, slugify } from "@/lib/slug";
+
+/** Best-effort client IP from the proxy headers (Vercel sets x-forwarded-for). */
+function clientIp(): string {
+  const h = headers();
+  const fwd = h.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]!.trim();
+  return h.get("x-real-ip")?.trim() || "unknown";
+}
+
+/** Max store signups allowed from one IP per hour. */
+const PER_IP_HOURLY_LIMIT = 5;
+/** Global safety net: only trips on true mass abuse, not organic growth. */
+const GLOBAL_HOURLY_LIMIT = 60;
 
 export interface SignupResult {
   ok: boolean;
@@ -48,17 +62,46 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
   if (!d.form_ts || Date.now() - d.form_ts < 3000) {
     return { ok: false, error: "Completa el formulario e intenta de nuevo." };
   }
-  // Surge guard: cap global signups per hour to stop mass flooding.
+
+  // ── Rate limiting ──────────────────────────────────────────────────────────
   const hourAgo = new Date(Date.now() - 3600_000).toISOString();
-  const { count: recentSignups } = await db
+  const ip = clientIp();
+
+  // Per-IP cap: the real gate. Stops one actor mass-creating stores without
+  // blocking legitimate growth from other users (unlike a single global cap).
+  if (ip !== "unknown") {
+    const { count: ipAttempts } = await db
+      .from("signup_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("ip", ip)
+      .gte("created_at", hourAgo);
+    if ((ipAttempts ?? 0) >= PER_IP_HOURLY_LIMIT) {
+      return {
+        ok: false,
+        error: "Alcanzaste el límite de tiendas por ahora. Intenta más tarde.",
+      };
+    }
+  }
+
+  // Global safety net: catches distributed floods; set high so organic surges
+  // in real signups are never blocked.
+  const { count: globalAttempts } = await db
     .from("stores")
     .select("id", { count: "exact", head: true })
     .gte("created_at", hourAgo);
-  if ((recentSignups ?? 0) >= 15) {
+  if ((globalAttempts ?? 0) >= GLOBAL_HOURLY_LIMIT) {
     return {
       ok: false,
       error: "Estamos recibiendo muchos registros. Intenta de nuevo en un rato.",
     };
+  }
+
+  // Record this attempt (per-IP counter). Fire-and-forget; never blocks signup.
+  if (ip !== "unknown") {
+    await db.from("signup_attempts").insert({ ip });
+    // Opportunistic cleanup so the table stays small.
+    const dayAgo = new Date(Date.now() - 24 * 3600_000).toISOString();
+    await db.from("signup_attempts").delete().lt("created_at", dayAgo);
   }
 
   // Email must be free.

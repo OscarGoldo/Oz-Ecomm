@@ -470,12 +470,30 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["employees"]["Insert"]>;
         Relationships: [];
       };
+      signup_attempts: {
+        Row: {
+          id: string;
+          ip: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ip: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["signup_attempts"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
       current_store_id: {
         Args: Record<string, never>;
         Returns: string;
+      };
+      commit_order_stock: {
+        Args: { p_items: Json; p_enforce: boolean };
+        Returns: undefined;
       };
     };
     Enums: Record<never, never>;

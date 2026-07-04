@@ -19,8 +19,23 @@ export async function sendEmail({
   html,
 }: SendEmailParams): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return false;
+  if (!apiKey) {
+    if (process.env.NODE_ENV === "production") {
+      console.warn("[email] RESEND_API_KEY unset — order notification skipped.");
+    }
+    return false;
+  }
   const from = process.env.EMAIL_FROM ?? "OzShop <onboarding@resend.dev>";
+
+  // Resend's sandbox sender (onboarding@resend.dev) only delivers to the Resend
+  // account owner. In production that means every OTHER tenant gets nothing —
+  // surface it loudly so the misconfiguration is caught. Fix: verify a domain in
+  // Resend and set EMAIL_FROM to an address on it.
+  if (process.env.NODE_ENV === "production" && from.includes("resend.dev")) {
+    console.warn(
+      "[email] EMAIL_FROM uses the resend.dev sandbox sender — emails will NOT reach other tenants. Verify a domain in Resend and update EMAIL_FROM.",
+    );
+  }
 
   try {
     const res = await fetch(RESEND_ENDPOINT, {
@@ -31,8 +46,13 @@ export async function sendEmail({
       },
       body: JSON.stringify({ from, to, subject, html }),
     });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.warn(`[email] Resend send failed (${res.status}): ${body.slice(0, 300)}`);
+    }
     return res.ok;
-  } catch {
+  } catch (err) {
+    console.warn(`[email] Resend request threw: ${String(err)}`);
     return false;
   }
 }

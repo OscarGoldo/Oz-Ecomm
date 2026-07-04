@@ -115,9 +115,8 @@ interface OrderDraft {
   shipping: number;
   total: number;
   totalBs: number | null;
-  variantStockUpdates: { id: string; newStock: number }[];
-  productDecrement: Map<string, number>;
-  productStockById: Map<string, number>;
+  /** Per-line stock decrements applied atomically via commit_order_stock(). */
+  stockOps: { product_id: string; variant_id: string | null; qty: number }[];
 }
 
 /**
@@ -188,16 +187,13 @@ async function buildOrderDraft(
   const variantById = new Map((variants ?? []).map((v) => [v.id, v]));
 
   const orderItems: OrderItemDraft[] = [];
-  const variantStockUpdates: { id: string; newStock: number }[] = [];
-  const productDecrement = new Map<string, number>();
-  const productStockById = new Map<string, number>();
+  const stockOps: { product_id: string; variant_id: string | null; qty: number }[] = [];
 
   for (const item of cart.items) {
     const product = byId.get(item.id);
     if (!product || product.status !== "active") {
       return { ok: false, error: "Un producto ya no está disponible. Revisá tu carrito." };
     }
-    productStockById.set(product.id, product.stock);
     const qty = item.qty;
 
     if (item.variantId) {
@@ -223,8 +219,7 @@ async function buildOrderDraft(
         unit_cost: unitCost,
         subtotal: unitPrice * qty,
       });
-      variantStockUpdates.push({ id: variant.id, newStock: variant.stock - qty });
-      productDecrement.set(product.id, (productDecrement.get(product.id) ?? 0) + qty);
+      stockOps.push({ product_id: product.id, variant_id: variant.id, qty });
       continue;
     }
 
@@ -250,7 +245,7 @@ async function buildOrderDraft(
       subtotal: product.price * qty,
     });
     if (product.track_stock) {
-      productDecrement.set(product.id, (productDecrement.get(product.id) ?? 0) + qty);
+      stockOps.push({ product_id: product.id, variant_id: null, qty });
     }
   }
 
@@ -296,9 +291,7 @@ async function buildOrderDraft(
       shipping,
       total,
       totalBs,
-      variantStockUpdates,
-      productDecrement,
-      productStockById,
+      stockOps,
     },
   };
 }
@@ -356,9 +349,7 @@ export async function createOrder(
     shipping,
     total,
     totalBs,
-    variantStockUpdates,
-    productDecrement,
-    productStockById,
+    stockOps,
   } = result.draft;
 
   // Decide status + payment proof depending on the method.
@@ -440,30 +431,37 @@ export async function createOrder(
     return { ok: false, error: "No se pudo crear el pedido. Intentá de nuevo." };
   }
 
+  // Decrement stock now only for immediately-confirmed orders (cash + PayPal).
+  // Atomic + guarded via commit_order_stock() so concurrent checkouts of the
+  // last unit cannot both succeed (fixes overselling race).
+  //  - cash: enforce the guard; if stock ran out, reject cleanly (no payment
+  //    has been taken, so we just void the order we created).
+  //  - paypal: money is already captured, so never reject — floor at 0 and
+  //    reconcile any rare oversell manually.
+  if (status === "confirmed" && stockOps.length > 0) {
+    const enforce = method.type !== "paypal";
+    const { error: stockErr } = await db.rpc("commit_order_stock", {
+      p_items: stockOps,
+      p_enforce: enforce,
+    });
+    if (stockErr && enforce) {
+      // Insufficient stock lost the race — undo the order we just created.
+      await db.from("order_items").delete().eq("order_id", order.id);
+      await db.from("orders").delete().eq("id", order.id);
+      return {
+        ok: false,
+        error: "Uno de los productos se agotó mientras comprabas. Revisá tu carrito.",
+      };
+    }
+  }
+
+  // Count the coupon use only after the order is committed (a voided
+  // out-of-stock order above must not consume a coupon's usage limit).
   if (appliedCoupon) {
     await db
       .from("coupons")
       .update({ times_used: appliedCoupon.times_used + 1 })
       .eq("id", appliedCoupon.id);
-  }
-
-  // Decrement stock now only for immediately-confirmed orders (cash + PayPal).
-  if (status === "confirmed") {
-    await Promise.all([
-      ...variantStockUpdates.map((u) =>
-        db
-          .from("product_variants")
-          .update({ stock: Math.max(0, u.newStock) })
-          .eq("id", u.id),
-      ),
-      ...[...productDecrement.entries()].map(([pid, dec]) => {
-        const base = productStockById.get(pid) ?? 0;
-        return db
-          .from("products")
-          .update({ stock: Math.max(0, base - dec) })
-          .eq("id", pid);
-      }),
-    ]);
   }
 
   // Notify the store owner(s) by email (no-op if Resend isn't configured).
