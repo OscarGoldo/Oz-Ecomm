@@ -78,7 +78,7 @@ export function PaypalButtons({
           style: { layout: "vertical", shape: "rect", label: "pay" },
           createOrder: async () => {
             const input = getInput();
-            if (!input) throw new Error("Completá tus datos primero");
+            if (!input) throw new Error("Completa tus datos primero");
             const res = await createPaypalOrderAction(input);
             if (!res.ok || !res.paypalOrderId) {
               throw new Error(res.error ?? "No se pudo iniciar el pago");
@@ -106,7 +106,7 @@ export function PaypalButtons({
                 ? err.message
                 : typeof err === "string" && err
                   ? err
-                  : "Hubo un problema con el pago. Intentá de nuevo.";
+                  : "Hubo un problema con el pago. Intenta de nuevo.";
             toast.error(msg.slice(0, 200));
           },
         })
@@ -122,7 +122,7 @@ export function PaypalButtons({
   if (failed) {
     return (
       <p className="text-sm text-destructive">
-        No se pudo cargar PayPal. Revisá tu conexión e intentá de nuevo.
+        No se pudo cargar PayPal. Revisa tu conexión e intenta de nuevo.
       </p>
     );
   }

@@ -137,7 +137,7 @@ export function CategoriesManager({ initial }: { initial: CategoryItem[] }) {
           </span>
           <p className="font-medium">Sin categorías</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Creá categorías para organizar tu catálogo.
+            Crea categorías para organizar tu catálogo.
           </p>
         </div>
       ) : (

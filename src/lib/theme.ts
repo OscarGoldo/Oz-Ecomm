@@ -110,7 +110,7 @@ export const LAYOUT_MEDIA: Partial<
     { key: "heroSlides", label: "Carrusel de campaña", help: "Imágenes de la campaña/drop que rotan en el hero.", max: 5 },
   ],
   "beauty-minimal": [
-    { key: "heroSlides", label: "Imagen de portada", help: "Producto o lanzamiento destacado del hero (podés poner varias y rotan).", max: 4 },
+    { key: "heroSlides", label: "Imagen de portada", help: "Producto o lanzamiento destacado del hero (puedes poner varias y rotan).", max: 4 },
     { key: "gallery", label: "Galería “Get the look”", help: "Fotos para combinar el look. Opcional.", max: 6 },
   ],
   "tech-discover": [
@@ -154,7 +154,7 @@ export const LAYOUT_BLOCKS: Partial<Record<LayoutId, LayoutBlockDef[]>> = {
     { id: "marca", label: "Sobre la marca", defaultTitle: "La marca", defaultSubtitle: "Est. 2017 · Caracas", fields: ["title", "subtitle", "body"], removable: true, reorderable: true },
   ],
   "beauty-minimal": [
-    { id: "categorias", label: "Navegación por tipo", defaultTitle: "Comprá por categoría", fields: ["title"], removable: true, reorderable: true },
+    { id: "categorias", label: "Navegación por tipo", defaultTitle: "Compra por categoría", fields: ["title"], removable: true, reorderable: true },
     { id: "shop-all", label: "Shop All (best sellers)", defaultTitle: "Lo más querido", defaultSubtitle: "Los favoritos de la casa", fields: ["title", "subtitle"], removable: true, reorderable: true },
     { id: "get-the-look", label: "Get the look (sets/combos)", defaultTitle: "Get the look", defaultSubtitle: "Combiná tus esenciales", fields: ["title", "subtitle"], removable: true, reorderable: true },
     { id: "catalog", label: "Catálogo", defaultTitle: "Todo", fields: ["title"], removable: false, reorderable: true },

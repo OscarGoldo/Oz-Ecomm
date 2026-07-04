@@ -72,7 +72,7 @@ export default async function PedidosPage({
         >
           <BellRing className="size-5 text-warning-foreground" />
           <span className="flex-1 font-medium">
-            Tenés {unattended}{" "}
+            Tienes {unattended}{" "}
             {unattended === 1 ? "pago por confirmar" : "pagos por confirmar"}
           </span>
           <ChevronRight className="size-4 text-muted-foreground" />
@@ -86,7 +86,7 @@ export default async function PedidosPage({
           <Inbox className="mb-3 size-9 text-muted-foreground" />
           <p className="font-medium">No hay pedidos</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Cuando entren pedidos van a aparecer acá.
+            Cuando entren pedidos van a aparecer aquí.
           </p>
         </div>
       ) : (

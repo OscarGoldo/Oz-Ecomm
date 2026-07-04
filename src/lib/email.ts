@@ -75,7 +75,7 @@ export function newOrderEmail(p: NewOrderEmailParams): {
   const subject = `🛒 Nuevo pedido #${p.orderNumber} · ${p.storeName}`;
   const html = `
   <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
-    <h2 style="margin:0 0 4px">¡Tenés un nuevo pedido! 🎉</h2>
+    <h2 style="margin:0 0 4px">¡Tienes un nuevo pedido! 🎉</h2>
     <p style="margin:0 0 16px;color:#64748b">${p.storeName}</p>
     <div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:16px">
       <p style="margin:0 0 8px;font-size:18px;font-weight:700">Pedido #${p.orderNumber}</p>

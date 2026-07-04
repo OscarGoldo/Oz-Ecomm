@@ -21,7 +21,7 @@ async function requireStoreId(): Promise<string> {
 const nullableNumber = z.coerce.number().min(0).nullable().optional();
 
 const couponSchema = z.object({
-  code: z.string().trim().min(2, "Poné un código").max(40),
+  code: z.string().trim().min(2, "Pon un código").max(40),
   type: z.enum(["percentage", "fixed", "free_shipping"]),
   value: z.coerce.number().min(0).default(0),
   min_cart: nullableNumber,

@@ -83,8 +83,8 @@ export default async function ProductosPage({
           </p>
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
             {hasFilters
-              ? "Probá con otra búsqueda o quitá los filtros."
-              : "Creá tu primer producto para empezar a vender."}
+              ? "Prueba con otra búsqueda o quitá los filtros."
+              : "Crea tu primer producto para empezar a vender."}
           </p>
           {!hasFilters && (
             <Button asChild className="mt-4">

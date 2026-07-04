@@ -77,8 +77,8 @@ export function SportsStorefront({
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
               {hasFilters
-                ? "Probá con otra categoría."
-                : "Pronto vas a ver los productos acá."}
+                ? "Prueba con otra categoría."
+                : "Pronto vas a ver los productos aquí."}
             </p>
           </div>
         ) : (

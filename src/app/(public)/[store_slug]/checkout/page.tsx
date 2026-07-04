@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { CheckoutForm } from "@/components/storefront/checkout-form";
+import { CheckoutStartTracker } from "@/components/storefront/event-tracker";
 import { getStoreBySlug } from "@/lib/storefront";
 import { getEnrichedCart } from "@/lib/cart";
 import { createClient } from "@/lib/supabase/server";
@@ -48,6 +49,7 @@ export default async function CheckoutPage({
 
   return (
     <main className="container max-w-5xl py-6">
+      <CheckoutStartTracker storeId={store.id} />
       <Link
         href={`/${store.slug}/carrito`}
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"

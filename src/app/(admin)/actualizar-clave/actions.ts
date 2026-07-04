@@ -43,7 +43,7 @@ export async function updatePassword(
   if (!user) {
     return {
       ok: false,
-      message: "El enlace expiró o no es válido. Pedí uno nuevo.",
+      message: "El enlace expiró o no es válido. Pide uno nuevo.",
     };
   }
 
@@ -53,7 +53,7 @@ export async function updatePassword(
   if (error) {
     return {
       ok: false,
-      message: "No se pudo actualizar la contraseña. Probá con otra.",
+      message: "No se pudo actualizar la contraseña. Prueba con otra.",
     };
   }
 

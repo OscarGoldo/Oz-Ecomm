@@ -40,7 +40,7 @@ export default async function ReportesPage({
           </Link>
           <h1 className="text-2xl font-bold tracking-tight">Reporte mensual</h1>
           <p className="text-sm text-muted-foreground">
-            Balance y métricas del mes. Elegí el mes e imprimí o guardá como PDF.
+            Balance y métricas del mes. Elige el mes e imprimí o guarda como PDF.
           </p>
         </div>
         <ReportMonthPicker months={months} value={ym} />

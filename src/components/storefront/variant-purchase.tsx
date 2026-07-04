@@ -109,7 +109,7 @@ export function VariantPurchase({
       .filter((_, i) => selected[i] == null)
       .map((o) => o.name)
       .join(", ");
-    toast.error(`Elegí: ${missing || "una opción"}`);
+    toast.error(`Elige: ${missing || "una opción"}`);
     return false;
   }
 
@@ -214,7 +214,7 @@ export function VariantPurchase({
         )
       ) : (
         <p className="text-sm text-muted-foreground">
-          Elegí {options.map((o) => o.name.toLowerCase()).join(" y ")} para continuar.
+          Elige {options.map((o) => o.name.toLowerCase()).join(" y ")} para continuar.
         </p>
       )}
 

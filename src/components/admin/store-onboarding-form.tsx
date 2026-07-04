@@ -82,7 +82,7 @@ export function StoreOnboardingForm() {
             <Label htmlFor="store_name">Nombre de la tienda *</Label>
             <Input
               id="store_name"
-              {...register("store_name", { required: "Poné un nombre" })}
+              {...register("store_name", { required: "Pon un nombre" })}
               placeholder="Ej. Tienda Bella"
             />
             {errors.store_name && (
@@ -125,7 +125,7 @@ export function StoreOnboardingForm() {
             <Label htmlFor="owner_name">Nombre del dueño *</Label>
             <Input
               id="owner_name"
-              {...register("owner_name", { required: "Poné el nombre del dueño" })}
+              {...register("owner_name", { required: "Pon el nombre del dueño" })}
               placeholder="Ej. Ana García"
             />
             {errors.owner_name && (
@@ -137,7 +137,7 @@ export function StoreOnboardingForm() {
             <Input
               id="owner_email"
               type="email"
-              {...register("owner_email", { required: "Poné el email" })}
+              {...register("owner_email", { required: "Pon el email" })}
               placeholder="dueno@correo.com"
             />
             {errors.owner_email && (

@@ -129,7 +129,7 @@ export function StoreSettingsForm({
                 <Label htmlFor="name">Nombre de la tienda *</Label>
                 <Input
                   id="name"
-                  {...register("name", { required: "Poné un nombre" })}
+                  {...register("name", { required: "Pon un nombre" })}
                 />
                 {errors.name && (
                   <p className="text-xs text-destructive">{errors.name.message}</p>

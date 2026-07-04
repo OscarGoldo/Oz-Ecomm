@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
 const schema = z.object({
-  email: z.string().trim().email("Ingresá un correo válido"),
+  email: z.string().trim().email("Ingresa un correo válido"),
 });
 
 export interface RecoverState {
@@ -35,6 +35,6 @@ export async function requestPasswordReset(
   return {
     ok: true,
     message:
-      "Si ese correo tiene una cuenta, te enviamos un enlace para restablecer tu contraseña. Revisá tu bandeja (y el spam).",
+      "Si ese correo tiene una cuenta, te enviamos un enlace para restablecer tu contraseña. Revisa tu bandeja (y el spam).",
   };
 }

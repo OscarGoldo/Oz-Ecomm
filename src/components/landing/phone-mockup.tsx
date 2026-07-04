@@ -2,10 +2,10 @@ import { ShoppingBag } from "lucide-react";
 
 /** Fictional clothing products rendered with pure-CSS color blocks (no images). */
 const PRODUCTS = [
-  { name: "Remera Oversize", price: "$18", garment: "from-stone-200 to-stone-400" },
+  { name: "Camiseta Oversize", price: "$18", garment: "from-stone-200 to-stone-400" },
   { name: "Jean Mom", price: "$32", garment: "from-sky-300 to-blue-500" },
-  { name: "Buzo Hoodie", price: "$40", garment: "from-rose-300 to-rose-500" },
-  { name: "Campera Denim", price: "$55", garment: "from-indigo-400 to-indigo-600" },
+  { name: "Sudadera Hoodie", price: "$40", garment: "from-rose-300 to-rose-500" },
+  { name: "Chaqueta Denim", price: "$55", garment: "from-indigo-400 to-indigo-600" },
 ];
 
 /**

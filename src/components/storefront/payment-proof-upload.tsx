@@ -27,7 +27,7 @@ export function PaymentProofUpload({
   async function handleFile(file: File | undefined) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Subí una imagen del comprobante");
+      toast.error("Sube una imagen del comprobante");
       return;
     }
     if (file.size > MAX_BYTES) {

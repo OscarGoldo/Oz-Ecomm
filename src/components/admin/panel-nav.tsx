@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
   LayoutDashboard,
   Package,
   Palette,
@@ -31,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/panel/personalizar", label: "Diseño", icon: Palette },
   { href: "/panel/descuentos", label: "Descuentos", icon: Ticket },
   { href: "/panel/clientes", label: "Clientes", icon: Users },
+  { href: "/panel/analitica", label: "Analítica", icon: BarChart3 },
   { href: "/panel/finanzas", label: "Finanzas", icon: Wallet },
   { href: "/panel/configuracion", label: "Ajustes", icon: Settings },
 ];

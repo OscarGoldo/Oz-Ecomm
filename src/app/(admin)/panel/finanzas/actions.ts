@@ -18,7 +18,7 @@ async function requireStoreId(): Promise<string> {
 }
 
 const expenseSchema = z.object({
-  description: z.string().trim().min(2, "Poné una descripción").max(160),
+  description: z.string().trim().min(2, "Pon una descripción").max(160),
   amount: z.coerce.number().positive("Monto inválido"),
   category: z.string().trim().max(40).optional().nullable(),
   spent_at: z.string().trim().optional(),
@@ -77,7 +77,7 @@ export async function deleteExpense(id: string): Promise<ActionResult> {
 // ── Payroll (nómina) ─────────────────────────────────────────────────────────
 
 const employeeSchema = z.object({
-  name: z.string().trim().min(2, "Poné un nombre").max(80),
+  name: z.string().trim().min(2, "Pon un nombre").max(80),
   role: z.string().trim().max(60).optional().nullable(),
   amount: z.coerce.number().positive("Monto inválido"),
   currency: z.enum(["USD", "VES"]).default("USD"),

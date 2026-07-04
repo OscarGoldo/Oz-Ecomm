@@ -136,7 +136,7 @@ export function DropsStorefront({
             </p>
             <p className="mt-1 text-sm text-white/50">
               {hasFilters
-                ? "Probá con otra búsqueda o categoría."
+                ? "Prueba con otra búsqueda o categoría."
                 : "Seguinos para no perderte el lanzamiento."}
             </p>
           </div>

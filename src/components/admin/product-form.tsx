@@ -132,7 +132,7 @@ export function ProductForm({
       const axes = cleanVariantOptions(variantState.options);
       const combos = variantCombos(axes);
       if (axes.length === 0 || combos.length === 0) {
-        toast.error("Agregá al menos un tipo de variante con sus valores");
+        toast.error("Agrega al menos un tipo de variante con sus valores");
         return;
       }
       const rowByKey = new Map(variantState.rows.map((r) => [r.key, r]));
@@ -182,7 +182,7 @@ export function ProductForm({
       router.push("/panel/productos");
       router.refresh();
     } catch {
-      toast.error("No se pudo guardar. Revisá tu conexión e intentá de nuevo.");
+      toast.error("No se pudo guardar. Revisa tu conexión e intenta de nuevo.");
     } finally {
       setSubmitting(false);
     }
@@ -201,7 +201,7 @@ export function ProductForm({
       router.push("/panel/productos");
       router.refresh();
     } catch {
-      toast.error("No se pudo eliminar. Intentá de nuevo.");
+      toast.error("No se pudo eliminar. Intenta de nuevo.");
     } finally {
       setDeleting(false);
     }
@@ -219,7 +219,7 @@ export function ProductForm({
             <Input
               id="name"
               {...register("name", {
-                required: "Poné un nombre",
+                required: "Pon un nombre",
                 minLength: { value: 2, message: "Muy corto" },
               })}
               placeholder="Ej. Air Fryer Digital 3.5L"
@@ -285,7 +285,7 @@ export function ProductForm({
                 min="0"
                 inputMode="decimal"
                 {...register("price", {
-                  required: "Poné un precio",
+                  required: "Pon un precio",
                   min: { value: 0, message: "Inválido" },
                 })}
                 placeholder="0.00"

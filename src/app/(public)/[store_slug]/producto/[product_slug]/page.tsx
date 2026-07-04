@@ -6,6 +6,7 @@ import { ArrowLeft, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Price } from "@/components/storefront/price";
 import { ProductGallery } from "@/components/storefront/product-gallery";
+import { ProductViewTracker } from "@/components/storefront/event-tracker";
 import { ProductActions } from "@/components/storefront/product-actions";
 import { ProductCard } from "@/components/storefront/product-card";
 import { VariantPurchase } from "@/components/storefront/variant-purchase";
@@ -62,6 +63,7 @@ export default async function ProductDetailPage({
 
   return (
     <main className="container py-6">
+      <ProductViewTracker storeId={store.id} productId={product.id} />
       <Link
         href={`/${store.slug}`}
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"

@@ -305,7 +305,7 @@ export function ThemeEditor({
           <CardHeader>
             <CardTitle className="text-base">Plantillas</CardTitle>
             <p className="text-xs text-muted-foreground">
-              Elegí la categoría de tu negocio y después una plantilla.
+              Elige la categoría de tu negocio y después una plantilla.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -473,7 +473,7 @@ export function ThemeEditor({
             <CardHeader>
               <CardTitle className="text-base">Secciones del diseño</CardTitle>
               <p className="text-xs text-muted-foreground">
-                Activá, renombrá y reordená las secciones de tu home.
+                Activa, renombrá y reordená las secciones de tu home.
               </p>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -631,7 +631,7 @@ export function ThemeEditor({
             <CardHeader>
               <CardTitle className="text-base">Imágenes del diseño</CardTitle>
               <p className="text-xs text-muted-foreground">
-                Subí tus propias imágenes para este diseño.
+                Sube tus propias imágenes para este diseño.
               </p>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -645,7 +645,7 @@ export function ThemeEditor({
                     className="h-9"
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Si lo ponés, reemplaza la imagen del hero. Usá un enlace
+                    Si lo pones, reemplaza la imagen del hero. Usa un enlace
                     directo a un archivo .mp4 o .webm.
                   </p>
                 </div>

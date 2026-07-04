@@ -102,7 +102,7 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
         </Link>
 
         <div className="mt-5 rounded-lg bg-muted/60 p-3 text-left text-sm text-muted-foreground">
-          Entrá a tu panel con tu email{" "}
+          Entra a tu panel con tu email{" "}
           <span className="font-medium text-foreground">{done.email}</span> y la
           contraseña que elegiste.
         </div>
@@ -140,7 +140,7 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
         <Label htmlFor="store_name">Nombre de tu tienda *</Label>
         <Input
           id="store_name"
-          {...register("store_name", { required: "Poné un nombre" })}
+          {...register("store_name", { required: "Pon un nombre" })}
           placeholder="Ej. Tienda Bella"
         />
         {errors.store_name ? (
@@ -156,7 +156,7 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
         <Label htmlFor="owner_name">Tu nombre *</Label>
         <Input
           id="owner_name"
-          {...register("owner_name", { required: "Ingresá tu nombre" })}
+          {...register("owner_name", { required: "Ingresa tu nombre" })}
           placeholder="Ej. Ana García"
         />
         {errors.owner_name && (
@@ -171,7 +171,7 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
           type="email"
           inputMode="email"
           autoComplete="email"
-          {...register("owner_email", { required: "Ingresá tu email" })}
+          {...register("owner_email", { required: "Ingresa tu email" })}
           placeholder="tu@correo.com"
         />
         {errors.owner_email && (
@@ -186,7 +186,7 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
           type="password"
           autoComplete="new-password"
           {...register("password", {
-            required: "Poné una contraseña",
+            required: "Pon una contraseña",
             minLength: { value: 8, message: "Mínimo 8 caracteres" },
           })}
           placeholder="Mínimo 8 caracteres"
@@ -200,7 +200,7 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
         <Label>WhatsApp</Label>
         <PhoneInput onChange={(v) => setValue("whatsapp", v)} placeholder="424 1234567" />
         <p className="text-xs text-muted-foreground">
-          Elegí el prefijo de tu país. Por acá te escriben tus clientes.
+          Elige el prefijo de tu país. Por aquí te escriben tus clientes.
         </p>
       </div>
 
@@ -225,7 +225,7 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
         Crear mi tienda gratis
       </Button>
       <p className="text-center text-xs text-muted-foreground">
-        Sin tarjeta. Empezás a vender hoy.
+        Sin tarjeta. Empiezas a vender hoy.
       </p>
     </form>
   );

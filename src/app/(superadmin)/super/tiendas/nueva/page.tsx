@@ -17,7 +17,7 @@ export default function NewStorePage() {
         </Link>
         <h1 className="text-2xl font-bold tracking-tight">Nueva tienda</h1>
         <p className="text-sm text-muted-foreground">
-          Creá un tenant y su dueño. Se agrega Efectivo como método de pago por
+          Crea un tenant y su dueño. Se agrega Efectivo como método de pago por
           defecto.
         </p>
       </div>

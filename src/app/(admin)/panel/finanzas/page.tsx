@@ -203,7 +203,7 @@ export default async function FinanzasPage() {
         </div>
         {noCosts && (
           <p className="rounded-lg bg-warning/10 p-3 text-xs text-warning-foreground">
-            💡 Cargá el <strong>costo</strong> de tus productos (en cada producto) para ver
+            💡 Carga el <strong>costo</strong> de tus productos (en cada producto) para ver
             márgenes y ganancias reales.
           </p>
         )}
@@ -258,7 +258,7 @@ export default async function FinanzasPage() {
         <div>
           <h2 className="text-sm font-semibold">Gastos</h2>
           <p className="text-xs text-muted-foreground">
-            Registrá tus gastos (mercadería, sueldos, alquiler…) para ver la ganancia neta.
+            Registra tus gastos (mercadería, sueldos, alquiler…) para ver la ganancia neta.
           </p>
         </div>
         <ExpensesManager initial={expenses as Expense[]} />
@@ -287,7 +287,7 @@ export default async function FinanzasPage() {
               </p>
             )}
             <p className="mt-2 text-[11px] text-muted-foreground">
-              Estimado de lo que pagás al mes. Registrá cada pago real en
+              Estimado de lo que pagas al mes. Registra cada pago real en
               «Gastos» para descontarlo de tu ganancia.
             </p>
           </div>

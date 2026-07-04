@@ -171,18 +171,18 @@ export function CheckoutForm({
   function goToPayment() {
     const v = getValues();
     if (v.customer_name.trim().length < 2) {
-      toast.error("Ingresá tu nombre");
+      toast.error("Ingresa tu nombre");
       return;
     }
     if (v.customer_phone.trim().length < 6) {
-      toast.error("Ingresá tu teléfono");
+      toast.error("Ingresa tu teléfono");
       return;
     }
     if (
       v.fulfillment_type === "delivery" &&
       v.delivery_address.trim().length < 5
     ) {
-      toast.error("Ingresá la dirección de entrega");
+      toast.error("Ingresa la dirección de entrega");
       return;
     }
     setStep(2);
@@ -199,12 +199,12 @@ export function CheckoutForm({
     const values = getValues();
     if (values.customer_name.trim().length < 2) {
       setStep(1);
-      toast.error("Ingresá tu nombre");
+      toast.error("Ingresa tu nombre");
       return null;
     }
     if (values.customer_phone.trim().length < 6) {
       setStep(1);
-      toast.error("Ingresá tu teléfono");
+      toast.error("Ingresa tu teléfono");
       return null;
     }
     if (
@@ -212,11 +212,11 @@ export function CheckoutForm({
       values.delivery_address.trim().length < 5
     ) {
       setStep(1);
-      toast.error("Ingresá la dirección de entrega");
+      toast.error("Ingresa la dirección de entrega");
       return null;
     }
     if (!selectedMethod) {
-      toast.error("Elegí un método de pago");
+      toast.error("Elige un método de pago");
       return null;
     }
     return {
@@ -237,11 +237,11 @@ export function CheckoutForm({
 
   async function onSubmit() {
     if (!selectedMethod) {
-      toast.error("Elegí un método de pago");
+      toast.error("Elige un método de pago");
       return;
     }
     if (selectedMethod.requires_proof && !proofPath) {
-      toast.error("Subí el comprobante de pago");
+      toast.error("Sube el comprobante de pago");
       return;
     }
     const input = buildInput();
@@ -300,7 +300,7 @@ export function CheckoutForm({
                 <Label htmlFor="customer_name">Nombre y apellido *</Label>
                 <Input
                   id="customer_name"
-                  {...register("customer_name", { required: "Ingresá tu nombre" })}
+                  {...register("customer_name", { required: "Ingresa tu nombre" })}
                   placeholder="Ej. María Pérez"
                 />
                 {errors.customer_name && (
@@ -436,7 +436,7 @@ export function CheckoutForm({
               {isPaypal && selectedMethod ? (
                 <div className="rounded-lg border bg-muted/30 p-3">
                   <p className="text-xs text-muted-foreground">
-                    Pagás con PayPal, tarjeta de crédito o débito. Confirmás el
+                    Pagas con PayPal, tarjeta de crédito o débito. Confirmás el
                     pago más abajo. Tu pedido se confirma al instante.
                   </p>
                 </div>
@@ -491,7 +491,7 @@ export function CheckoutForm({
                     </div>
                   ) : (
                     <p className="border-t pt-3 text-xs text-muted-foreground">
-                      Pagás al recibir o retirar el pedido. No necesitás comprobante.
+                      Pagas al recibir o retirar el pedido. No necesitas comprobante.
                     </p>
                   )}
                 </div>

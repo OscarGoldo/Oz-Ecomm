@@ -148,7 +148,7 @@ export function CouponsManager({ initial }: { initial: Coupon[] }) {
           </span>
           <p className="font-medium">Sin cupones</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Creá códigos de descuento para tus clientes.
+            Crea códigos de descuento para tus clientes.
           </p>
         </div>
       ) : (

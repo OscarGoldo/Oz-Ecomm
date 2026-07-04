@@ -39,19 +39,19 @@ export default async function LoginPage({
           <CardHeader className="text-center">
             <CardTitle className="text-xl">Panel de tu tienda</CardTitle>
             <CardDescription>
-              Ingresá con tu correo para gestionar pedidos y productos.
+              Ingresa con tu correo para gestionar pedidos y productos.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {searchParams.error === "no-store" && (
               <p className="mb-4 rounded-md bg-destructive/10 p-3 text-center text-sm text-destructive">
-                Tu cuenta no tiene una tienda asignada. Contactá al
+                Tu cuenta no tiene una tienda asignada. Contacta al
                 administrador.
               </p>
             )}
             {searchParams.error === "auth" && (
               <p className="mb-4 rounded-md bg-destructive/10 p-3 text-center text-sm text-destructive">
-                El enlace expiró o no es válido. Pedí uno nuevo.
+                El enlace expiró o no es válido. Pide uno nuevo.
               </p>
             )}
             <LoginForm />

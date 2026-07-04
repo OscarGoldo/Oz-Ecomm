@@ -34,7 +34,7 @@ export function BrandingImageUpload({
   async function handleFile(file: File | undefined) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Subí una imagen");
+      toast.error("Sube una imagen");
       return;
     }
     if (file.size > MAX_BYTES) {

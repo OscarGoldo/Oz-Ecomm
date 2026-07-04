@@ -6,8 +6,8 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
 const schema = z.object({
-  email: z.string().trim().email("Ingresá un correo válido"),
-  password: z.string().min(1, "Ingresá tu contraseña"),
+  email: z.string().trim().email("Ingresa un correo válido"),
+  password: z.string().min(1, "Ingresa tu contraseña"),
 });
 
 export interface LoginState {

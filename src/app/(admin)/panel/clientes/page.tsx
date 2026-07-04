@@ -27,7 +27,7 @@ export default async function ClientesPage() {
           <Users className="mb-3 size-9 text-muted-foreground" />
           <p className="font-medium">Todavía no hay clientes</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Cuando entren pedidos, tus clientes aparecen acá.
+            Cuando entren pedidos, tus clientes aparecen aquí.
           </p>
         </div>
       ) : (

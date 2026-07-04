@@ -6,8 +6,8 @@ import { SignupForm } from "@/components/storefront/signup-form";
 import { OzLogo } from "@/components/landing/oz-logo";
 
 export const metadata: Metadata = {
-  title: { absolute: "Creá tu tienda · OzShop" },
-  description: "Creá tu tienda online gratis en minutos.",
+  title: { absolute: "Crea tu tienda · OzShop" },
+  description: "Crea tu tienda online gratis en minutos.",
 };
 
 export default function CrearTiendaPage({
@@ -36,9 +36,9 @@ export default function CrearTiendaPage({
         >
           <ArrowLeft className="size-4" /> Volver
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight">Creá tu tienda</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Crea tu tienda</h1>
         <p className="mt-1 mb-6 text-muted-foreground">
-          En un minuto tenés tu tienda online lista para vender.
+          En un minuto tienes tu tienda online lista para vender.
         </p>
         <SignupForm prefillEmail={searchParams.email ?? ""} />
         <p className="mt-4 text-center text-xs text-muted-foreground">

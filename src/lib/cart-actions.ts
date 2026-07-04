@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 
 import { CART_COOKIE, readCart, type Cart, type CartItem } from "@/lib/cart";
+import { recordEvent } from "@/lib/analytics";
 
 const MAX_QTY = 99;
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
@@ -55,6 +56,7 @@ export async function addToCart(
     });
   }
   writeCart(cart);
+  await recordEvent(storeId, "add_to_cart", productId);
   return { ok: true, count: count(cart) };
 }
 

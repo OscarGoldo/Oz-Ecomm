@@ -165,7 +165,7 @@ export function PayrollManager({
         <div className="grid place-items-center rounded-xl border border-dashed bg-card p-8 text-center">
           <Users className="mb-2 size-7 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            Sin empleados. Agregá tu nómina si tenés personal.
+            Sin empleados. Agrega tu nómina si tienes personal.
           </p>
         </div>
       ) : (

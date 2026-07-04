@@ -23,7 +23,7 @@ export function orderStatusClientMessage(
     case "completed":
       return `${hi} 🎉 Tu pedido ${n} fue entregado. ¡Gracias por comprar en ${storeName}!`;
     case "cancelled":
-      return `Hola ${name}, tu pedido ${n} de ${storeName} fue cancelado. Cualquier duda, escribinos.`;
+      return `Hola ${name}, tu pedido ${n} de ${storeName} fue cancelado. Cualquier duda, escríbenos.`;
     default:
       return `${hi} Tenemos novedades de tu pedido ${n} en ${storeName}.`;
   }

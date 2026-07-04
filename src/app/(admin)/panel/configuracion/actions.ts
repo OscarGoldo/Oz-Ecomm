@@ -107,7 +107,7 @@ export async function updateDeliverySettings(
   const d = parsed.data;
 
   if (!d.offers_delivery && !d.offers_pickup) {
-    return { ok: false, error: "Activá al menos una opción de entrega" };
+    return { ok: false, error: "Activa al menos una opción de entrega" };
   }
 
   let storeId: string;

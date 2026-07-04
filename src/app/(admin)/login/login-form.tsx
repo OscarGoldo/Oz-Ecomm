@@ -73,9 +73,9 @@ export function LoginForm() {
       </div>
       <SubmitButton />
       <p className="text-center text-xs text-muted-foreground">
-        ¿No tenés cuenta?{" "}
+        ¿No tienes cuenta?{" "}
         <Link href="/crear-tienda" className="font-medium text-primary hover:underline">
-          Creá tu tienda
+          Crea tu tienda
         </Link>
       </p>
     </form>

@@ -20,7 +20,7 @@ export function WelcomeChecklist({ steps }: { steps: ChecklistStep[] }) {
           <Rocket className="size-4" />
         </span>
         <div>
-          <h2 className="text-sm font-semibold">Configurá tu tienda</h2>
+          <h2 className="text-sm font-semibold">Configura tu tienda</h2>
           <p className="text-xs text-muted-foreground">
             {doneCount} de {steps.length} listos
           </p>

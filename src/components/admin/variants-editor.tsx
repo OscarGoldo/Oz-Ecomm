@@ -255,7 +255,7 @@ export function VariantsEditor({
           ) : (
             cleanAxes.length === 0 && (
               <p className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
-                Poné un nombre al tipo (ej. “Talla”) y agregá sus valores (S, M,
+                Pon un nombre al tipo (ej. “Talla”) y agrega sus valores (S, M,
                 L) para generar las combinaciones.
               </p>
             )

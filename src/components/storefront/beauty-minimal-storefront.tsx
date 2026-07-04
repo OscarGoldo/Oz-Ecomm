@@ -141,7 +141,7 @@ export function BeautyMinimalStorefront({
           <div className="grid place-items-center py-20 text-center">
             <PackageSearch className="mb-3 size-8 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">
-              {hasFilters ? "Sin resultados" : "Pronto vas a ver los productos acá."}
+              {hasFilters ? "Sin resultados" : "Pronto vas a ver los productos aquí."}
             </p>
           </div>
         ) : (

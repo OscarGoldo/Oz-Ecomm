@@ -239,9 +239,9 @@ export default async function StorefrontHome({
       ? { icon: Truck, title: "Delivery", text: store.delivery_note || "Llevamos tu pedido" }
       : null,
     store.offers_pickup
-      ? { icon: StoreIcon, title: "Retiro en tienda", text: "Buscá tu pedido cuando quieras" }
+      ? { icon: StoreIcon, title: "Retiro en tienda", text: "Busca tu pedido cuando quieras" }
       : null,
-    { icon: BadgeDollarSign, title: "Precios en USD y Bs", text: "Pagás como te quede mejor" },
+    { icon: BadgeDollarSign, title: "Precios en USD y Bs", text: "Pagas como te quede mejor" },
     { icon: ShieldCheck, title: "Compra segura", text: "Confirmás tu pago y recibís" },
   ].filter(Boolean) as { icon: typeof Truck; title: string; text: string }[];
 
@@ -292,8 +292,8 @@ export default async function StorefrontHome({
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             {hasFilters
-              ? "Probá con otra búsqueda o categoría."
-              : "Pronto vas a ver los productos acá."}
+              ? "Prueba con otra búsqueda o categoría."
+              : "Pronto vas a ver los productos aquí."}
           </p>
         </div>
       ) : (

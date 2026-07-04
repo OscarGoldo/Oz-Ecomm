@@ -484,6 +484,26 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["signup_attempts"]["Insert"]>;
         Relationships: [];
       };
+      store_events: {
+        Row: {
+          id: string;
+          store_id: string;
+          session_id: string;
+          event_type: string;
+          product_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          session_id: string;
+          event_type: string;
+          product_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["store_events"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -512,5 +532,6 @@ export type Order = Tables["orders"]["Row"];
 export type OrderItem = Tables["order_items"]["Row"];
 export type Expense = Tables["expenses"]["Row"];
 export type Employee = Tables["employees"]["Row"];
+export type StoreEvent = Tables["store_events"]["Row"];
 export type ProductVariant = Tables["product_variants"]["Row"];
 export type Coupon = Tables["coupons"]["Row"];

@@ -57,7 +57,7 @@ export async function createStore(
   const slug = d.slug || slugify(d.store_name);
   if (!slug) return { ok: false, error: "No se pudo generar el enlace (slug)" };
   if (isReservedSlug(slug)) {
-    return { ok: false, error: `El enlace "${slug}" está reservado, elegí otro` };
+    return { ok: false, error: `El enlace "${slug}" está reservado, elige otro` };
   }
 
   const db = createAdminClient();
@@ -130,7 +130,7 @@ export async function createStore(
     label: "Efectivo",
     details: {},
     requires_proof: false,
-    instructions: "Pagás al recibir o retirar el pedido.",
+    instructions: "Pagas al recibir o retirar el pedido.",
     display_order: 0,
   });
 

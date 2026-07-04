@@ -41,9 +41,9 @@ export default async function DashboardPage() {
       .eq("store_id", store.id),
   ]);
   const steps: ChecklistStep[] = [
-    { label: "Subí el logo de tu tienda", done: Boolean(store.logo_url), href: "/panel/configuracion" },
-    { label: "Cargá tu primer producto", done: (productCount ?? 0) > 0, href: "/panel/productos/nuevo" },
-    { label: "Configurá un método de pago", done: (paymentCount ?? 0) > 0, href: "/panel/configuracion/pagos" },
+    { label: "Sube el logo de tu tienda", done: Boolean(store.logo_url), href: "/panel/configuracion" },
+    { label: "Carga tu primer producto", done: (productCount ?? 0) > 0, href: "/panel/productos/nuevo" },
+    { label: "Configura un método de pago", done: (paymentCount ?? 0) > 0, href: "/panel/configuracion/pagos" },
     { label: "Definí la tasa del día (Bs)", done: store.exchange_rate != null, href: "/panel/configuracion" },
   ];
 

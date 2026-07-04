@@ -44,7 +44,7 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
         <ShoppingBag className="mb-3 size-9 text-muted-foreground" />
         <p className="font-medium">Tu carrito está vacío</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Agregá productos para empezar tu pedido.
+          Agrega productos para empezar tu pedido.
         </p>
         <Button asChild className="mt-4">
           <Link href={`/${storeSlug}`}>Ver productos</Link>

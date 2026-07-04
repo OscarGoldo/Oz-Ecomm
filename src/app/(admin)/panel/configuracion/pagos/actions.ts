@@ -19,7 +19,7 @@ async function requireStoreId(): Promise<string> {
 
 const methodSchema = z.object({
   type: z.enum(["pago_movil", "zelle", "binance", "cash", "transfer", "other", "paypal"]),
-  label: z.string().trim().min(2, "Poné un nombre"),
+  label: z.string().trim().min(2, "Pon un nombre"),
   details: z.record(z.string(), z.string().trim()).default({}),
   requires_proof: z.boolean().default(true),
   instructions: z.string().trim().optional().nullable(),

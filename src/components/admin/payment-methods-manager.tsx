@@ -172,7 +172,7 @@ export function PaymentMethodsManager({
           </span>
           <p className="font-medium">Sin métodos de pago</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Agregá Pago Móvil, Zelle, Binance o efectivo.
+            Agrega Pago Móvil, Zelle, Binance o efectivo.
           </p>
         </div>
       ) : (
@@ -294,7 +294,7 @@ export function PaymentMethodsManager({
                   procesador de pago, que se descuentan de lo que recibís.
                 </p>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">¿Cómo querés que te paguemos?</p>
+                  <p className="text-sm font-medium">¿Cómo quieres que te paguemos?</p>
                   <p className="text-xs text-muted-foreground">
                     La plataforma te transfiere lo recaudado por PayPal por este
                     medio.

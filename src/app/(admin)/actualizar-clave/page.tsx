@@ -25,7 +25,7 @@ export default function ActualizarClavePage() {
           <CardHeader className="text-center">
             <CardTitle className="text-xl">Crear nueva contraseña</CardTitle>
             <CardDescription>
-              Elegí una contraseña nueva para tu cuenta.
+              Elige una contraseña nueva para tu cuenta.
             </CardDescription>
           </CardHeader>
           <CardContent>

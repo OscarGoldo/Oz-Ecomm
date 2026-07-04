@@ -27,7 +27,7 @@ export interface SignupResult {
 
 const schema = z.object({
   store_name: z.string().trim().min(2, "El nombre de la tienda es muy corto"),
-  owner_name: z.string().trim().min(2, "Ingresá tu nombre"),
+  owner_name: z.string().trim().min(2, "Ingresa tu nombre"),
   owner_email: z.string().trim().email("Email inválido"),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
   primary_color: z
@@ -133,7 +133,7 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
       break;
     }
     if (attempt === 4) {
-      return { ok: false, error: "No se pudo generar un enlace único. Probá otro nombre." };
+      return { ok: false, error: "No se pudo generar un enlace único. Prueba otro nombre." };
     }
   }
 
@@ -150,7 +150,7 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
     .select("id")
     .single();
   if (storeErr || !store) {
-    return { ok: false, error: "No se pudo crear la tienda. Intentá de nuevo." };
+    return { ok: false, error: "No se pudo crear la tienda. Intenta de nuevo." };
   }
 
   // Create the owner auth user with their password.
@@ -176,7 +176,7 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
   if (userErr) {
     await db.auth.admin.deleteUser(userId);
     await db.from("stores").delete().eq("id", store.id);
-    return { ok: false, error: "No se pudo crear tu cuenta. Intentá de nuevo." };
+    return { ok: false, error: "No se pudo crear tu cuenta. Intenta de nuevo." };
   }
 
   // Default cash payment method so checkout works immediately.
@@ -186,7 +186,7 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
     label: "Efectivo",
     details: {},
     requires_proof: false,
-    instructions: "Pagás al recibir o retirar el pedido.",
+    instructions: "Pagas al recibir o retirar el pedido.",
     display_order: 0,
   });
 

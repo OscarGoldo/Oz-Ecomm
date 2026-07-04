@@ -169,7 +169,7 @@ export function StreetStorefront({
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
               {hasFilters
-                ? "Probá con otra búsqueda o categoría."
+                ? "Prueba con otra búsqueda o categoría."
                 : "Se viene algo grande 👀"}
             </p>
           </div>

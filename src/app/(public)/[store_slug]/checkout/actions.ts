@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { recordEvent } from "@/lib/analytics";
 import { readCartForStore } from "@/lib/cart";
 import { clearCart } from "@/lib/cart-actions";
 import { formatUSD, usdToBs } from "@/lib/format";
@@ -17,8 +18,8 @@ import type { Coupon, CouponType, OrderStatus } from "@/types/database";
 
 const checkoutSchema = z.object({
   store_id: z.string().uuid(),
-  customer_name: z.string().trim().min(2, "Ingresá tu nombre"),
-  customer_phone: z.string().trim().min(6, "Ingresá un teléfono válido"),
+  customer_name: z.string().trim().min(2, "Ingresa tu nombre"),
+  customer_phone: z.string().trim().min(6, "Ingresa un teléfono válido"),
   customer_email: z
     .string()
     .trim()
@@ -28,7 +29,7 @@ const checkoutSchema = z.object({
   fulfillment_type: z.enum(["delivery", "pickup"]),
   delivery_address: z.string().trim().optional(),
   delivery_notes: z.string().trim().optional(),
-  payment_method_id: z.string().uuid("Elegí un método de pago"),
+  payment_method_id: z.string().uuid("Elige un método de pago"),
   payment_reference: z.string().trim().optional(),
   payment_proof_path: z.string().trim().optional(),
   paypal_order_id: z.string().trim().optional(),
@@ -61,7 +62,7 @@ export async function previewCoupon(
   code: string,
   subtotalUsd: number,
 ): Promise<CouponPreview> {
-  if (!code.trim()) return { ok: false, error: "Ingresá un código" };
+  if (!code.trim()) return { ok: false, error: "Ingresa un código" };
   const coupon = await findCouponByCode(storeId, code);
   if (!coupon) return { ok: false, error: "El cupón no es válido" };
   const result = evaluateCoupon(coupon, subtotalUsd);
@@ -142,7 +143,7 @@ async function buildOrderDraft(
       return { ok: false, error: "La tienda no ofrece delivery" };
     }
     if (!data.delivery_address || data.delivery_address.length < 5) {
-      return { ok: false, error: "Ingresá la dirección de entrega" };
+      return { ok: false, error: "Ingresa la dirección de entrega" };
     }
   } else if (!store.offers_pickup) {
     return { ok: false, error: "La tienda no ofrece retiro" };
@@ -192,14 +193,14 @@ async function buildOrderDraft(
   for (const item of cart.items) {
     const product = byId.get(item.id);
     if (!product || product.status !== "active") {
-      return { ok: false, error: "Un producto ya no está disponible. Revisá tu carrito." };
+      return { ok: false, error: "Un producto ya no está disponible. Revisa tu carrito." };
     }
     const qty = item.qty;
 
     if (item.variantId) {
       const variant = variantById.get(item.variantId);
       if (!variant || variant.product_id !== product.id || !variant.active) {
-        return { ok: false, error: "Una variante ya no está disponible. Revisá tu carrito." };
+        return { ok: false, error: "Una variante ya no está disponible. Revisa tu carrito." };
       }
       if (variant.stock < qty) {
         return {
@@ -225,7 +226,7 @@ async function buildOrderDraft(
 
     const opts = product.variant_options;
     if (Array.isArray(opts) && opts.length > 0) {
-      return { ok: false, error: `Elegí las opciones de "${product.name}".` };
+      return { ok: false, error: `Elige las opciones de "${product.name}".` };
     }
 
     if (product.track_stock && product.stock < qty) {
@@ -373,7 +374,7 @@ export async function createOrder(
     if (Math.abs(cap.amount - total) > 0.01) {
       return {
         ok: false,
-        error: "El monto cobrado no coincide con el pedido. Contactá a la tienda.",
+        error: "El monto cobrado no coincide con el pedido. Contacta a la tienda.",
       };
     }
     status = "confirmed";
@@ -383,7 +384,7 @@ export async function createOrder(
     paymentNet = cap.net;
   } else {
     if (method.requires_proof && !data.payment_proof_path) {
-      return { ok: false, error: "Subí el comprobante de pago" };
+      return { ok: false, error: "Sube el comprobante de pago" };
     }
     status = method.requires_proof ? "pending_confirmation" : "confirmed";
   }
@@ -420,7 +421,7 @@ export async function createOrder(
     .single();
 
   if (orderErr || !order) {
-    return { ok: false, error: "No se pudo crear el pedido. Intentá de nuevo." };
+    return { ok: false, error: "No se pudo crear el pedido. Intenta de nuevo." };
   }
 
   const { error: itemsErr } = await db
@@ -428,7 +429,7 @@ export async function createOrder(
     .insert(orderItems.map((i) => ({ ...i, order_id: order.id })));
   if (itemsErr) {
     await db.from("orders").delete().eq("id", order.id);
-    return { ok: false, error: "No se pudo crear el pedido. Intentá de nuevo." };
+    return { ok: false, error: "No se pudo crear el pedido. Intenta de nuevo." };
   }
 
   // Decrement stock now only for immediately-confirmed orders (cash + PayPal).
@@ -450,7 +451,7 @@ export async function createOrder(
       await db.from("orders").delete().eq("id", order.id);
       return {
         ok: false,
-        error: "Uno de los productos se agotó mientras comprabas. Revisá tu carrito.",
+        error: "Uno de los productos se agotó mientras comprabas. Revisa tu carrito.",
       };
     }
   }
@@ -493,6 +494,7 @@ export async function createOrder(
     // Never fail the order because of a notification problem.
   }
 
+  await recordEvent(store.id, "purchase");
   await clearCart(store.id);
   return { ok: true, orderId: order.id };
 }
