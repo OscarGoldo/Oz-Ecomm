@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 /** Landing + active store homes + their active products. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://oz-ecomm.vercel.app";
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://tiendifyapp.com";
   const db = createAdminClient();
 
   const { data: stores } = await db

@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- OzShop — 0013 Marketplace payouts
+-- Tiendify — 0013 Marketplace payouts
 -- Tracks, per PayPal order, the processor fee + net the platform received, and
 -- when/how the platform settled that money with the tenant (with proof).
 -- ════════════════════════════════════════════════════════════════════════════

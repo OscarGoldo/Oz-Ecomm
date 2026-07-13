@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- OzShop — 0015  Storefront analytics events
+-- Tiendify — 0015  Storefront analytics events
 --   Lightweight event log powering the tenant analytics panel: most-viewed
 --   products, conversion rate, and the cart→checkout→purchase funnel.
 --   (Sales-by-day/hour are derived from `orders`, not this table.)

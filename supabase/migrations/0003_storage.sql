@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- Oz Ecom — 0003 Storage buckets & policies
+-- Tiendify — 0003 Storage buckets & policies
 --   store-images   : PUBLIC read. Logos, banners, product photos.
 --   payment-proofs : PRIVATE. Only the owning store reads its proofs.
 -- Object paths are organized by store_id:  <store_id>/<...>

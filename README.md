@@ -1,4 +1,4 @@
-# OzShop
+# Tiendify
 
 Plataforma de ecommerce **multi-tenant** para PYMEs de Venezuela. Mismo código,
 datos separados por `tenant_id` (store), cada tienda con su panel, catálogo y
@@ -32,7 +32,7 @@ Supabase (Postgres + Auth + Storage) · Server Actions.
 
 ### 1. Crear el proyecto Supabase
 
-1. https://supabase.com → **New project** (`oz-ecom`, región East US).
+1. https://supabase.com → **New project** (`tiendify`, región East US).
 2. Project Settings → **API**: copiá `Project URL`, `anon key` y
    `service_role key`.
 
@@ -139,7 +139,7 @@ Dos cosas distintas:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY` (secreto)
-   - `NEXT_PUBLIC_APP_URL` = la URL de producción (ej. `https://oz-ecom.vercel.app`)
+   - `NEXT_PUBLIC_APP_URL` = la URL de producción (ej. `https://tiendifyapp.com`)
 4. **Deploy**.
 5. En Supabase → **Authentication → URL Configuration**: agregá tu dominio de
    Vercel como **Site URL** y a **Redirect URLs** (`https://tu-dominio.vercel.app/**`).

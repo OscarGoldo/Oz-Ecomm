@@ -25,7 +25,7 @@ export async function sendEmail({
     }
     return false;
   }
-  const from = process.env.EMAIL_FROM ?? "OzShop <onboarding@resend.dev>";
+  const from = process.env.EMAIL_FROM ?? "Tiendify <onboarding@resend.dev>";
 
   // Resend's sandbox sender (onboarding@resend.dev) only delivers to the Resend
   // account owner. In production that means every OTHER tenant gets nothing —
@@ -83,8 +83,8 @@ export function newOrderEmail(p: NewOrderEmailParams): {
       <p style="margin:0;color:#334155">Entrega: ${p.fulfillmentLabel}</p>
       <p style="margin:0;color:#334155">${p.itemsCount} ${p.itemsCount === 1 ? "artículo" : "artículos"} · Total: <strong>${p.totalLabel}</strong></p>
     </div>
-    <a href="${p.orderUrl}" style="display:inline-block;background:#2563EB;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">Ver pedido en el panel</a>
-    <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">OzShop</p>
+    <a href="${p.orderUrl}" style="display:inline-block;background:#0EA5E9;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">Ver pedido en el panel</a>
+    <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Tiendify</p>
   </div>`;
   return { subject, html };
 }
@@ -109,7 +109,7 @@ export function customerOrderStatusEmail(p: CustomerStatusEmailParams): {
       <p style="margin:0 0 8px;font-size:18px;font-weight:700">Pedido #${p.orderNumber} · ${p.statusLabel}</p>
       <p style="margin:0;color:#334155;line-height:1.5">${p.message}</p>
     </div>
-    <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Enviado por ${p.storeName} vía OzShop</p>
+    <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Enviado por ${p.storeName} vía Tiendify</p>
   </div>`;
   return { subject, html };
 }

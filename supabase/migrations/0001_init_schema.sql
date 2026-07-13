@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- Oz Ecom — 0001 init schema
+-- Tiendify — 0001 init schema
 -- Multi-tenant ecommerce. Every store-scoped table carries store_id.
 -- Run this in the Supabase SQL editor (or via supabase db push).
 -- ════════════════════════════════════════════════════════════════════════════

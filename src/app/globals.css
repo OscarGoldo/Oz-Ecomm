@@ -13,8 +13,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* OzShop default brand: blue #2563EB */
-    --primary: 221 83% 53%;
+    /* Tiendify platform brand: sky #0EA5E9 (sky-500) */
+    --primary: 199 89% 48%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 40% 96%;
@@ -37,7 +37,7 @@
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    --ring: 199 89% 48%;
 
     --radius: 0.75rem;
   }

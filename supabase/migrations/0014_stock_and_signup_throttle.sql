@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- OzShop — 0014
+-- Tiendify — 0014
 --  1. commit_order_stock(): atomic, guarded stock decrement to prevent
 --     overselling under concurrent checkouts (fixes race in checkout/actions).
 --  2. signup_attempts: per-IP throttle table for public store signups.

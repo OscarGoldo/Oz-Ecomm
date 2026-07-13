@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-import { OzLogo } from "@/components/landing/oz-logo";
+import { TiendifyLogo } from "@/components/landing/tiendify-logo";
 
 export const metadata: Metadata = {
   title: "Términos y condiciones",
-  description: "Términos y condiciones de uso de OzShop.",
+  description: "Términos y condiciones de uso de Tiendify.",
 };
 
 export default function TerminosPage() {
@@ -14,7 +14,7 @@ export default function TerminosPage() {
     <main className="min-h-dvh bg-background">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center">
-          <OzLogo className="h-7 w-auto" />
+          <TiendifyLogo className="h-7 w-auto" />
         </Link>
         <Link
           href="/"
@@ -33,11 +33,11 @@ export default function TerminosPage() {
         </div>
 
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">1. Qué es OzShop</h2>
+          <h2 className="text-lg font-semibold text-foreground">1. Qué es Tiendify</h2>
           <p>
-            OzShop es una plataforma que permite a emprendedores y comercios
+            Tiendify es una plataforma que permite a emprendedores y comercios
             («las tiendas») crear su tienda online, publicar productos y recibir
-            pedidos de sus clientes. OzShop actúa como intermediario tecnológico:
+            pedidos de sus clientes. Tiendify actúa como intermediario tecnológico:
             provee la herramienta, pero <strong>no es el vendedor</strong> de los
             productos publicados.
           </p>
@@ -51,7 +51,7 @@ export default function TerminosPage() {
             Cada tienda es responsable de los productos que publica, su calidad,
             precio, stock, la entrega de los pedidos y la atención a sus
             clientes. Las compras se realizan directamente entre el cliente y la
-            tienda. OzShop no garantiza ni responde por los productos, entregas o
+            tienda. Tiendify no garantiza ni responde por los productos, entregas o
             reembolsos de las tiendas.
           </p>
         </section>
@@ -61,7 +61,7 @@ export default function TerminosPage() {
           <p>
             Para administrar una tienda necesitas una cuenta con correo y
             contraseña. Eres responsable de mantener tu contraseña segura y de
-            toda la actividad realizada desde tu cuenta. OzShop puede suspender
+            toda la actividad realizada desde tu cuenta. Tiendify puede suspender
             cuentas o tiendas que publiquen contenido ilegal, fraudulento o que
             abusen de la plataforma.
           </p>
@@ -85,7 +85,7 @@ export default function TerminosPage() {
             5. Uso aceptable
           </h2>
           <p>
-            No está permitido usar OzShop para vender productos ilegales,
+            No está permitido usar Tiendify para vender productos ilegales,
             falsificados o peligrosos; enviar spam; intentar vulnerar la
             seguridad de la plataforma; ni crear tiendas o pedidos falsos.
           </p>
@@ -96,7 +96,7 @@ export default function TerminosPage() {
             6. Disponibilidad y cambios
           </h2>
           <p>
-            OzShop se ofrece «tal cual». Hacemos lo posible por mantener el
+            Tiendify se ofrece «tal cual». Hacemos lo posible por mantener el
             servicio disponible y seguro, pero no garantizamos disponibilidad
             ininterrumpida. Podemos actualizar estas condiciones y las funciones
             de la plataforma; los cambios importantes se comunicarán en este

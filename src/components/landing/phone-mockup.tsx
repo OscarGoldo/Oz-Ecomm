@@ -10,7 +10,7 @@ const PRODUCTS = [
 
 /**
  * Pure-CSS smartphone mockup showing a fictional clothing store ("URBAN
- * THREADS") to preview what a store built with OzShop looks like.
+ * THREADS") to preview what a store built with Tiendify looks like.
  */
 export function PhoneMockup() {
   return (

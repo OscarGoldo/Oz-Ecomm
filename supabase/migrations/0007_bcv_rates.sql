@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- OzShop — 0007 BCV rates
+-- Tiendify — 0007 BCV rates
 -- Cached official BCV USD/EUR rates (single row), refreshed daily by a cron.
 -- Stores can opt into auto-updating their exchange_rate from the BCV.
 -- ════════════════════════════════════════════════════════════════════════════

@@ -3,10 +3,10 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { SignupForm } from "@/components/storefront/signup-form";
-import { OzLogo } from "@/components/landing/oz-logo";
+import { TiendifyLogo } from "@/components/landing/tiendify-logo";
 
 export const metadata: Metadata = {
-  title: { absolute: "Crea tu tienda · OzShop" },
+  title: { absolute: "Crea tu tienda · Tiendify" },
   description: "Crea tu tienda online gratis en minutos.",
 };
 
@@ -19,7 +19,7 @@ export default function CrearTiendaPage({
     <main className="min-h-dvh bg-muted/30">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center">
-          <OzLogo className="h-7 w-auto" />
+          <TiendifyLogo className="h-7 w-auto" />
         </Link>
         <Link
           href="/login"

@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- OzShop — 0008 Finance: product cost, order cost snapshot, expenses
+-- Tiendify — 0008 Finance: product cost, order cost snapshot, expenses
 -- Enables margins/profit and expense tracking in the Finanzas panel.
 -- ════════════════════════════════════════════════════════════════════════════
 

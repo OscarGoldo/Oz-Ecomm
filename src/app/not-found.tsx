@@ -1,12 +1,12 @@
 import Link from "next/link";
 
-import { OzLogoMark } from "@/components/landing/oz-logo";
+import { TiendifyLogoMark } from "@/components/landing/tiendify-logo";
 
 export default function NotFound() {
   return (
     <main className="grid min-h-dvh place-items-center bg-muted/30 px-4">
       <div className="text-center">
-        <OzLogoMark className="mx-auto mb-4 h-12 w-auto" />
+        <TiendifyLogoMark className="mx-auto mb-4 h-12 w-auto" />
         <p className="text-5xl font-bold tracking-tight">404</p>
         <p className="mt-2 text-muted-foreground">
           No encontramos lo que buscabas.

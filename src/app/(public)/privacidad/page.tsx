@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-import { OzLogo } from "@/components/landing/oz-logo";
+import { TiendifyLogo } from "@/components/landing/tiendify-logo";
 
 export const metadata: Metadata = {
   title: "Política de privacidad",
-  description: "Cómo OzShop trata tus datos personales.",
+  description: "Cómo Tiendify trata tus datos personales.",
 };
 
 export default function PrivacidadPage() {
@@ -14,7 +14,7 @@ export default function PrivacidadPage() {
     <main className="min-h-dvh bg-background">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center">
-          <OzLogo className="h-7 w-auto" />
+          <TiendifyLogo className="h-7 w-auto" />
         </Link>
         <Link
           href="/"

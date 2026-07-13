@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- OzShop — 0010 Product variants (two-axis, e.g. Talla + Color)
+-- Tiendify — 0010 Product variants (two-axis, e.g. Talla + Color)
 -- products.variant_options describes the axes; product_variants holds each
 -- generated combination with its own stock / optional price.
 -- ════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,5 @@
+<svg width="300" height="70" viewBox="0 0 300 70" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tiendify">
+  <path d="M16 40 L36 20 H54 V38 L34 58 Z" fill="none" stroke="#0EA5E9" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="46" cy="29" r="4" fill="#0EA5E9"/>
+  <text x="70" y="50" font-family="'Segoe UI', system-ui, -apple-system, Arial, sans-serif" font-size="32" font-weight="800" fill="#0F172A" letter-spacing="-0.5">Tiend<tspan fill="#0EA5E9">ify</tspan></text>
+</svg>

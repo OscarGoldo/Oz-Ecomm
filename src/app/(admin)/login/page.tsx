@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { OzLogo } from "@/components/landing/oz-logo";
+import { TiendifyLogo } from "@/components/landing/tiendify-logo";
 import {
   Card,
   CardContent,
@@ -32,7 +32,7 @@ export default async function LoginPage({
     <main className="flex min-h-dvh flex-col items-center justify-center bg-muted/40 px-4 py-10">
       <div className="w-full max-w-sm">
         <Link href="/" className="mb-6 flex justify-center">
-          <OzLogo className="h-12 w-auto" />
+          <TiendifyLogo className="h-12 w-auto" />
         </Link>
 
         <Card>

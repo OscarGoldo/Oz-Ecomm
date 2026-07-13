@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingHero } from "@/components/landing/landing-hero";
-import { OzLogo } from "@/components/landing/oz-logo";
+import { TiendifyLogo } from "@/components/landing/tiendify-logo";
 
 const features = [
   {
@@ -119,8 +119,12 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t">
         <div className="container flex flex-col items-center justify-between gap-3 py-8 text-sm text-muted-foreground sm:flex-row">
-          <OzLogo />
-          <span>© {new Date().getFullYear()} · Hecho en Venezuela 🇻🇪</span>
+          <TiendifyLogo />
+          <span>
+            © {new Date().getFullYear()} · Un producto de{" "}
+            <span className="font-medium text-foreground">OzAI</span> · Hecho en
+            Venezuela 🇻🇪
+          </span>
           <div className="flex flex-wrap justify-center gap-4">
             <Link href="/crear-tienda" className="hover:text-foreground">
               Crear tienda

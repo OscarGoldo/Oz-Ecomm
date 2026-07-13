@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- OzShop — 0009 Payroll (nómina)
+-- Tiendify — 0009 Payroll (nómina)
 -- Optional roster of employees + their salary (USD or VES) and pay frequency.
 -- ════════════════════════════════════════════════════════════════════════════
 

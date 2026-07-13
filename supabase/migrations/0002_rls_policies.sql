@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- Oz Ecom — 0002 Row Level Security
+-- Tiendify — 0002 Row Level Security
 -- Each store owner sees only their tenant's data. Public (anonymous) visitors
 -- can read the storefront-facing rows. Super admins see everything.
 -- ════════════════════════════════════════════════════════════════════════════

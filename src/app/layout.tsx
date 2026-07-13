@@ -52,17 +52,17 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: {
-    default: "OzShop",
-    template: "%s · OzShop",
+    default: "Tiendify",
+    template: "%s · Tiendify",
   },
   description:
     "Plataforma de ecommerce para PYMEs de Venezuela. Tu tienda online con pagos locales y doble moneda.",
   icons: {
     icon: [
-      { url: "/ozshop-symbol.svg", type: "image/svg+xml" },
-      { url: "/ozshop-app-icon.png", sizes: "512x512", type: "image/png" },
+      { url: "/tiendify-symbol.svg", type: "image/svg+xml" },
+      { url: "/tiendify-app-icon.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: "/ozshop-app-icon.png",
+    apple: "/tiendify-app-icon.png",
   },
 };
 

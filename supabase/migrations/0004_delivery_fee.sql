@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- Oz Ecom — 0004 Delivery fee
+-- Tiendify — 0004 Delivery fee
 -- Optional flat delivery fee per store, with an optional free-delivery
 -- threshold. Orders snapshot the shipping cost applied.
 -- ════════════════════════════════════════════════════════════════════════════

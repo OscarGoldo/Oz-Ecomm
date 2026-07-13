@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- Oz Ecom — 0005 Coupons (discount codes)
+-- Tiendify — 0005 Coupons (discount codes)
 -- Store-scoped discount codes applied at checkout. Promotions (auto 2x1, etc.)
 -- are a separate future system.
 -- ════════════════════════════════════════════════════════════════════════════

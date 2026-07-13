@@ -1,0 +1,5 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tiendify">
+  <rect width="512" height="512" rx="115" fill="#0EA5E9"/>
+  <path d="M124 278 L262 140 H390 V268 L252 406 Z" fill="none" stroke="#FFFFFF" stroke-width="32" stroke-linejoin="round"/>
+  <circle cx="336" cy="196" r="32" fill="#FFFFFF"/>
+</svg>

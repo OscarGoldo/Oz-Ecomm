@@ -40,7 +40,7 @@ export default async function SuperDashboardPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Tiendas</h1>
           <p className="text-sm text-muted-foreground">
-            Gestión de todos los tenants de OzShop.
+            Gestión de todos los tenants de Tiendify.
           </p>
         </div>
         <Link

@@ -19,7 +19,7 @@ export default async function SuperLayout({
             <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
               <ShieldCheck className="size-5" />
             </span>
-            OzShop
+            Tiendify
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
               Super Admin
             </span>

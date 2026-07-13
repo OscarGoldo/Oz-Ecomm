@@ -44,7 +44,7 @@ export function StorefrontFooter({
           </p>
           <div className="flex flex-col gap-2 text-sm text-white/60">{contact}</div>
           <p className="pt-4 text-xs text-white/40">
-            Tienda creada con <span className="font-medium text-white/70">OzShop</span>
+            Tienda creada con <span className="font-medium text-white/70">Tiendify</span>
           </p>
         </div>
       </footer>
@@ -65,7 +65,7 @@ export function StorefrontFooter({
             {contact}
           </div>
           <p className="pt-3 text-[11px] uppercase tracking-[0.2em] text-muted-foreground/60">
-            Tienda creada con OzShop
+            Tienda creada con Tiendify
           </p>
         </div>
       </footer>
@@ -80,7 +80,7 @@ export function StorefrontFooter({
         <div className="flex flex-col gap-2 text-sm text-muted-foreground">{contact}</div>
         <p className="pt-3 text-xs text-muted-foreground">
           Tienda creada con{" "}
-          <span className="font-medium text-foreground">OzShop</span>
+          <span className="font-medium text-foreground">Tiendify</span>
         </p>
       </div>
     </footer>

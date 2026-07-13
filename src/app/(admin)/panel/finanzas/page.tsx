@@ -44,7 +44,7 @@ export default async function FinanzasPage() {
   const employees = (employeeRows ?? []) as Employee[];
   const rate = store.exchange_rate;
 
-  // Payouts received from the platform (PayPal earnings settled by OzShop).
+  // Payouts received from the platform (PayPal earnings settled by Tiendify).
   const { data: payoutOrders } = await supabase
     .from("orders")
     .select("paid_out_at, payment_net, total, payout_proof_url, payout_reference")
@@ -117,7 +117,7 @@ export default async function FinanzasPage() {
       {payouts.length > 0 && (
         <section className="space-y-3">
           <div>
-            <h2 className="text-sm font-semibold">Pagos recibidos de OzShop</h2>
+            <h2 className="text-sm font-semibold">Pagos recibidos de Tiendify</h2>
             <p className="text-xs text-muted-foreground">
               Lo que te transfirió la plataforma por tus ventas con PayPal/tarjeta
               (neto, ya descontada la comisión del procesador).
