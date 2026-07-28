@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth";
+import { isPro } from "@/lib/plans";
+import { isFreeLayout } from "@/lib/theme";
 import type { Json } from "@/types/database";
 
 export interface ActionResult {
@@ -86,6 +88,15 @@ export async function updateStoreTheme(input: ThemeInput): Promise<ActionResult>
 
   const ctx = await getSessionContext();
   if (!ctx?.store) return { ok: false, error: "No autorizado" };
+
+  // Candado de plantillas. El editor ya las muestra con candado, pero la
+  // validación real vive acá: ocultar un botón no es seguridad.
+  if (!isPro(ctx.store) && !isFreeLayout(parsed.data.layout)) {
+    return {
+      ok: false,
+      error: "Esa plantilla es del plan Pro. Activá Pro para usarla.",
+    };
+  }
 
   const supabase = createClient();
   const { error } = await supabase

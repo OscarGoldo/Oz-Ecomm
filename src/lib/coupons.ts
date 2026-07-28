@@ -1,3 +1,4 @@
+import { isPro } from "@/lib/plans";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Coupon } from "@/types/database";
 
@@ -61,12 +62,27 @@ export function evaluateCoupon(
   return { valid: true, discount, freeShipping: false };
 }
 
-/** Look up a coupon by code (service role — codes aren't publicly readable). */
+/**
+ * Look up a coupon by code (service role — codes aren't publicly readable).
+ *
+ * Los cupones son del plan Pro y el candado vive acá: es el único camino por
+ * el que el checkout llega a un cupón (validar y aplicar), así que una tienda
+ * que cayó a Gratis deja de aceptar códigos sin tocar el checkout. Los cupones
+ * no se borran: vuelven a funcionar solos al reactivar Pro.
+ */
 export async function findCouponByCode(
   storeId: string,
   code: string,
 ): Promise<Coupon | null> {
   const db = createAdminClient();
+
+  const { data: store } = await db
+    .from("stores")
+    .select("plan, plan_expires_at, plan_source")
+    .eq("id", storeId)
+    .maybeSingle();
+  if (!isPro(store)) return null;
+
   const { data } = await db
     .from("coupons")
     .select("*")

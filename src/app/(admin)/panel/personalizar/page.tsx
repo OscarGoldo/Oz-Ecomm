@@ -6,6 +6,7 @@ import type { SampleProduct } from "@/components/admin/store-preview";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getImageUrl } from "@/lib/storage";
+import { isPro } from "@/lib/plans";
 import { resolveTheme } from "@/lib/theme";
 
 export const metadata = { title: "Personalizar" };
@@ -53,6 +54,7 @@ export default async function PersonalizarPage() {
         initialTheme={resolveTheme(store)}
         logoUrl={getImageUrl(store.logo_url)}
         sampleProducts={sampleProducts}
+        pro={isPro(store)}
       />
     </div>
   );

@@ -13,12 +13,25 @@ interface PaymentProofUploadProps {
   storeId: string;
   value: string | null;
   onChange: (path: string | null) => void;
+  /**
+   * Subcarpeta dentro de `<storeId>/`. "proofs" son los pagos de pedidos;
+   * "subs" son los del plan de la tienda. Siempre queda bajo el storeId, que es
+   * lo que exigen las policies del bucket.
+   */
+  folder?: string;
+  /** Texto del botón cuando todavía no hay archivo. */
+  label?: string;
+  /** Aclaración bajo el archivo ya cargado. */
+  hint?: string;
 }
 
 export function PaymentProofUpload({
   storeId,
   value,
   onChange,
+  folder = "proofs",
+  label = "Subir foto del comprobante",
+  hint = "Lo verá la tienda al revisar tu pedido.",
 }: PaymentProofUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -37,7 +50,7 @@ export function PaymentProofUpload({
 
     const supabase = createClient();
     setUploading(true);
-    const path = `${storeId}/proofs/${crypto.randomUUID()}.${fileExt(file.name)}`;
+    const path = `${storeId}/${folder}/${crypto.randomUUID()}.${fileExt(file.name)}`;
     const { error } = await supabase.storage
       .from(PAYMENT_PROOFS_BUCKET)
       .upload(path, file, { upsert: false });
@@ -74,9 +87,7 @@ export function PaymentProofUpload({
         )}
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-success">Comprobante cargado</p>
-          <p className="truncate text-xs text-muted-foreground">
-            Lo verá la tienda al revisar tu pedido.
-          </p>
+          <p className="truncate text-xs text-muted-foreground">{hint}</p>
         </div>
         <button
           type="button"
@@ -104,7 +115,7 @@ export function PaymentProofUpload({
           </>
         ) : (
           <>
-            <FileImage className="size-4" /> Subir foto del comprobante
+            <FileImage className="size-4" /> {label}
           </>
         )}
       </button>

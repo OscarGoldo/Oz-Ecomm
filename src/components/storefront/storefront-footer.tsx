@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { AtSign, MapPin, Phone } from "lucide-react";
 
+import { isPro } from "@/lib/plans";
 import { LAYOUT_CHROME, type LayoutId } from "@/lib/theme";
 import type { Store } from "@/types/database";
 
@@ -11,6 +13,17 @@ export function StorefrontFooter({
   layout?: LayoutId;
 }) {
   const variant = (LAYOUT_CHROME[layout] ?? LAYOUT_CHROME.classic).footer;
+
+  /**
+   * Badge del plan Gratis. Es un link real con `?ref=<slug>`: cada tienda
+   * gratis es un canal de adquisición, y el `ref` deja ver de dónde vino cada
+   * registro. En Pro desaparece (es parte de lo que se paga).
+   */
+  const badge = isPro(store) ? null : (
+    <Link href={`/?ref=${store.slug}`} className="hover:underline">
+      Hecho con <span className="font-medium">Tiendify</span>
+    </Link>
+  );
 
   const contact = (
     <>
@@ -43,9 +56,7 @@ export function StorefrontFooter({
             {store.name}
           </p>
           <div className="flex flex-col gap-2 text-sm text-white/60">{contact}</div>
-          <p className="pt-4 text-xs text-white/40">
-            Tienda creada con <span className="font-medium text-white/70">Tiendify</span>
-          </p>
+          {badge && <p className="pt-4 text-xs text-white/40">{badge}</p>}
         </div>
       </footer>
     );
@@ -64,9 +75,11 @@ export function StorefrontFooter({
           <div className="flex flex-col items-center gap-1.5 text-xs text-muted-foreground sm:flex-row sm:gap-5">
             {contact}
           </div>
-          <p className="pt-3 text-[11px] uppercase tracking-[0.2em] text-muted-foreground/60">
-            Tienda creada con Tiendify
-          </p>
+          {badge && (
+            <p className="pt-3 text-[11px] uppercase tracking-[0.2em] text-muted-foreground/60">
+              {badge}
+            </p>
+          )}
         </div>
       </footer>
     );
@@ -78,10 +91,7 @@ export function StorefrontFooter({
       <div className="container space-y-3 py-8">
         <p className="font-semibold">{store.name}</p>
         <div className="flex flex-col gap-2 text-sm text-muted-foreground">{contact}</div>
-        <p className="pt-3 text-xs text-muted-foreground">
-          Tienda creada con{" "}
-          <span className="font-medium text-foreground">Tiendify</span>
-        </p>
+        {badge && <p className="pt-3 text-xs text-muted-foreground">{badge}</p>}
       </div>
     </footer>
   );

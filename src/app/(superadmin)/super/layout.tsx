@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-react";
 
 import { signOut } from "@/lib/auth-actions";
 import { requireSuperAdmin } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function SuperLayout({
   children,
@@ -10,6 +11,13 @@ export default async function SuperLayout({
   children: React.ReactNode;
 }) {
   const user = await requireSuperAdmin();
+
+  // Comprobantes esperando revisión: es plata que ya te pagaron pero que el
+  // comerciante todavía no está recibiendo, así que va visible en el nav.
+  const { count: pendingSubs } = await createClient()
+    .from("subscription_payments")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
 
   return (
     <div className="min-h-dvh bg-muted/30">
@@ -37,6 +45,17 @@ export default async function SuperLayout({
                 className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 Pagos
+              </Link>
+              <Link
+                href="/super/suscripciones"
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                Suscripciones
+                {pendingSubs ? (
+                  <span className="grid min-w-5 place-items-center rounded-full bg-warning px-1 text-[11px] font-bold leading-5 text-warning-foreground">
+                    {pendingSubs > 99 ? "99+" : pendingSubs}
+                  </span>
+                ) : null}
               </Link>
             </nav>
             <span className="hidden text-sm text-muted-foreground sm:inline">

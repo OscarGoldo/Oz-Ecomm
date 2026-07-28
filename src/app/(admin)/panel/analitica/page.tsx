@@ -10,9 +10,11 @@ import {
   Users,
 } from "lucide-react";
 
+import { ProLockedPreview } from "@/components/admin/pro-lock";
 import { requireStoreUser } from "@/lib/auth";
-import { getStoreAnalytics } from "@/lib/analytics";
+import { getStoreAnalytics, sampleAnalytics } from "@/lib/analytics";
 import { formatUSD } from "@/lib/format";
+import { isPro } from "@/lib/plans";
 
 export const metadata: Metadata = { title: "Analítica" };
 
@@ -38,42 +40,19 @@ export default async function AnaliticaPage({
     ? Number(searchParams.dias)
     : 30;
 
-  const a = await getStoreAnalytics(store.id, days);
+  // Plan Gratis: no se consulta la DB, se dibuja el panel con datos de ejemplo
+  // detrás de un desenfoque. Ver la función borrosa convierte mucho mejor que
+  // esconderla: el comerciante ve exactamente lo que se está perdiendo.
+  const locked = !isPro(store);
+  const a = locked ? sampleAnalytics(days) : await getStoreAnalytics(store.id, days);
 
   const maxDayUsd = Math.max(1, ...a.byDay.map((d) => d.usd));
   const maxHourOrders = Math.max(1, ...a.byHour.map((h) => h.orders));
   const funnelBase = Math.max(1, a.funnel[0]?.sessions ?? 1);
 
-  return (
+  const panels = (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analítica</h1>
-          <p className="text-sm text-muted-foreground">
-            Cómo se comporta tu tienda: visitas, conversión y a qué hora te compran.
-          </p>
-        </div>
-        <div className="inline-flex overflow-hidden rounded-lg border text-sm">
-          {RANGES.map((r) => {
-            const active = r.days === days;
-            return (
-              <Link
-                key={r.days}
-                href={`/panel/analitica?dias=${r.days}`}
-                className={`px-3 py-1.5 font-medium transition-colors ${
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                {r.label}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      {!a.hasEvents && (
+      {!locked && !a.hasEvents && (
         <p className="rounded-lg bg-primary/10 p-3 text-xs text-foreground">
           📊 La medición de visitas y conversión empezó a registrarse ahora.
           A medida que entren visitas a tu tienda, aquí vas a ver los productos
@@ -258,6 +237,50 @@ export default async function AnaliticaPage({
           La última columna es cuántas de esas vistas agregaron el producto al carrito.
         </p>
       </section>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Analítica</h1>
+          <p className="text-sm text-muted-foreground">
+            Cómo se comporta tu tienda: visitas, conversión y a qué hora te compran.
+          </p>
+        </div>
+        {!locked && (
+          <div className="inline-flex overflow-hidden rounded-lg border text-sm">
+            {RANGES.map((r) => {
+              const active = r.days === days;
+              return (
+                <Link
+                  key={r.days}
+                  href={`/panel/analitica?dias=${r.days}`}
+                  className={`px-3 py-1.5 font-medium transition-colors ${
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {r.label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {locked ? (
+        <ProLockedPreview
+          title="La analítica es del plan Pro"
+          text="Visitantes, tasa de conversión, embudo de compra, productos más vistos y a qué hora te compran. Ya estamos registrando los datos de tu tienda: al activar Pro los ves desde el primer día."
+        >
+          {panels}
+        </ProLockedPreview>
+      ) : (
+        panels
+      )}
     </div>
   );
 }

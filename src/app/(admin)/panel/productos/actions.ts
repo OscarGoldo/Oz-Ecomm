@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth";
+import { planLimits } from "@/lib/plans";
 import { slugify } from "@/lib/slug";
 import { cleanVariantOptions, variantLabel } from "@/lib/variants";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -131,14 +132,29 @@ export async function createProduct(input: ProductInput): Promise<ActionResult> 
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
 
-  let storeId: string;
-  try {
-    storeId = await requireStoreId();
-  } catch {
-    return { ok: false, error: "No autorizado" };
-  }
+  const ctx = await getSessionContext();
+  if (!ctx?.store) return { ok: false, error: "No autorizado" };
+  const storeId = ctx.store.id;
 
   const supabase = createClient();
+
+  // Cupo del plan. Solo bloquea CREAR: editar y borrar nunca se tocan, y una
+  // tienda que se pasó del cupo (venía de Pro) conserva todos sus productos.
+  const { maxProducts } = planLimits(ctx.store);
+  if (Number.isFinite(maxProducts)) {
+    const { count } = await supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId)
+      .neq("status", "archived");
+    if ((count ?? 0) >= maxProducts) {
+      return {
+        ok: false,
+        error: `Llegaste a los ${maxProducts} productos del plan Gratis. Activá Pro para cargar productos ilimitados.`,
+      };
+    }
+  }
+
   const base = { ...normalize(parsed.data, storeId), ...variantProductPatch(parsed.data) };
   const baseSlug = slugify(parsed.data.slug || parsed.data.name) || "producto";
 

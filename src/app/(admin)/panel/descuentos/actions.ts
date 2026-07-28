@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth";
 import { normalizeCode } from "@/lib/coupons";
+import { isPro } from "@/lib/plans";
 
 export interface ActionResult {
   ok: boolean;
@@ -15,6 +16,14 @@ export interface ActionResult {
 async function requireStoreId(): Promise<string> {
   const ctx = await getSessionContext();
   if (!ctx?.store) throw new Error("No autorizado");
+  return ctx.store.id;
+}
+
+/** Los cupones son del plan Pro: sin Pro vigente no se crean ni se editan. */
+async function requireProStoreId(): Promise<string> {
+  const ctx = await getSessionContext();
+  if (!ctx?.store) throw new Error("No autorizado");
+  if (!isPro(ctx.store)) throw new Error("Los cupones son del plan Pro");
   return ctx.store.id;
 }
 
@@ -61,9 +70,9 @@ export async function createCoupon(input: CouponInput): Promise<ActionResult> {
 
   let storeId: string;
   try {
-    storeId = await requireStoreId();
-  } catch {
-    return { ok: false, error: "No autorizado" };
+    storeId = await requireProStoreId();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No autorizado" };
   }
 
   const supabase = createClient();
@@ -91,9 +100,9 @@ export async function updateCoupon(
 
   let storeId: string;
   try {
-    storeId = await requireStoreId();
-  } catch {
-    return { ok: false, error: "No autorizado" };
+    storeId = await requireProStoreId();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No autorizado" };
   }
 
   const supabase = createClient();
@@ -118,9 +127,9 @@ export async function setCouponActive(
 ): Promise<ActionResult> {
   let storeId: string;
   try {
-    storeId = await requireStoreId();
-  } catch {
-    return { ok: false, error: "No autorizado" };
+    storeId = await requireProStoreId();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No autorizado" };
   }
   const supabase = createClient();
   const { error } = await supabase

@@ -2,7 +2,9 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { ProductForm } from "@/components/admin/product-form";
+import { ProUpsell } from "@/components/admin/pro-lock";
 import { requireStoreUser } from "@/lib/auth";
+import { planLimits } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Nuevo producto" };
@@ -10,6 +12,20 @@ export const metadata = { title: "Nuevo producto" };
 export default async function NewProductPage() {
   const { store } = await requireStoreUser();
   const supabase = createClient();
+
+  // El candado real vive en createProduct; esto es para no hacerle llenar el
+  // formulario entero a alguien que ya no puede guardarlo.
+  const { maxProducts } = planLimits(store);
+  let atLimit = false;
+  if (Number.isFinite(maxProducts)) {
+    const { count } = await supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", store.id)
+      .neq("status", "archived");
+    atLimit = (count ?? 0) >= maxProducts;
+  }
+
   const { data: categories } = await supabase
     .from("categories")
     .select("id, name")
@@ -27,7 +43,14 @@ export default async function NewProductPage() {
         </Link>
         <h1 className="text-2xl font-bold tracking-tight">Nuevo producto</h1>
       </div>
-      <ProductForm storeId={store.id} categories={categories ?? []} />
+      {atLimit ? (
+        <ProUpsell
+          title={`Llegaste a los ${maxProducts} productos del plan Gratis`}
+          text="Tus productos actuales siguen publicados y los podés seguir editando. Con Pro cargás productos ilimitados."
+        />
+      ) : (
+        <ProductForm storeId={store.id} categories={categories ?? []} />
+      )}
     </div>
   );
 }

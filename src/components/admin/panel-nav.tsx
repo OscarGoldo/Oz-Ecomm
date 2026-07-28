@@ -5,9 +5,11 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   LayoutDashboard,
+  Lock,
   Package,
   Palette,
   ShoppingBag,
+  Sparkles,
   Tags,
   Ticket,
   Users,
@@ -22,6 +24,8 @@ interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
+  /** Requiere plan Pro: se muestra con candado en el plan Gratis. */
+  pro?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -30,10 +34,11 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/panel/productos", label: "Productos", icon: Package },
   { href: "/panel/categorias", label: "Categorías", icon: Tags },
   { href: "/panel/personalizar", label: "Diseño", icon: Palette },
-  { href: "/panel/descuentos", label: "Descuentos", icon: Ticket },
+  { href: "/panel/descuentos", label: "Descuentos", icon: Ticket, pro: true },
   { href: "/panel/clientes", label: "Clientes", icon: Users },
-  { href: "/panel/analitica", label: "Analítica", icon: BarChart3 },
+  { href: "/panel/analitica", label: "Analítica", icon: BarChart3, pro: true },
   { href: "/panel/finanzas", label: "Finanzas", icon: Wallet },
+  { href: "/panel/plan", label: "Plan", icon: Sparkles },
   { href: "/panel/configuracion", label: "Ajustes", icon: Settings },
 ];
 
@@ -45,16 +50,19 @@ function isActive(pathname: string, href: string): boolean {
 interface NavProps {
   /** Badge counts keyed by href (e.g. unattended orders on /panel/pedidos). */
   badges?: Record<string, number>;
+  /** Plan Pro vigente: sin él, los ítems `pro` van con candado. */
+  pro?: boolean;
 }
 
 /** Desktop sidebar navigation (md and up). */
-export function PanelSidebarNav({ badges = {} }: NavProps) {
+export function PanelSidebarNav({ badges = {}, pro = false }: NavProps) {
   const pathname = usePathname();
   return (
     <nav className="flex flex-col gap-1 p-3">
       {NAV_ITEMS.map((item) => {
         const active = isActive(pathname, item.href);
         const badge = badges[item.href];
+        const locked = Boolean(item.pro) && !pro;
         return (
           <Link
             key={item.href}
@@ -68,6 +76,14 @@ export function PanelSidebarNav({ badges = {} }: NavProps) {
           >
             <item.icon className="size-4" />
             {item.label}
+            {locked && (
+              <Lock
+                className={cn(
+                  "size-3",
+                  active ? "text-primary-foreground/70" : "text-muted-foreground/60",
+                )}
+              />
+            )}
             {badge ? (
               <span
                 className={cn(
@@ -88,13 +104,14 @@ export function PanelSidebarNav({ badges = {} }: NavProps) {
 }
 
 /** Mobile bottom tab bar (below md) — horizontally scrollable. */
-export function PanelBottomNav({ badges = {} }: NavProps) {
+export function PanelBottomNav({ badges = {}, pro = false }: NavProps) {
   const pathname = usePathname();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-border/20 bg-background/25 backdrop-blur-xl backdrop-saturate-150 md:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {NAV_ITEMS.map((item) => {
         const active = isActive(pathname, item.href);
         const badge = badges[item.href];
+        const locked = Boolean(item.pro) && !pro;
         return (
           <Link
             key={item.href}
@@ -106,6 +123,11 @@ export function PanelBottomNav({ badges = {} }: NavProps) {
           >
             <span className="relative">
               <item.icon className="size-5" />
+              {locked && (
+                <span className="absolute -right-2 -top-1 grid size-3.5 place-items-center rounded-full bg-muted text-muted-foreground">
+                  <Lock className="size-2" />
+                </span>
+              )}
               {badge ? (
                 <span className="absolute -right-2 -top-1.5 grid min-w-4 place-items-center rounded-full bg-warning px-1 text-[10px] font-bold leading-4 text-warning-foreground">
                   {badge > 9 ? "9+" : badge}

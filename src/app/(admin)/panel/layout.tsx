@@ -2,10 +2,12 @@ import Image from "next/image";
 import { Store as StoreIcon } from "lucide-react";
 
 import { PanelBottomNav, PanelSidebarNav } from "@/components/admin/panel-nav";
+import { PlanBanner } from "@/components/admin/plan-banner";
 import { UserMenu } from "@/components/admin/user-menu";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { hexToHslTriplet } from "@/lib/color";
+import { daysUntilExpiry, isPro } from "@/lib/plans";
 import { getImageUrl } from "@/lib/storage";
 import type { CSSProperties } from "react";
 
@@ -27,6 +29,15 @@ export default async function PanelLayout({
     : {};
 
   const logo = getImageUrl(store.logo_url);
+  const pro = isPro(store);
+
+  // Comprobante ya enviado y esperando revisión: el banner lo dice para que no
+  // vuelva a pagar mientras tanto.
+  const { count: pendingPayment } = await createClient()
+    .from("subscription_payments")
+    .select("id", { count: "exact", head: true })
+    .eq("store_id", store.id)
+    .eq("status", "pending");
 
   // Apply the store's brand color to the panel theme.
   const primaryHsl = hexToHslTriplet(store.primary_color);
@@ -67,17 +78,22 @@ export default async function PanelLayout({
       <div className="mx-auto flex w-full max-w-6xl">
         {/* Desktop sidebar */}
         <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 border-r bg-background md:block print:hidden">
-          <PanelSidebarNav badges={navBadges} />
+          <PanelSidebarNav badges={navBadges} pro={pro} />
         </aside>
 
         {/* Content */}
         <main className="min-w-0 flex-1 px-4 pb-24 pt-6 md:px-8 md:pb-10">
+          <PlanBanner
+            pro={pro}
+            daysLeft={daysUntilExpiry(store)}
+            pendingReview={(pendingPayment ?? 0) > 0}
+          />
           {children}
         </main>
       </div>
 
       <div className="print:hidden">
-        <PanelBottomNav badges={navBadges} />
+        <PanelBottomNav badges={navBadges} pro={pro} />
       </div>
     </div>
   );

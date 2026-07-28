@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   BadgeDollarSign,
+  Check,
   ClipboardCheck,
   PackageCheck,
   Palette,
@@ -12,6 +13,12 @@ import { Button } from "@/components/ui/button";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { TiendifyLogo } from "@/components/landing/tiendify-logo";
+import {
+  DEFAULT_PRO_PRICE_USD,
+  DEFAULT_PRO_PRICE_YEARLY_USD,
+  FREE_MAX_PRODUCTS,
+} from "@/lib/plans";
+import { FREE_LAYOUTS, THEME_PRESETS } from "@/lib/theme";
 
 const features = [
   {
@@ -51,6 +58,15 @@ const steps = [
   { n: "2", title: "Carga productos", text: "Sube fotos, precios y stock desde el panel." },
   { n: "3", title: "Vende", text: "Comparte tu link y recibe pedidos al instante." },
 ];
+
+function PlanFeature({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-2">
+      <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+      <span>{children}</span>
+    </li>
+  );
+}
 
 export default function LandingPage() {
   return (
@@ -96,6 +112,70 @@ export default function LandingPage() {
               <p className="mt-1 text-sm text-muted-foreground">{s.text}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Precios */}
+      <section id="precios" className="border-t bg-muted/30">
+        <div className="container py-16">
+          <h2 className="text-center text-3xl font-bold tracking-tight sm:text-4xl">
+            Empieza gratis. Crece cuando quieras.
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
+            Sin tarjeta de crédito. Pagas por Pago Móvil, Zelle o Binance cuando
+            decidas pasar a Pro.
+          </p>
+
+          <div className="mx-auto mt-10 grid max-w-3xl gap-5 sm:grid-cols-2">
+            {/* Gratis */}
+            <div className="rounded-2xl border bg-card p-6">
+              <h3 className="font-semibold">Gratis</h3>
+              <p className="mt-2 text-3xl font-bold tracking-tight">$0</p>
+              <p className="text-sm text-muted-foreground">para siempre</p>
+              <ul className="mt-5 space-y-2.5 text-sm">
+                <PlanFeature>Hasta {FREE_MAX_PRODUCTS} productos</PlanFeature>
+                <PlanFeature>
+                  {FREE_LAYOUTS.length} plantillas (una por rubro)
+                </PlanFeature>
+                <PlanFeature>Pedidos y pagos ilimitados</PlanFeature>
+                <PlanFeature>Precios en USD y Bs</PlanFeature>
+                <PlanFeature>Finanzas y clientes</PlanFeature>
+              </ul>
+              <Button asChild variant="outline" className="mt-6 w-full">
+                <Link href="/crear-tienda">Crear mi tienda</Link>
+              </Button>
+            </div>
+
+            {/* Pro */}
+            <div className="relative rounded-2xl border-2 border-primary bg-card p-6">
+              <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-0.5 text-xs font-semibold text-primary-foreground">
+                Recomendado
+              </span>
+              <h3 className="font-semibold">Pro</h3>
+              <p className="mt-2 text-3xl font-bold tracking-tight">
+                ${DEFAULT_PRO_PRICE_USD}
+                <span className="text-base font-normal text-muted-foreground">
+                  /mes
+                </span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                o ${DEFAULT_PRO_PRICE_YEARLY_USD} al año (2 meses gratis)
+              </p>
+              <ul className="mt-5 space-y-2.5 text-sm">
+                <PlanFeature>Productos ilimitados</PlanFeature>
+                <PlanFeature>Las {THEME_PRESETS.length} plantillas</PlanFeature>
+                <PlanFeature>Analítica completa de tu tienda</PlanFeature>
+                <PlanFeature>Cupones de descuento</PlanFeature>
+                <PlanFeature>Sin el sello de Tiendify</PlanFeature>
+              </ul>
+              <Button asChild className="mt-6 w-full">
+                <Link href="/crear-tienda">Empezar gratis</Link>
+              </Button>
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                Activás Pro desde tu panel cuando quieras.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 

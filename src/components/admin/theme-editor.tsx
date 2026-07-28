@@ -12,6 +12,7 @@ import {
   Flower,
   Gem,
   Loader2,
+  Lock,
   Medal,
   Plus,
   Save,
@@ -43,6 +44,7 @@ import {
   type SampleProduct,
 } from "@/components/admin/store-preview";
 import { ImageUploader } from "@/components/admin/image-uploader";
+import { ProChip } from "@/components/admin/pro-lock";
 import {
   updateStoreTheme,
   type ThemeInput,
@@ -52,6 +54,7 @@ import {
   LAYOUT_HERO_VIDEO,
   LAYOUT_MEDIA,
   SECTION_LABELS,
+  isFreeLayout,
   TEMPLATE_CATEGORIES,
   THEME_FONTS,
   THEME_PRESETS,
@@ -153,11 +156,14 @@ export function ThemeEditor({
   initialTheme,
   logoUrl,
   sampleProducts,
+  pro,
 }: {
   store: { id: string; name: string; slug: string };
   initialTheme: StoreTheme;
   logoUrl: string | null;
   sampleProducts: SampleProduct[];
+  /** Plan Pro vigente: habilita todas las plantillas. */
+  pro: boolean;
 }) {
   const router = useRouter();
   const [theme, setTheme] = useState<StoreTheme>(initialTheme);
@@ -184,6 +190,13 @@ export function ThemeEditor({
     const preset = THEME_PRESETS.find((p) => p.id === presetId);
     if (!preset) return;
     const layout = presetId as LayoutId;
+    if (!pro && !isFreeLayout(layout)) {
+      toast("Plantilla del plan Pro", {
+        description: "Activá Pro para usar todas las plantillas.",
+        action: { label: "Ver Pro", onClick: () => router.push("/panel/plan") },
+      });
+      return;
+    }
     const seeded = seedBlocks(layout, {
       blocks: theme.blocks,
       blockOrder: theme.blockOrder,
@@ -306,6 +319,7 @@ export function ThemeEditor({
             <CardTitle className="text-base">Plantillas</CardTitle>
             <p className="text-xs text-muted-foreground">
               Elige la categoría de tu negocio y después una plantilla.
+              {!pro && " El plan Gratis incluye la plantilla estándar de cada categoría."}
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -331,6 +345,7 @@ export function ThemeEditor({
               {THEME_PRESETS.filter((p) => p.category === category).map((p) => {
                 const Icon = PRESET_ICONS[p.icon] ?? Store;
                 const active = theme.layout === p.id;
+                const locked = !pro && !isFreeLayout(p.id as LayoutId);
                 return (
                   <button
                     key={p.id}
@@ -339,10 +354,11 @@ export function ThemeEditor({
                     className={cn(
                       "overflow-hidden rounded-xl border text-left transition-colors",
                       active ? "border-primary ring-1 ring-primary" : "hover:border-primary/40",
+                      locked && "opacity-70 hover:opacity-100",
                     )}
                   >
                     <div
-                      className="flex h-12 items-center justify-between px-3"
+                      className="relative flex h-12 items-center justify-between px-3"
                       style={{ background: p.theme.colors.primary }}
                     >
                       <Icon className="size-5 text-white/90" />
@@ -350,14 +366,23 @@ export function ThemeEditor({
                         className="size-4 rounded-full ring-2 ring-white/40"
                         style={{ background: p.theme.colors.accent }}
                       />
+                      {locked && (
+                        <span className="absolute inset-0 grid place-items-center bg-black/45">
+                          <Lock className="size-4 text-white" />
+                        </span>
+                      )}
                     </div>
                     <div className="p-2.5">
                       <div className="flex items-center gap-1.5">
                         <p className="text-xs font-semibold">{p.label}</p>
-                        {p.standard && (
-                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
-                            Estándar
-                          </span>
+                        {locked ? (
+                          <ProChip />
+                        ) : (
+                          p.standard && (
+                            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+                              Estándar
+                            </span>
+                          )
                         )}
                       </div>
                       <p className="text-[11px] text-muted-foreground">{p.desc}</p>

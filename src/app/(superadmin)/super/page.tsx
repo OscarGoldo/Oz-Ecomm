@@ -2,9 +2,11 @@ import Link from "next/link";
 import { ExternalLink, Plus, ShoppingBag, Store as StoreIcon, Wallet } from "lucide-react";
 
 import { StoreActiveSwitch } from "@/components/admin/store-active-switch";
+import { StorePlanControl } from "@/components/admin/store-plan-control";
 import { createClient } from "@/lib/supabase/server";
 import { SALES_STATUSES } from "@/lib/metrics";
 import { formatUSD } from "@/lib/format";
+import { isPro } from "@/lib/plans";
 import type { Store } from "@/types/database";
 
 export const metadata = { title: "Tiendas" };
@@ -76,7 +78,7 @@ export default async function SuperDashboardPage() {
           {storeList.map((store) => (
             <li
               key={store.id}
-              className="flex items-center gap-3 rounded-xl border bg-card p-3"
+              className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-3"
             >
               <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
                 {store.name.charAt(0).toUpperCase()}
@@ -84,6 +86,7 @@ export default async function SuperDashboardPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate font-medium">{store.name}</span>
+                  <PlanBadge store={store} />
                   {!store.active && (
                     <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                       pausada
@@ -94,6 +97,7 @@ export default async function SuperDashboardPage() {
                   /{store.slug} · {productsByStore.get(store.id) ?? 0} prod ·{" "}
                   {salesByStore.get(store.id) ?? 0} ventas ·{" "}
                   {formatUSD(gmvByStore.get(store.id) ?? 0)}
+                  {store.plan_note ? ` · ${store.plan_note}` : ""}
                 </p>
               </div>
               <Link
@@ -105,12 +109,37 @@ export default async function SuperDashboardPage() {
               >
                 <ExternalLink className="size-4" />
               </Link>
+              <StorePlanControl storeId={store.id} note={store.plan_note} />
               <StoreActiveSwitch storeId={store.id} active={store.active} />
             </li>
           ))}
         </ul>
       )}
     </div>
+  );
+}
+
+/** Plan de la tienda de un vistazo: cortesía y pago se distinguen. */
+function PlanBadge({ store }: { store: Store }) {
+  if (!isPro(store)) {
+    return (
+      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+        Gratis
+      </span>
+    );
+  }
+  const comp = store.plan_source === "comp";
+  return (
+    <span
+      className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary"
+      title={
+        store.plan_expires_at
+          ? `Vence el ${new Date(store.plan_expires_at).toLocaleDateString("es-VE")}`
+          : "Sin vencimiento"
+      }
+    >
+      {comp ? "Pro · cortesía" : "Pro"}
+    </span>
   );
 }
 

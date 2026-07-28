@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import { hexToHslTriplet, isDarkColor } from "@/lib/color";
+import { isPro, type PlanFields } from "@/lib/plans";
 import type { Store } from "@/types/database";
 
 export type ThemeFont = "inter" | "poppins" | "montserrat" | "lora";
@@ -403,6 +404,31 @@ export const THEME_PRESETS: {
 ];
 
 /**
+ * Plantillas del plan Gratis: la estándar de cada categoría. Se derivan del
+ * flag `standard` para que agregar una categoría nueva no exija tocar esto.
+ */
+export const FREE_LAYOUTS: LayoutId[] = THEME_PRESETS.filter(
+  (p) => p.standard && LAYOUT_IDS.includes(p.id as LayoutId),
+).map((p) => p.id as LayoutId);
+
+/** ¿Esta plantilla está incluida en el plan Gratis? */
+export function isFreeLayout(layout: LayoutId): boolean {
+  return FREE_LAYOUTS.includes(layout);
+}
+
+/**
+ * La plantilla estándar de la misma categoría. Es a donde cae el diseño de una
+ * tienda cuyo Pro venció: se conservan colores, textos y secciones, solo baja
+ * la estructura. Si no hay estándar para esa categoría, cae a "classic".
+ */
+export function standardLayoutFor(layout: LayoutId): LayoutId {
+  if (isFreeLayout(layout)) return layout;
+  const category = THEME_PRESETS.find((p) => p.id === layout)?.category;
+  const std = THEME_PRESETS.find((p) => p.category === category && p.standard);
+  return (std?.id as LayoutId) ?? "classic";
+}
+
+/**
  * Build the block map + order for a layout, overlaying any saved customization
  * over the registry defaults. Layouts without a registry get empty maps.
  */
@@ -518,14 +544,23 @@ export const LAYOUT_CHROME: Record<LayoutId, LayoutChrome> = {
   },
 };
 
-/** Merge a store's saved customization over defaults into a full theme. */
+/**
+ * Merge a store's saved customization over defaults into a full theme.
+ *
+ * Aplica el plan acá adentro, no en los call sites: si la tienda no tiene Pro
+ * vigente, la plantilla cae a la estándar de su categoría. Al hacerlo en un
+ * solo lugar, ninguna página puede olvidarse del candado y filtrar una
+ * plantilla Pro. Los campos de plan son opcionales: sin ellos (o con un store
+ * sin plan) se asume Gratis.
+ */
 export function resolveTheme(
-  store: Pick<Store, "primary_color" | "customization">,
+  store: Pick<Store, "primary_color" | "customization"> & Partial<PlanFields>,
 ): StoreTheme {
   const c = (store.customization ?? {}) as Partial<StoreTheme>;
   const basePrimary = store.primary_color || DEFAULT_THEME.colors.primary;
-  const layout =
+  const saved =
     c.layout && LAYOUT_IDS.includes(c.layout) ? c.layout : DEFAULT_THEME.layout;
+  const layout = isPro(store) ? saved : standardLayoutFor(saved);
   const seeded = seedBlocks(layout, {
     blocks: c.blocks as Record<string, Partial<ThemeBlock>> | undefined,
     blockOrder: c.blockOrder,

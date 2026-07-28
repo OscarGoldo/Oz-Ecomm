@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ImageOff, Package, Plus, Star } from "lucide-react";
+import { ImageOff, Package, Plus, Sparkles, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { ProductsFilters } from "@/components/admin/products-filters";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatUSD } from "@/lib/format";
+import { planLimits } from "@/lib/plans";
 import { getImageUrl } from "@/lib/storage";
 import type { Product, ProductStatus } from "@/types/database";
 
@@ -53,6 +54,19 @@ export default async function ProductosPage({
 
   const hasFilters = Boolean(q || searchParams.cat || searchParams.status);
 
+  // Cupo del plan. Se cuenta aparte porque `list` puede venir filtrada.
+  const { maxProducts } = planLimits(store);
+  const capped = Number.isFinite(maxProducts);
+  const { count: usedRaw } = capped
+    ? await supabase
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("store_id", store.id)
+        .neq("status", "archived")
+    : { count: null };
+  const used = usedRaw ?? 0;
+  const atLimit = capped && used >= maxProducts;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -61,15 +75,36 @@ export default async function ProductosPage({
           <p className="text-sm text-muted-foreground">
             {list.length} {list.length === 1 ? "producto" : "productos"}
             {hasFilters ? " (filtrados)" : " en tu catálogo"}
+            {capped && !hasFilters && ` · ${used}/${maxProducts} del plan Gratis`}
           </p>
         </div>
-        <Button asChild>
-          <Link href="/panel/productos/nuevo">
-            <Plus /> <span className="hidden sm:inline">Nuevo producto</span>
-            <span className="sm:hidden">Nuevo</span>
-          </Link>
-        </Button>
+        {atLimit ? (
+          <Button asChild variant="outline">
+            <Link href="/panel/plan">
+              <Sparkles /> <span className="hidden sm:inline">Activar Pro</span>
+              <span className="sm:hidden">Pro</span>
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild>
+            <Link href="/panel/productos/nuevo">
+              <Plus /> <span className="hidden sm:inline">Nuevo producto</span>
+              <span className="sm:hidden">Nuevo</span>
+            </Link>
+          </Button>
+        )}
       </div>
+
+      {atLimit && (
+        <p className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+          Llegaste a los {maxProducts} productos del plan Gratis. Tus productos
+          siguen publicados y podés seguir editándolos;{" "}
+          <Link href="/panel/plan" className="font-medium text-primary underline">
+            activá Pro
+          </Link>{" "}
+          para cargar más.
+        </p>
+      )}
 
       <ProductsFilters categories={categories ?? []} />
 

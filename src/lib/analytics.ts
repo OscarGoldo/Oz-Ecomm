@@ -133,6 +133,66 @@ const MONTH_LABELS = [
 ];
 
 /**
+ * Datos de ejemplo para el preview borroso del plan Gratis. Nunca tocan la DB.
+ * Son deterministas a propósito: el mismo panel en cada render, sin parpadeo.
+ *
+ * Ojo: la tienda Gratis SÍ sigue registrando eventos reales en `store_events`.
+ * Esto solo reemplaza lo que se dibuja; el día que activa Pro ve su historial
+ * completo desde el primer día, y eso es justamente lo que empuja el pago.
+ */
+export function sampleAnalytics(days: number): StoreAnalytics {
+  const shape = [3, 5, 4, 7, 6, 9, 8, 6, 10, 7, 12, 9, 8, 11];
+  const now = new Date(Date.now() + VE_OFFSET_MS);
+
+  const byDay: DayPoint[] = Array.from({ length: days }, (_, i) => {
+    const d = new Date(now);
+    d.setUTCDate(d.getUTCDate() - (days - 1 - i));
+    const orders = shape[i % shape.length]! % 5;
+    return {
+      ymd: `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`,
+      label: `${d.getUTCDate()} ${MONTH_LABELS[d.getUTCMonth()]}`,
+      orders,
+      usd: shape[i % shape.length]! * 12.5,
+    };
+  });
+
+  // Curva típica de tienda venezolana: pico al mediodía y otro a las 8pm.
+  const byHour: HourPoint[] = Array.from({ length: 24 }, (_, h) => {
+    const w = h >= 10 && h <= 22 ? shape[h % shape.length]! : 1;
+    return { hour: h, orders: w, usd: w * 14 };
+  });
+
+  const salesUsd = byDay.reduce((s, d) => s + d.usd, 0);
+  const ordersCount = byDay.reduce((s, d) => s + d.orders, 0);
+
+  return {
+    days,
+    hasEvents: true,
+    visitors: 412,
+    productViews: 1268,
+    ordersCount,
+    salesUsd,
+    conversionPct: 3.4,
+    funnel: [
+      { key: "product_view", label: "Vieron un producto", sessions: 412, fromPrevPct: null },
+      { key: "add_to_cart", label: "Agregaron al carrito", sessions: 138, fromPrevPct: 33.5 },
+      { key: "checkout_start", label: "Empezaron el checkout", sessions: 47, fromPrevPct: 34.1 },
+      { key: "purchase", label: "Compraron", sessions: 14, fromPrevPct: 29.8 },
+    ],
+    topViewed: [
+      { productId: "s1", name: "Producto más visto", views: 214, addToCarts: 63 },
+      { productId: "s2", name: "Segundo más visto", views: 187, addToCarts: 41 },
+      { productId: "s3", name: "Tercero más visto", views: 152, addToCarts: 38 },
+      { productId: "s4", name: "Cuarto más visto", views: 121, addToCarts: 22 },
+      { productId: "s5", name: "Quinto más visto", views: 96, addToCarts: 19 },
+    ],
+    byDay,
+    byHour,
+    peakHour: 20,
+  };
+}
+
+/**
  * Everything the analytics panel needs, over a rolling window of `days`.
  * Events come from `store_events`; revenue-by-time from `orders` (the money is
  * only ever counted from real sales, never inferred from events).

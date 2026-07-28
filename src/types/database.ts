@@ -14,6 +14,15 @@ export type UserRole = "super_admin" | "store_owner" | "store_staff";
 
 export type SubscriptionStatus = "active" | "paused" | "cancelled";
 
+/** Plan de la tienda. Ver src/lib/plans.ts para los límites de cada uno. */
+export type StorePlan = "free" | "pro";
+/** Cómo obtuvo el plan: pagando, de regalo (amigos), o nunca pagó. */
+export type PlanSource = "free" | "paid" | "comp";
+/** Estado de revisión de un comprobante de suscripción. */
+export type SubscriptionPaymentStatus = "pending" | "approved" | "rejected";
+/** Cómo pagó el comerciante su plan. */
+export type SubscriptionMethod = "pago_movil" | "zelle" | "binance" | "paypal";
+
 export type ProductStatus = "active" | "draft" | "archived";
 
 export type PaymentMethodType =
@@ -78,6 +87,10 @@ export interface Database {
           active: boolean;
           auto_exchange_rate: boolean;
           customization: Json | null;
+          plan: StorePlan;
+          plan_expires_at: string | null;
+          plan_source: PlanSource;
+          plan_note: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -108,6 +121,10 @@ export interface Database {
           active?: boolean;
           auto_exchange_rate?: boolean;
           customization?: Json | null;
+          plan?: StorePlan;
+          plan_expires_at?: string | null;
+          plan_source?: PlanSource;
+          plan_note?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -504,6 +521,68 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["store_events"]["Insert"]>;
         Relationships: [];
       };
+      subscription_payments: {
+        Row: {
+          id: string;
+          store_id: string;
+          period_months: number;
+          amount: number;
+          currency: string;
+          method: SubscriptionMethod;
+          reference: string | null;
+          proof_url: string | null;
+          status: SubscriptionPaymentStatus;
+          review_note: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          period_months: number;
+          amount: number;
+          currency?: string;
+          method: SubscriptionMethod;
+          reference?: string | null;
+          proof_url?: string | null;
+          status?: SubscriptionPaymentStatus;
+          review_note?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["subscription_payments"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      platform_settings: {
+        Row: {
+          id: boolean;
+          pago_movil: Json;
+          zelle: Json;
+          binance: Json;
+          paypal: Json;
+          pro_price_usd: number;
+          pro_price_yearly_usd: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          pago_movil?: Json;
+          zelle?: Json;
+          binance?: Json;
+          paypal?: Json;
+          pro_price_usd?: number;
+          pro_price_yearly_usd?: number;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["platform_settings"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -535,3 +614,5 @@ export type Employee = Tables["employees"]["Row"];
 export type StoreEvent = Tables["store_events"]["Row"];
 export type ProductVariant = Tables["product_variants"]["Row"];
 export type Coupon = Tables["coupons"]["Row"];
+export type SubscriptionPayment = Tables["subscription_payments"]["Row"];
+export type PlatformSettings = Tables["platform_settings"]["Row"];
