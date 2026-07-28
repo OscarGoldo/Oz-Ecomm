@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS platform_settings (
 INSERT INTO platform_settings (id, pago_movil, zelle, binance)
 VALUES (
   TRUE,
-  '{"banco":"Bancaribe","cedula":"10353086","telefono":"04120896444","titular":"Oscar Valery"}',
+  '{"banco":"Bancaribe","cedula":"10353086","telefono":"04120896444"}',
   '{"email":"ovalery1903@gmail.com","titular":"Oscar Valery"}',
   '{"email_o_id":"ovalery1903@gmail.com"}'
 )
