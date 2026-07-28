@@ -46,6 +46,8 @@ export default async function SuperSubscriptionsPage() {
   const comped = storeList.filter((s) => isPro(s) && s.plan_source === "comp");
   const approved = list.filter((p) => p.status === "approved");
   const collected = approved.reduce((s, p) => s + Number(p.amount), 0);
+  // Lo que se llevó PayPal de lo cobrado por esa vía.
+  const paypalFees = approved.reduce((s, p) => s + Number(p.fee ?? 0), 0);
   // Normalizado a mensual para que el anual no infle el número.
   const mrr = approved
     .filter((p) => {
@@ -71,7 +73,13 @@ export default async function SuperSubscriptionsPage() {
         <Metric
           label="Cobrado histórico"
           value={formatUSD(collected)}
-          sub={comped.length > 0 ? `${comped.length} de cortesía` : undefined}
+          sub={
+            paypalFees > 0
+              ? `${formatUSD(paypalFees)} en comisiones PayPal`
+              : comped.length > 0
+                ? `${comped.length} de cortesía`
+                : undefined
+          }
         />
       </div>
 
@@ -149,8 +157,13 @@ export default async function SuperSubscriptionsPage() {
                       {p.review_note ? ` · ${p.review_note}` : ""}
                     </span>
                   </span>
-                  <span className="shrink-0 font-medium">
+                  <span className="shrink-0 text-right font-medium">
                     {formatUSD(Number(p.amount))}
+                    {p.method === "paypal" && (
+                      <span className="block text-[11px] font-normal text-muted-foreground">
+                        PayPal · neto {formatUSD(Number(p.net ?? p.amount))}
+                      </span>
+                    )}
                   </span>
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${

@@ -22,6 +22,8 @@ export type PlanSource = "free" | "paid" | "comp";
 export type SubscriptionPaymentStatus = "pending" | "approved" | "rejected";
 /** Cómo pagó el comerciante su plan. */
 export type SubscriptionMethod = "pago_movil" | "zelle" | "binance" | "paypal";
+/** Espejo del estado de la suscripción recurrente en PayPal. */
+export type SubscriptionState = "active" | "suspended" | "cancelled" | "expired";
 
 export type ProductStatus = "active" | "draft" | "archived";
 
@@ -91,6 +93,8 @@ export interface Database {
           plan_expires_at: string | null;
           plan_source: PlanSource;
           plan_note: string | null;
+          paypal_subscription_id: string | null;
+          paypal_subscription_status: SubscriptionState | null;
           created_at: string;
           updated_at: string;
         };
@@ -125,6 +129,8 @@ export interface Database {
           plan_expires_at?: string | null;
           plan_source?: PlanSource;
           plan_note?: string | null;
+          paypal_subscription_id?: string | null;
+          paypal_subscription_status?: SubscriptionState | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -535,6 +541,10 @@ export interface Database {
           review_note: string | null;
           reviewed_by: string | null;
           reviewed_at: string | null;
+          paypal_capture_id: string | null;
+          paypal_subscription_id: string | null;
+          fee: number | null;
+          net: number | null;
           created_at: string;
         };
         Insert: {
@@ -550,10 +560,32 @@ export interface Database {
           review_note?: string | null;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
+          paypal_capture_id?: string | null;
+          paypal_subscription_id?: string | null;
+          fee?: number | null;
+          net?: number | null;
           created_at?: string;
         };
         Update: Partial<
           Database["public"]["Tables"]["subscription_payments"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      paypal_webhook_events: {
+        Row: {
+          id: string;
+          event_type: string;
+          resource_id: string | null;
+          processed_at: string;
+        };
+        Insert: {
+          id: string;
+          event_type: string;
+          resource_id?: string | null;
+          processed_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["paypal_webhook_events"]["Insert"]
         >;
         Relationships: [];
       };

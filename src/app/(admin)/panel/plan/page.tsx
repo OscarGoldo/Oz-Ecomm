@@ -10,6 +10,9 @@ import {
   isPro,
   priceFor,
 } from "@/lib/plans";
+import { SubscriptionStatus } from "@/components/admin/subscription-status";
+import { paypalClientId } from "@/lib/paypal";
+import { planIdFor, subscriptionsConfigured } from "@/lib/paypal-subscriptions";
 import { getPlatformConfig } from "@/lib/platform";
 import { createClient } from "@/lib/supabase/server";
 import { FREE_LAYOUTS, THEME_PRESETS } from "@/lib/theme";
@@ -44,7 +47,7 @@ export default async function PlanPage() {
   const pro = isPro(store);
   const daysLeft = daysUntilExpiry(store);
 
-  const [{ prices, payments }, rates, { data: history }] = await Promise.all([
+  const [{ prices, payments, paypalEnabled }, rates, { data: history }] = await Promise.all([
     getPlatformConfig(),
     getCachedBcvRates(),
     createClient()
@@ -54,6 +57,10 @@ export default async function PlanPage() {
       .order("created_at", { ascending: false })
       .limit(10),
   ]);
+
+  // Suscripción vigente: no se le vuelve a ofrecer contratar.
+  const subscribed = store.paypal_subscription_status === "active";
+  const recurringOn = paypalEnabled && subscriptionsConfigured();
 
   const payments_ = (history ?? []) as SubscriptionPayment[];
   const pending = payments_.find((p) => p.status === "pending");
@@ -91,6 +98,13 @@ export default async function PlanPage() {
               : "Sin vencimiento. Gracias por estar desde el principio 🙌"}
         </p>
       </div>
+
+      {store.paypal_subscription_id && store.paypal_subscription_status && (
+        <SubscriptionStatus
+          status={store.paypal_subscription_status}
+          expiresAt={store.plan_expires_at}
+        />
+      )}
 
       {pending && (
         <p className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
@@ -137,17 +151,24 @@ export default async function PlanPage() {
         </ul>
       </div>
 
-      {/* Checkout — solo si no hay nada en revisión */}
-      {!pending && (
+      {/* Checkout — se oculta con un comprobante en revisión, o con la
+          renovación automática ya andando (no tiene sentido resuscribirse). */}
+      {!pending && !subscribed && (
         <PlanCheckout
           storeId={store.id}
           prices={prices}
           payments={payments}
           bcvRate={rates?.usd ?? null}
+          paypalClientId={paypalEnabled ? paypalClientId() : null}
+          planIds={
+            recurringOn
+              ? { monthly: planIdFor(1)!, yearly: planIdFor(12)! }
+              : null
+          }
         />
       )}
 
-      {pro && !pending && (
+      {pro && !pending && !subscribed && (
         <p className="text-center text-xs text-muted-foreground">
           Si renovás antes de que venza, los meses se suman a lo que ya tenés.
         </p>
