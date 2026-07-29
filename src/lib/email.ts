@@ -110,6 +110,8 @@ interface ReferralRewardEmailParams {
   /** null si la tienda referida se borró entre el premio y el correo. */
   referredName: string | null;
   months: number;
+  /** El referidor ya tiene Pro de por vida: no hay meses que sumarle. */
+  lifetime: boolean;
 }
 
 /**
@@ -124,7 +126,23 @@ export function referralRewardEmail(p: ReferralRewardEmailParams): {
   html: string;
 } {
   const monthLabel = p.months === 1 ? "1 mes" : `${p.months} meses`;
-  const subject = `🎁 Ganaste ${monthLabel} de Pro por tu referido`;
+  const subject = p.lifetime
+    ? "🎉 Tu referido ya está vendiendo"
+    : `🎁 Ganaste ${monthLabel} de Pro por tu referido`;
+
+  // A quien tiene Pro de por vida no se le promete un mes que no se le puede
+  // sumar: se le agradece y listo.
+  const reward = p.lifetime
+    ? `<p style="margin:0;font-size:18px;font-weight:700">
+         ¡Gracias por hacer crecer Tiendify!
+       </p>
+       <p style="margin:8px 0 0;color:#64748b;font-size:14px">
+         Tu Pro no tiene vencimiento, así que no hay meses que sumar.
+       </p>`
+    : `<p style="margin:0;font-size:18px;font-weight:700">
+         Sumamos ${esc(monthLabel)} de Pro a ${esc(p.storeName)}
+       </p>`;
+
   const html = `
   <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
     <h2 style="margin:0 0 4px">¡Tu referido arrancó! 🎉</h2>
@@ -134,15 +152,17 @@ export function referralRewardEmail(p: ReferralRewardEmailParams): {
         ${p.referredName ? `<strong>${esc(p.referredName)}</strong> ya` : "La tienda que trajiste ya"}
         publicó sus productos y confirmó su primera venta.
       </p>
-      <p style="margin:0;font-size:18px;font-weight:700">
-        Sumamos ${esc(monthLabel)} de Pro a ${esc(p.storeName)}
-      </p>
+      ${reward}
     </div>
-    <p style="margin:0 0 16px;color:#64748b;font-size:14px;line-height:1.5">
+    ${
+      p.lifetime
+        ? ""
+        : `<p style="margin:0 0 16px;color:#64748b;font-size:14px;line-height:1.5">
       Los meses se agregan al final de tu período actual. Si pagás tu plan con
       suscripción de PayPal, el cobro de este mes sigue igual y tu vencimiento
       se corre hacia adelante.
-    </p>
+    </p>`
+    }
     <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Tiendify</p>
   </div>`;
   return { subject, html };

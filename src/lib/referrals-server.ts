@@ -190,21 +190,46 @@ export async function grantReferralReward(
     .eq("id", claimed.referred_store_id)
     .maybeSingle();
 
-  const note = `+${claimed.reward_months} mes por referir a ${referred?.name ?? "una tienda"}`;
+  const referredName = referred?.name ?? "una tienda";
+
+  /**
+   * Pro sin vencimiento = cortesía de por vida (ver migración 0016). A estas
+   * tiendas NO se les toca el plan: `extendExpiry(null, 1)` devuelve hoy + 1
+   * mes, así que "premiarlas" les convertiría el Pro vitalicio en uno que vence
+   * en 30 días. El referido se acredita igual, pero no hay nada que estirar.
+   */
+  const lifetime = referrer.plan === "pro" && !referrer.plan_expires_at;
+
+  const note = lifetime
+    ? `Refirió a ${referredName} (Pro de por vida: sin meses que sumar)`
+    : `+${claimed.reward_months} mes por referir a ${referredName}`;
 
   await db
     .from("stores")
     .update({
       plan: "pro",
-      plan_expires_at: extendExpiry(referrer.plan_expires_at, claimed.reward_months),
-      // Quien pagó sigue figurando como 'paid': el premio le estira el
-      // vencimiento, no le cambia de dónde salió el plan.
-      plan_source: referrer.plan_source === "paid" ? "paid" : "comp",
+      ...(lifetime
+        ? {}
+        : {
+            plan_expires_at: extendExpiry(
+              referrer.plan_expires_at,
+              claimed.reward_months,
+            ),
+            // Quien pagó sigue figurando como 'paid': el premio le estira el
+            // vencimiento, no le cambia de dónde salió el plan.
+            plan_source: referrer.plan_source === "paid" ? "paid" : "comp",
+          }),
       plan_note: appendNote(referrer.plan_note, note),
     })
     .eq("id", referrer.id);
 
-  await notifyReferrer(referrer.id, referrer.name, referred?.name ?? null, claimed.reward_months);
+  await notifyReferrer({
+    storeId: referrer.id,
+    storeName: referrer.name,
+    referredName: referred?.name ?? null,
+    months: claimed.reward_months,
+    lifetime,
+  });
   return true;
 }
 
@@ -231,27 +256,29 @@ function appendNote(current: string | null, addition: string): string {
 }
 
 /** Avisa al que refirió que ya tiene su mes. Nunca tira. */
-async function notifyReferrer(
-  referrerStoreId: string,
-  referrerName: string,
-  referredName: string | null,
-  months: number,
-): Promise<void> {
+async function notifyReferrer(p: {
+  storeId: string;
+  storeName: string;
+  referredName: string | null;
+  months: number;
+  lifetime: boolean;
+}): Promise<void> {
   try {
     const db = createAdminClient();
     const { data: owner } = await db
       .from("users")
       .select("email, full_name")
-      .eq("store_id", referrerStoreId)
+      .eq("store_id", p.storeId)
       .eq("role", "store_owner")
       .maybeSingle();
     if (!owner?.email) return;
 
     const { subject, html } = referralRewardEmail({
       ownerName: owner.full_name,
-      storeName: referrerName,
-      referredName,
-      months,
+      storeName: p.storeName,
+      referredName: p.referredName,
+      months: p.months,
+      lifetime: p.lifetime,
     });
     await sendEmail({ to: owner.email, subject, html });
   } catch {
