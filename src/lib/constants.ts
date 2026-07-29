@@ -5,6 +5,18 @@ import type {
   UserRole,
 } from "@/types/database";
 
+/**
+ * Un carrito recién dejado no está abandonado: el cliente puede estar todavía
+ * eligiendo cómo pagar. Se espera esta ventana antes de mostrarlo en el panel,
+ * para que el comerciante no interrumpa una compra en curso.
+ */
+export const ABANDONED_AFTER_MINUTES = 30;
+
+/** Momento a partir del cual un carrito cuenta como abandonado. */
+export function abandonedCartCutoff(): string {
+  return new Date(Date.now() - ABANDONED_AFTER_MINUTES * 60_000).toISOString();
+}
+
 /** UI labels (Spanish) for order statuses + a badge color token. */
 export const ORDER_STATUS_META: Record<
   OrderStatus,

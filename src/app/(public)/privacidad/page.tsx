@@ -47,6 +47,20 @@ export default function PrivacidadPage() {
             y, si pagas con un método que lo requiere, el comprobante de pago que
             subas. Los compradores no necesitan crear cuenta.
           </p>
+          <p>
+            <strong>Compras sin terminar:</strong> si cargas tu nombre y
+            teléfono en el checkout pero no completas la compra, guardamos esos
+            datos junto con los productos que dejaste en el carrito, para que la
+            tienda pueda escribirte y ayudarte a terminar el pedido. Si no
+            querés que te contacten, escribile a la tienda o a{" "}
+            <a
+              href="mailto:ovalery1903@gmail.com"
+              className="font-medium text-primary hover:underline"
+            >
+              ovalery1903@gmail.com
+            </a>{" "}
+            y lo eliminamos.
+          </p>
         </section>
 
         <section className="space-y-2">
@@ -56,6 +70,7 @@ export default function PrivacidadPage() {
           <p>
             Para que las tiendas funcionen: procesar y entregar pedidos,
             contactarte sobre tu compra, calcular totales y mostrar tu pedido.
+            La tienda también puede escribirte si dejaste una compra a medias.
             No vendemos tus datos a terceros ni los usamos para publicidad.
           </p>
         </section>

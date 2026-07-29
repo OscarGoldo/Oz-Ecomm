@@ -6,6 +6,7 @@ import { PlanBanner } from "@/components/admin/plan-banner";
 import { UserMenu } from "@/components/admin/user-menu";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { abandonedCartCutoff } from "@/lib/constants";
 import { hexToHslTriplet } from "@/lib/color";
 import { daysUntilExpiry, isPro } from "@/lib/plans";
 import { getImageUrl } from "@/lib/storage";
@@ -24,9 +25,20 @@ export default async function PanelLayout({
     .select("id", { count: "exact", head: true })
     .eq("store_id", store.id)
     .eq("status", "pending_confirmation");
-  const navBadges: Record<string, number> = unattended
-    ? { "/panel/pedidos": unattended }
-    : {};
+  // Carritos abandonados pendientes (mismo criterio que /panel/carritos: solo
+  // los que ya pasaron la ventana de gracia cuentan como abandonados).
+  const { count: pendingCarts } = await createClient()
+    .from("abandoned_carts")
+    .select("id", { count: "exact", head: true })
+    .eq("store_id", store.id)
+    .is("recovered_at", null)
+    .is("dismissed_at", null)
+    .lt("updated_at", abandonedCartCutoff());
+
+  const navBadges: Record<string, number> = {
+    ...(unattended ? { "/panel/pedidos": unattended } : {}),
+    ...(pendingCarts ? { "/panel/carritos": pendingCarts } : {}),
+  };
 
   const logo = getImageUrl(store.logo_url);
   const pro = isPro(store);

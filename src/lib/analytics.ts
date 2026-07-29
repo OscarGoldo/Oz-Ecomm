@@ -39,7 +39,7 @@ function veYmd(d: Date): string {
  * a plain Server Component render throws, so we swallow that — the caller still
  * gets a usable id for this request.
  */
-function getOrCreateSessionId(): string {
+export function getOrCreateSessionId(): string {
   const jar = cookies();
   const existing = jar.get(SESSION_COOKIE)?.value;
   if (existing) return existing;

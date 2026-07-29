@@ -37,6 +37,7 @@ import { PaypalButtons } from "@/components/storefront/paypal-buttons";
 import {
   createOrder,
   previewCoupon,
+  saveCheckoutLead,
   type CheckoutInput,
 } from "@/app/(public)/[store_slug]/checkout/actions";
 import { formatBs, formatUSD, usdToBs } from "@/lib/format";
@@ -185,6 +186,17 @@ export function CheckoutForm({
       toast.error("Ingresa la dirección de entrega");
       return;
     }
+    // El cliente ya dio sus datos para comprar: guardamos el carrito por si no
+    // termina, así el comerciante puede recuperarlo. Sin await — no puede
+    // demorar el paso al pago, y el action se traga sus propios errores.
+    void saveCheckoutLead({
+      store_id: store.id,
+      customer_name: v.customer_name,
+      customer_phone: v.customer_phone,
+      customer_email: v.customer_email || undefined,
+      fulfillment_type: v.fulfillment_type,
+    });
+
     setStep(2);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }

@@ -3,8 +3,8 @@
 import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { recordEvent } from "@/lib/analytics";
-import { readCartForStore } from "@/lib/cart";
+import { getOrCreateSessionId, recordEvent } from "@/lib/analytics";
+import { getEnrichedCart, readCartForStore } from "@/lib/cart";
 import { clearCart } from "@/lib/cart-actions";
 import { formatUSD, usdToBs } from "@/lib/format";
 import {
@@ -79,6 +79,72 @@ export async function previewCoupon(
     freeShipping: result.freeShipping,
     code: coupon.code,
   };
+}
+
+const leadSchema = z.object({
+  store_id: z.string().uuid(),
+  customer_name: z.string().trim().min(2),
+  customer_phone: z.string().trim().min(6),
+  customer_email: z.string().trim().email().optional().or(z.literal("")),
+  fulfillment_type: z.enum(["delivery", "pickup"]),
+});
+
+export type CheckoutLeadInput = z.input<typeof leadSchema>;
+
+/**
+ * Guarda el carrito abandonado al pasar el paso 1 del checkout.
+ *
+ * Se llama cuando el cliente ya dio nombre y teléfono válidos para comprar —
+ * antes de eso no hay dato que guardar. Es fire-and-forget: si algo falla, el
+ * checkout sigue como si nada. La fila se reemplaza por (store_id, session_id),
+ * así volver atrás y corregir un dato no genera carritos duplicados.
+ */
+export async function saveCheckoutLead(
+  input: CheckoutLeadInput,
+): Promise<void> {
+  try {
+    const parsed = leadSchema.safeParse(input);
+    if (!parsed.success) return;
+    const data = parsed.data;
+
+    const db = createAdminClient();
+    const { data: store } = await db
+      .from("stores")
+      .select("id, active, exchange_rate, show_bs_prices")
+      .eq("id", data.store_id)
+      .maybeSingle();
+    if (!store || !store.active) return;
+
+    const cart = await getEnrichedCart(store);
+    if (cart.lines.length === 0) return;
+
+    await db.from("abandoned_carts").upsert(
+      {
+        store_id: store.id,
+        session_id: getOrCreateSessionId(),
+        customer_name: data.customer_name,
+        customer_phone: data.customer_phone,
+        customer_email: data.customer_email || null,
+        fulfillment_type: data.fulfillment_type,
+        items: cart.lines.map((l) => ({
+          name: l.product.name,
+          variant: l.variantName,
+          qty: l.available,
+          price: l.unitPriceUsd,
+        })),
+        items_count: cart.count,
+        subtotal: cart.subtotalUsd,
+        // Retomar el checkout reabre el carrito: se limpian las marcas previas
+        // para que vuelva a la lista de pendientes del comerciante.
+        recovered_order_id: null,
+        recovered_at: null,
+        dismissed_at: null,
+      },
+      { onConflict: "store_id,session_id" },
+    );
+  } catch {
+    // Capturar el lead nunca puede estorbar una compra en curso.
+  }
 }
 
 type AdminDb = ReturnType<typeof createAdminClient>;
@@ -470,6 +536,29 @@ export async function createOrder(
       .from("coupons")
       .update({ times_used: appliedCoupon.times_used + 1 })
       .eq("id", appliedCoupon.id);
+  }
+
+  // El visitante compró: su carrito abandonado deja de estar pendiente. Se
+  // marca por sesión Y por teléfono, porque puede haber empezado el checkout en
+  // el teléfono y terminado en la computadora (otra cookie, mismo cliente).
+  try {
+    const recovered = {
+      recovered_order_id: order.id,
+      recovered_at: new Date().toISOString(),
+    };
+    const pending = () =>
+      db
+        .from("abandoned_carts")
+        .update(recovered)
+        .eq("store_id", store.id)
+        .is("recovered_at", null);
+
+    // Dos updates y no un .or(): el teléfono es texto libre del cliente y
+    // concatenarlo en un filtro de PostgREST deja inyectar sintaxis de filtros.
+    await pending().eq("session_id", getOrCreateSessionId());
+    await pending().eq("customer_phone", data.customer_phone);
+  } catch {
+    // No es crítico: como mucho el comerciante ve un carrito de más.
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";

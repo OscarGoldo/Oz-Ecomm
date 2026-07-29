@@ -234,6 +234,41 @@ export function customerToStoreMessage(d: OrderMessageData): string {
   ]);
 }
 
+export interface AbandonedCartMessageData {
+  storeName: string;
+  customerName: string;
+  items: OrderMessageItem[];
+  subtotal: number;
+  /** Link a la tienda para que retome la compra. */
+  storeUrl?: string | null;
+}
+
+/**
+ * Mensaje para recuperar un carrito abandonado. Sin descuentos ni presión: el
+ * comerciante decide si regala algo, acá solo se le recuerda lo que dejó y se
+ * le ofrece ayuda — que es lo que suele destrabar la compra.
+ */
+export function abandonedCartMessage(d: AbandonedCartMessageData): string {
+  const name = firstName(d.customerName);
+  const hi = name ? `¡Hola ${name}!` : "¡Hola!";
+  const one = d.items.length === 1;
+
+  return joinLines([
+    `${hi} 👋 Te escribo de *${d.storeName}*.`,
+    "",
+    `Vi que dejaste ${one ? "esto" : "estos productos"} en tu carrito:`,
+    ...d.items.map(
+      (i) => `• ${i.quantity}× ${i.productName}${i.variantName ? ` (${i.variantName})` : ""}`,
+    ),
+    "",
+    `Total: ${formatUSD(d.subtotal)}`,
+    "",
+    `¿Te ${one ? "lo" : "los"} aparto? Si tuviste algún problema para completar la compra, decime y te ayudo. 🙌`,
+    opt(d.storeUrl, () => ""),
+    opt(d.storeUrl, (v) => v),
+  ]);
+}
+
 /**
  * Friendly message for the customer when their order changes status.
  * Used both for the 1-tap WhatsApp link and the automatic email body.

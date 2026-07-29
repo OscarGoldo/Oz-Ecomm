@@ -9,6 +9,7 @@ import {
   Package,
   Palette,
   ShoppingBag,
+  ShoppingCart,
   Sparkles,
   Tags,
   Ticket,
@@ -31,6 +32,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/panel", label: "Resumen", icon: LayoutDashboard },
   { href: "/panel/pedidos", label: "Pedidos", icon: ShoppingBag },
+  { href: "/panel/carritos", label: "Carritos", icon: ShoppingCart },
   { href: "/panel/productos", label: "Productos", icon: Package },
   { href: "/panel/categorias", label: "Categorías", icon: Tags },
   { href: "/panel/personalizar", label: "Diseño", icon: Palette },

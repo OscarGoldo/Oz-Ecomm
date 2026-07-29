@@ -38,6 +38,15 @@ export type PaymentMethodType =
 
 export type FulfillmentType = "delivery" | "pickup";
 
+/** Foto de una línea del carrito abandonado (`abandoned_carts.items`). */
+export interface AbandonedCartItem {
+  name: string;
+  variant: string | null;
+  qty: number;
+  /** Precio unitario en USD al momento de abandonar. */
+  price: number;
+}
+
 export type CouponType = "percentage" | "fixed" | "free_shipping";
 
 export type PayCurrency = "USD" | "VES";
@@ -527,6 +536,48 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["store_events"]["Insert"]>;
         Relationships: [];
       };
+      abandoned_carts: {
+        Row: {
+          id: string;
+          store_id: string;
+          session_id: string;
+          customer_name: string;
+          customer_phone: string;
+          customer_email: string | null;
+          fulfillment_type: FulfillmentType | null;
+          items: AbandonedCartItem[];
+          items_count: number;
+          subtotal: number;
+          recovered_order_id: string | null;
+          recovered_at: string | null;
+          last_contacted_at: string | null;
+          dismissed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          session_id: string;
+          customer_name: string;
+          customer_phone: string;
+          customer_email?: string | null;
+          fulfillment_type?: FulfillmentType | null;
+          items?: AbandonedCartItem[];
+          items_count?: number;
+          subtotal?: number;
+          recovered_order_id?: string | null;
+          recovered_at?: string | null;
+          last_contacted_at?: string | null;
+          dismissed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["abandoned_carts"]["Insert"]
+        >;
+        Relationships: [];
+      };
       subscription_payments: {
         Row: {
           id: string;
@@ -648,3 +699,4 @@ export type ProductVariant = Tables["product_variants"]["Row"];
 export type Coupon = Tables["coupons"]["Row"];
 export type SubscriptionPayment = Tables["subscription_payments"]["Row"];
 export type PlatformSettings = Tables["platform_settings"]["Row"];
+export type AbandonedCart = Tables["abandoned_carts"]["Row"];
