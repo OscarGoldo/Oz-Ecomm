@@ -16,6 +16,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { formatBs, formatUSD } from "@/lib/format";
 import { PAYMENT_METHOD_META } from "@/lib/constants";
 import { whatsappUrl } from "@/lib/whatsapp";
+import {
+  buildOrderMessageData,
+  customerToStoreMessage,
+} from "@/lib/order-messages";
 import type { OrderItem, PaymentMethodType } from "@/types/database";
 
 export const metadata: Metadata = { title: { absolute: "Tu pedido" } };
@@ -50,10 +54,17 @@ export default async function OrderConfirmationPage({
       order.payment_method_type)
     : null;
 
-  const waMessage = `¡Hola ${store.name}! 👋\nHice el pedido *#${order.order_number}* a nombre de ${order.customer_name}.\nTotal: ${formatUSD(order.total)}${
-    order.total_bs ? ` (${formatBs(order.total_bs)})` : ""
-  }.\n¿Me confirman? ¡Gracias!`;
-  const waUrl = whatsappUrl(store.whatsapp, waMessage);
+  const waUrl = whatsappUrl(
+    store.whatsapp,
+    customerToStoreMessage(
+      buildOrderMessageData({
+        order,
+        items: orderItems,
+        storeName: store.name,
+        pickupAddress: store.pickup_address,
+      }),
+    ),
+  );
 
   return (
     <main className="container max-w-2xl py-8">

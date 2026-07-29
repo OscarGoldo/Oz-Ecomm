@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Loader2, MessageCircle } from "lucide-react";
+import { CheckCircle2, Loader2, MessageCircle, Receipt } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,11 @@ interface OrderActionsProps {
   customerName: string;
   customerPhone: string;
   storeName: string;
+  /**
+   * Recibo completo del pedido, armado en el server con
+   * `orderReceiptCustomerMessage`. Es el texto del botón de 1 tap.
+   */
+  receiptMessage: string;
 }
 
 export function OrderActions({
@@ -51,6 +56,7 @@ export function OrderActions({
   customerName,
   customerPhone,
   storeName,
+  receiptMessage,
 }: OrderActionsProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -63,6 +69,7 @@ export function OrderActions({
     customerPhone,
     `Hola ${customerName}! 👋 Te contacto de ${storeName} por tu pedido #${orderNumber}.`,
   );
+  const receiptUrl = whatsappUrl(customerPhone, receiptMessage);
 
   function notifyToast(title: string, to: OrderStatus) {
     const wa = shouldNotifyCustomer(to)
@@ -137,8 +144,16 @@ export function OrderActions({
         </div>
       )}
 
-      {waUrl && (
+      {receiptUrl && !isTerminal && (
         <Button asChild variant="outline" className="w-full">
+          <a href={receiptUrl} target="_blank" rel="noopener noreferrer">
+            <Receipt /> Enviar confirmación al cliente
+          </a>
+        </Button>
+      )}
+
+      {waUrl && (
+        <Button asChild variant="ghost" className="w-full">
           <a href={waUrl} target="_blank" rel="noopener noreferrer">
             <MessageCircle /> Contactar al cliente
           </a>

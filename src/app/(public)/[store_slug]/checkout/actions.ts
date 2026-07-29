@@ -7,7 +7,12 @@ import { recordEvent } from "@/lib/analytics";
 import { readCartForStore } from "@/lib/cart";
 import { clearCart } from "@/lib/cart-actions";
 import { formatUSD, usdToBs } from "@/lib/format";
-import { newOrderEmail, sendEmail } from "@/lib/email";
+import {
+  customerOrderReceiptEmail,
+  newOrderEmail,
+  sendEmail,
+} from "@/lib/email";
+import { buildOrderMessageData } from "@/lib/order-messages";
 import { evaluateCoupon, findCouponByCode } from "@/lib/coupons";
 import {
   capturePaypalOrder,
@@ -93,6 +98,8 @@ interface OrderDraft {
   store: Record<string, unknown> & {
     id: string;
     name: string;
+    slug: string;
+    pickup_address: string | null;
     active: boolean;
     show_bs_prices: boolean;
     exchange_rate: number | null;
@@ -465,6 +472,34 @@ export async function createOrder(
       .eq("id", appliedCoupon.id);
   }
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  // Datos del pedido para los mensajes. Se arma una sola vez y sirve para el
+  // recibo del cliente por email y, más adelante, por WhatsApp.
+  const messageData = buildOrderMessageData({
+    order: {
+      order_number: order.order_number,
+      customer_name: data.customer_name,
+      customer_phone: data.customer_phone,
+      fulfillment_type: data.fulfillment_type,
+      delivery_address:
+        data.fulfillment_type === "delivery" ? data.delivery_address! : null,
+      subtotal,
+      shipping_cost: shipping,
+      discount_total: discount,
+      coupon_code: appliedCoupon ? appliedCoupon.code : null,
+      total,
+      total_bs: totalBs,
+      payment_method_type: method.type,
+      notes: data.notes || null,
+    },
+    items: orderItems,
+    storeName: store.name,
+    pickupAddress: store.pickup_address,
+    orderUrl: `${appUrl}/${store.slug}/pedido/${order.id}`,
+    panelUrl: `${appUrl}/panel/pedidos/${order.id}`,
+  });
+
   // Notify the store owner(s) by email (no-op if Resend isn't configured).
   try {
     const { data: owners } = await db
@@ -477,7 +512,6 @@ export async function createOrder(
       .map((o) => o.email)
       .filter((e): e is string => Boolean(e));
     if (recipients.length > 0) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
       const { subject, html } = newOrderEmail({
         storeName: store.name,
         orderNumber: order.order_number,
@@ -492,6 +526,18 @@ export async function createOrder(
     }
   } catch {
     // Never fail the order because of a notification problem.
+  }
+
+  // Recibo al cliente apenas compra (solo si dejó email — es opcional).
+  try {
+    if (data.customer_email) {
+      const { subject, html } = customerOrderReceiptEmail(messageData, {
+        pendingProof: status === "pending_confirmation",
+      });
+      await sendEmail({ to: data.customer_email, subject, html });
+    }
+  } catch {
+    // Idem: el recibo nunca puede tumbar un pedido ya cobrado.
   }
 
   await recordEvent(store.id, "purchase");

@@ -19,6 +19,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PAYMENT_PROOFS_BUCKET } from "@/lib/storage";
 import { formatBs, formatUSD } from "@/lib/format";
 import { PAYMENT_METHOD_META } from "@/lib/constants";
+import {
+  buildOrderMessageData,
+  orderReceiptCustomerMessage,
+} from "@/lib/order-messages";
 import type { OrderItem, PaymentMethodType } from "@/types/database";
 
 export const metadata = { title: "Pedido" };
@@ -59,6 +63,19 @@ export default async function OrderDetailPage({
       order.payment_method_type)
     : "—";
 
+  // Recibo de 1 tap para WhatsApp. Se arma acá (server) y viaja como texto ya
+  // listo, así el componente cliente no necesita los ítems ni los totales.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const receiptMessage = orderReceiptCustomerMessage(
+    buildOrderMessageData({
+      order,
+      items,
+      storeName: store.name,
+      pickupAddress: store.pickup_address,
+      orderUrl: appUrl ? `${appUrl}/${store.slug}/pedido/${order.id}` : null,
+    }),
+  );
+
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <div>
@@ -90,6 +107,7 @@ export default async function OrderDetailPage({
           customerName={order.customer_name}
           customerPhone={order.customer_phone}
           storeName={store.name}
+          receiptMessage={receiptMessage}
         />
       </div>
 

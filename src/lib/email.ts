@@ -1,6 +1,21 @@
 import "server-only";
 
+import { formatBs, formatUSD } from "@/lib/format";
+import type { OrderMessageData } from "@/lib/order-messages";
+
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
+
+/**
+ * Escapa texto antes de meterlo en el HTML del correo. Nombres de cliente y de
+ * producto son texto libre — sin esto, un `<` en un nombre rompe el maquetado.
+ */
+function esc(value: string | number | null | undefined): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 interface SendEmailParams {
   to: string | string[];
@@ -76,14 +91,14 @@ export function newOrderEmail(p: NewOrderEmailParams): {
   const html = `
   <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
     <h2 style="margin:0 0 4px">¡Tienes un nuevo pedido! 🎉</h2>
-    <p style="margin:0 0 16px;color:#64748b">${p.storeName}</p>
+    <p style="margin:0 0 16px;color:#64748b">${esc(p.storeName)}</p>
     <div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:16px">
-      <p style="margin:0 0 8px;font-size:18px;font-weight:700">Pedido #${p.orderNumber}</p>
-      <p style="margin:0;color:#334155">Cliente: <strong>${p.customerName}</strong></p>
-      <p style="margin:0;color:#334155">Entrega: ${p.fulfillmentLabel}</p>
-      <p style="margin:0;color:#334155">${p.itemsCount} ${p.itemsCount === 1 ? "artículo" : "artículos"} · Total: <strong>${p.totalLabel}</strong></p>
+      <p style="margin:0 0 8px;font-size:18px;font-weight:700">Pedido #${esc(p.orderNumber)}</p>
+      <p style="margin:0;color:#334155">Cliente: <strong>${esc(p.customerName)}</strong></p>
+      <p style="margin:0;color:#334155">Entrega: ${esc(p.fulfillmentLabel)}</p>
+      <p style="margin:0;color:#334155">${esc(p.itemsCount)} ${p.itemsCount === 1 ? "artículo" : "artículos"} · Total: <strong>${esc(p.totalLabel)}</strong></p>
     </div>
-    <a href="${p.orderUrl}" style="display:inline-block;background:#0EA5E9;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">Ver pedido en el panel</a>
+    <a href="${esc(p.orderUrl)}" style="display:inline-block;background:#0EA5E9;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">Ver pedido en el panel</a>
     <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Tiendify</p>
   </div>`;
   return { subject, html };
@@ -104,12 +119,104 @@ export function customerOrderStatusEmail(p: CustomerStatusEmailParams): {
   const subject = `Tu pedido #${p.orderNumber}: ${p.statusLabel} · ${p.storeName}`;
   const html = `
   <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
-    <p style="margin:0 0 4px;color:#64748b">${p.storeName}</p>
+    <p style="margin:0 0 4px;color:#64748b">${esc(p.storeName)}</p>
     <div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px">
-      <p style="margin:0 0 8px;font-size:18px;font-weight:700">Pedido #${p.orderNumber} · ${p.statusLabel}</p>
-      <p style="margin:0;color:#334155;line-height:1.5">${p.message}</p>
+      <p style="margin:0 0 8px;font-size:18px;font-weight:700">Pedido #${esc(p.orderNumber)} · ${esc(p.statusLabel)}</p>
+      <p style="margin:0;color:#334155;line-height:1.5">${esc(p.message)}</p>
     </div>
-    <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Enviado por ${p.storeName} vía Tiendify</p>
+    <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Enviado por ${esc(p.storeName)} vía Tiendify</p>
   </div>`;
+  return { subject, html };
+}
+
+/**
+ * Recibo para el cliente apenas compra. Es el mismo contenido que el mensaje de
+ * WhatsApp (`orderReceiptCustomerMessage`), por eso comparte `OrderMessageData`:
+ * si cambia lo que se le informa al cliente, cambia en los dos canales.
+ */
+export function customerOrderReceiptEmail(
+  d: OrderMessageData,
+  opts: { pendingProof: boolean },
+): { subject: string; html: string } {
+  const subject = opts.pendingProof
+    ? `Recibimos tu pedido #${d.orderNumber} · ${d.storeName}`
+    : `Pedido #${d.orderNumber} confirmado · ${d.storeName}`;
+
+  const rows = d.items
+    .map(
+      (i) => `
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#334155">
+          ${esc(i.productName)}${i.variantName ? `<br><span style="font-size:12px;color:#0EA5E9">${esc(i.variantName)}</span>` : ""}
+          <br><span style="font-size:12px;color:#94a3b8">Cantidad: ${esc(i.quantity)}</span>
+        </td>
+        <td style="padding:8px 0;border-bottom:1px solid #f1f5f9;text-align:right;white-space:nowrap;color:#0f172a;font-weight:600">
+          ${esc(formatUSD(i.subtotal))}
+        </td>
+      </tr>`,
+    )
+    .join("");
+
+  const line = (label: string, value: string, color = "#64748b") =>
+    `<tr><td style="padding:2px 0;color:${color}">${esc(label)}</td><td style="padding:2px 0;text-align:right;color:${color}">${esc(value)}</td></tr>`;
+
+  const breakdown = [
+    d.discount > 0 || d.shipping > 0
+      ? line("Subtotal", formatUSD(d.subtotal))
+      : "",
+    d.discount > 0
+      ? line(
+          `Descuento${d.couponCode ? ` (${d.couponCode})` : ""}`,
+          `−${formatUSD(d.discount)}`,
+          "#16a34a",
+        )
+      : "",
+    d.shipping > 0 ? line("Envío", formatUSD(d.shipping)) : "",
+  ].join("");
+
+  const fulfillment =
+    d.fulfillment === "delivery"
+      ? `Delivery${d.deliveryAddress ? ` · ${d.deliveryAddress}` : ""}`
+      : `Retiro en tienda${d.pickupAddress ? ` · ${d.pickupAddress}` : ""}`;
+
+  const html = `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+    <p style="margin:0 0 4px;color:#64748b">${esc(d.storeName)}</p>
+    <h2 style="margin:0 0 4px">${opts.pendingProof ? "¡Recibimos tu pedido! ⏳" : "¡Pedido confirmado! ✅"}</h2>
+    <p style="margin:0 0 16px;color:#64748b">
+      ${
+        opts.pendingProof
+          ? "Estamos verificando tu pago. Te avisamos apenas quede confirmado."
+          : "Ya lo estamos preparando. Te avisamos cuando avance."
+      }
+    </p>
+
+    <div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:16px">
+      <p style="margin:0 0 12px;font-size:18px;font-weight:700">Pedido #${esc(d.orderNumber)}</p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px">${rows}</table>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:12px">
+        ${breakdown}
+        <tr>
+          <td style="padding:8px 0 0;font-weight:700">Total</td>
+          <td style="padding:8px 0 0;text-align:right;font-weight:700;font-size:16px">
+            ${esc(formatUSD(d.total))}${d.totalBs ? `<br><span style="font-size:12px;font-weight:400;color:#94a3b8">${esc(formatBs(d.totalBs))}</span>` : ""}
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:16px;font-size:14px;color:#334155">
+      ${d.paymentLabel ? `<p style="margin:0 0 4px">Pago: <strong>${esc(d.paymentLabel)}</strong></p>` : ""}
+      <p style="margin:0">Entrega: ${esc(fulfillment)}</p>
+    </div>
+
+    ${
+      d.orderUrl
+        ? `<a href="${esc(d.orderUrl)}" style="display:inline-block;background:#0EA5E9;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">Ver mi pedido</a>`
+        : ""
+    }
+    <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Enviado por ${esc(d.storeName)} vía Tiendify</p>
+  </div>`;
+
   return { subject, html };
 }
