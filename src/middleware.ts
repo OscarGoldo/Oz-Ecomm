@@ -33,7 +33,9 @@ export const config = {
      * Match all request paths except:
      * - _next/static, _next/image
      * - favicon and common static asset extensions
+     * - opengraph-image: lo piden los crawlers (WhatsApp, Instagram), que nunca
+     *   traen sesión. Refrescar el token de Supabase ahí es una llamada tirada.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*opengraph-image.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
   ],
 };

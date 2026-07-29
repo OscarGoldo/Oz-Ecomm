@@ -29,9 +29,23 @@ export async function generateMetadata({
   if (!store) return { title: "No encontrado" };
   const product = await getStoreProduct(store.id, params.product_slug);
   if (!product) return { title: "Producto no encontrado" };
+
+  const title = `${product.name} · ${store.name}`;
+  const description = product.description ?? product.name;
+  // La imagen la inyecta Next sola desde `opengraph-image.tsx`.
   return {
-    title: { absolute: `${product.name} · ${store.name}` },
-    description: product.description ?? product.name,
+    title: { absolute: title },
+    description,
+    alternates: { canonical: `/${store.slug}/producto/${product.slug}` },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      siteName: store.name,
+      locale: "es_VE",
+      url: `/${store.slug}/producto/${product.slug}`,
+    },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 

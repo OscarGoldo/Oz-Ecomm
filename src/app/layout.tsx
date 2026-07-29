@@ -51,6 +51,11 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
+  // Sin esto Next emite `og:image` como ruta relativa y WhatsApp la descarta:
+  // exige URL absoluta para mostrar la preview.
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://www.tiendifyapp.com",
+  ),
   title: {
     default: "Tiendify",
     template: "%s · Tiendify",
