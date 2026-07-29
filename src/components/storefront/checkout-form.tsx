@@ -68,6 +68,9 @@ type StoreInfo = Pick<
   | "free_delivery_min"
 >;
 
+/** Suficiente para atajar el dedazo; la validación de verdad es del servidor. */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 interface FormValues {
   customer_name: string;
   customer_phone: string;
@@ -179,6 +182,10 @@ export function CheckoutForm({
       toast.error("Ingresa tu teléfono");
       return;
     }
+    if (!EMAIL_RE.test(v.customer_email.trim())) {
+      toast.error("Ingresa tu email");
+      return;
+    }
     if (
       v.fulfillment_type === "delivery" &&
       v.delivery_address.trim().length < 5
@@ -219,6 +226,11 @@ export function CheckoutForm({
       toast.error("Ingresa tu teléfono");
       return null;
     }
+    if (!EMAIL_RE.test(values.customer_email.trim())) {
+      setStep(1);
+      toast.error("Ingresa tu email");
+      return null;
+    }
     if (
       values.fulfillment_type === "delivery" &&
       values.delivery_address.trim().length < 5
@@ -235,7 +247,7 @@ export function CheckoutForm({
       store_id: store.id,
       customer_name: values.customer_name,
       customer_phone: values.customer_phone,
-      customer_email: values.customer_email || undefined,
+      customer_email: values.customer_email,
       fulfillment_type: values.fulfillment_type,
       delivery_address: values.delivery_address || undefined,
       delivery_notes: values.delivery_notes || undefined,
@@ -328,14 +340,26 @@ export function CheckoutForm({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="customer_email">Email (opcional)</Label>
+                  <Label htmlFor="customer_email">Email *</Label>
                   <Input
                     id="customer_email"
                     type="email"
                     inputMode="email"
-                    {...register("customer_email")}
+                    {...register("customer_email", {
+                      required: "Ingresa tu email",
+                      pattern: { value: EMAIL_RE, message: "Email inválido" },
+                    })}
                     placeholder="tu@correo.com"
                   />
+                  {errors.customer_email ? (
+                    <p className="text-xs text-destructive">
+                      {errors.customer_email.message}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Ahí te llega el recibo de tu pedido.
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>

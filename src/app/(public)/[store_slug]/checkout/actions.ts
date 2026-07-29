@@ -26,12 +26,13 @@ const checkoutSchema = z.object({
   store_id: z.string().uuid(),
   customer_name: z.string().trim().min(2, "Ingresa tu nombre"),
   customer_phone: z.string().trim().min(6, "Ingresa un teléfono válido"),
+  // Obligatorio: es el recibo del cliente y el dato que identifica a la misma
+  // persona cuando escribe el teléfono distinto (ver lib/customer-identity.ts).
   customer_email: z
     .string()
     .trim()
-    .email("Email inválido")
-    .optional()
-    .or(z.literal("")),
+    .min(1, "Ingresa tu email")
+    .email("Email inválido"),
   fulfillment_type: z.enum(["delivery", "pickup"]),
   delivery_address: z.string().trim().optional(),
   delivery_notes: z.string().trim().optional(),
@@ -469,7 +470,7 @@ export async function createOrder(
       store_id: store.id,
       customer_name: data.customer_name,
       customer_phone: data.customer_phone,
-      customer_email: data.customer_email ? data.customer_email : null,
+      customer_email: data.customer_email,
       fulfillment_type: data.fulfillment_type,
       delivery_address:
         data.fulfillment_type === "delivery" ? data.delivery_address! : null,
@@ -625,14 +626,12 @@ export async function createOrder(
     // Never fail the order because of a notification problem.
   }
 
-  // Recibo al cliente apenas compra (solo si dejó email — es opcional).
+  // Recibo al cliente apenas compra.
   try {
-    if (data.customer_email) {
-      const { subject, html } = customerOrderReceiptEmail(messageData, {
-        pendingProof: status === "pending_confirmation",
-      });
-      await sendEmail({ to: data.customer_email, subject, html });
-    }
+    const { subject, html } = customerOrderReceiptEmail(messageData, {
+      pendingProof: status === "pending_confirmation",
+    });
+    await sendEmail({ to: data.customer_email, subject, html });
   } catch {
     // Idem: el recibo nunca puede tumbar un pedido ya cobrado.
   }
