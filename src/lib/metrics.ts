@@ -2,6 +2,7 @@ import { addMonths, format, startOfDay, startOfMonth, subMonths } from "date-fns
 import { es } from "date-fns/locale";
 
 import { createClient } from "@/lib/supabase/server";
+import { phoneKey } from "@/lib/customer-identity";
 import type { Order, OrderStatus, Product } from "@/types/database";
 
 type SupabaseServer = ReturnType<typeof createClient>;
@@ -316,13 +317,16 @@ async function computeRange(
   }
 
   const methodMap = new Map<string, { count: number; usd: number }>();
+  // Por identidad, no por el texto del teléfono: el mismo cliente escrito de
+  // dos formas contaba como dos clientes distintos.
   const phones = new Set<string>();
   let incomeUsd = 0;
   let incomeBs = 0;
   for (const o of list) {
     incomeUsd += Number(o.total);
     incomeBs += Number(o.total_bs ?? 0);
-    if (o.customer_phone) phones.add(o.customer_phone);
+    const pk = phoneKey(o.customer_phone);
+    if (pk) phones.add(pk);
     const key = o.payment_method_type ?? "other";
     const cur = methodMap.get(key) ?? { count: 0, usd: 0 };
     cur.count += 1;
