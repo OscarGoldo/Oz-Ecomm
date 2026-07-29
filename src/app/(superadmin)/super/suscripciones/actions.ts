@@ -80,7 +80,7 @@ export async function approveSubscriptionPayment(
       .from("subscription_payments")
       .update({ status: "pending", reviewed_by: null, reviewed_at: null })
       .eq("id", paymentId);
-    return { ok: false, error: "No se pudo activar el plan. Intentá de nuevo." };
+    return { ok: false, error: "No se pudo activar el plan. Intenta de nuevo." };
   }
 
   revalidatePath("/super/suscripciones");

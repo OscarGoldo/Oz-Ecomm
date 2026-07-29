@@ -3,7 +3,7 @@ import type { ReferralStatus } from "@/types/database";
 /**
  * Referidos comerciante-a-comerciante. Fuente única de las reglas del programa.
  *
- * La lógica que ejecuta el premio vive en `referrals-server.ts`; acá van solo
+ * La lógica que ejecuta el premio vive en `referrals-server.ts`; aquí van solo
  * constantes y funciones puras, para que el panel (cliente) pueda armar links y
  * etiquetas sin arrastrar código de servidor.
  *
@@ -23,7 +23,7 @@ export const QUALIFY_MIN_ORDERS = 1;
 
 /**
  * Tope de referidos premiados automáticamente por tienda cada 30 días. Lo que
- * pase de acá queda en 'qualified' esperando aprobación manual en /super.
+ * pase de aquí queda en 'qualified' esperando aprobación manual en /super.
  */
 export const REWARD_CAP_PER_30D = 10;
 export const REWARD_CAP_WINDOW_DAYS = 30;
@@ -49,8 +49,8 @@ export function referralLink(code: string): string {
 /** Mensaje sugerido para compartir por WhatsApp. */
 export function referralShareText(code: string): string {
   return (
-    "Estoy vendiendo online con Tiendify. Creás tu tienda gratis en un minuto " +
-    `y vendés por WhatsApp: ${referralLink(code)}`
+    "Estoy vendiendo online con Tiendify. Creas tu tienda gratis en un minuto " +
+    `y vendes por WhatsApp: ${referralLink(code)}`
   );
 }
 

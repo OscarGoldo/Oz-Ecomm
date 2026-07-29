@@ -172,7 +172,7 @@ export default function LandingPage() {
                 <Link href="/crear-tienda">Empezar gratis</Link>
               </Button>
               <p className="mt-2 text-center text-xs text-muted-foreground">
-                Activás Pro desde tu panel cuando quieras.
+                Activas Pro desde tu panel cuando quieras.
               </p>
             </div>
           </div>

@@ -74,15 +74,6 @@ import { cn } from "@/lib/utils";
 
 const ALL_SECTIONS: SectionId[] = ["featured", "catalog", "about"];
 
-/** Display host of an inspiration URL (e.g. "paw3r.com"). */
-function inspirationHost(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
-
 const PRESET_ICONS: Record<string, LucideIcon> = {
   store: Store,
   shirt: Shirt,
@@ -192,7 +183,7 @@ export function ThemeEditor({
     const layout = presetId as LayoutId;
     if (!pro && !isFreeLayout(layout)) {
       toast("Plantilla del plan Pro", {
-        description: "Activá Pro para usar todas las plantillas.",
+        description: "Activa Pro para usar todas las plantillas.",
         action: { label: "Ver Pro", onClick: () => router.push("/panel/plan") },
       });
       return;
@@ -386,11 +377,6 @@ export function ThemeEditor({
                         )}
                       </div>
                       <p className="text-[11px] text-muted-foreground">{p.desc}</p>
-                      {p.inspiration && (
-                        <p className="mt-0.5 truncate text-[10px] text-muted-foreground/70">
-                          Inspirada en {inspirationHost(p.inspiration)}
-                        </p>
-                      )}
                     </div>
                   </button>
                 );
@@ -498,7 +484,7 @@ export function ThemeEditor({
             <CardHeader>
               <CardTitle className="text-base">Secciones del diseño</CardTitle>
               <p className="text-xs text-muted-foreground">
-                Activa, renombrá y reordená las secciones de tu home.
+                Activa, renombra y reordena las secciones de tu home.
               </p>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -566,7 +552,7 @@ export function ThemeEditor({
                             onChange={(e) =>
                               patch({ about: { ...theme.about, text: e.target.value } })
                             }
-                            placeholder="Contá la historia de tu tienda…"
+                            placeholder="Cuenta la historia de tu tienda…"
                             rows={3}
                           />
                         )}
@@ -641,7 +627,7 @@ export function ThemeEditor({
                   <Textarea
                     value={theme.about.text}
                     onChange={(e) => patch({ about: { ...theme.about, text: e.target.value } })}
-                    placeholder="Contá la historia de tu tienda…"
+                    placeholder="Cuenta la historia de tu tienda…"
                     rows={3}
                   />
                 </div>
@@ -751,7 +737,7 @@ export function ThemeEditor({
             <CardHeader>
               <CardTitle className="text-base">Nuestras tiendas</CardTitle>
               <p className="text-xs text-muted-foreground">
-                Tus locales físicos. Poneles nombres con personalidad.
+                Tus locales físicos. Ponles nombres con personalidad.
               </p>
             </CardHeader>
             <CardContent className="space-y-3">

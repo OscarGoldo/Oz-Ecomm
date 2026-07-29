@@ -26,7 +26,7 @@ export function ReferralShare({
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      toast.error("No se pudo copiar. Copiá el link a mano.");
+      toast.error("No se pudo copiar. Copia el link a mano.");
     }
   }
 

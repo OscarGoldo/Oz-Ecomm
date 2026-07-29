@@ -32,7 +32,7 @@ export default async function DescuentosPage() {
       ) : (
         <ProUpsell
           title="Los cupones son del plan Pro"
-          text="Creá códigos de descuento por porcentaje, monto fijo o envío gratis, con vigencia y límite de usos. Si ya tenías cupones creados, siguen guardados y vuelven a funcionar al activar Pro."
+          text="Crea códigos de descuento por porcentaje, monto fijo o envío gratis, con vigencia y límite de usos. Si ya tenías cupones creados, siguen guardados y vuelven a funcionar al activar Pro."
         />
       )}
     </div>

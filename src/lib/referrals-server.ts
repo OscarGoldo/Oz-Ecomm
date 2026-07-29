@@ -49,7 +49,7 @@ export async function attachReferral(p: AttachParams): Promise<void> {
       .maybeSingle();
     if (!referrer) return;
 
-    // Referirse a sí mismo. El CHECK de la tabla también lo frena, pero acá el
+    // Referirse a sí mismo. El CHECK de la tabla también lo frena, pero aquí el
     // caso se descarta sin generar un error en los logs.
     if (referrer.id === p.referredStoreId) return;
 

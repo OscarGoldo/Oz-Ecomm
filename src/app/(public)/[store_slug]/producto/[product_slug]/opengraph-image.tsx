@@ -45,7 +45,7 @@ type ProductCard = Pick<
  * Panel izquierdo, y el cuadro de la foto dentro de él.
  *
  * La foto va en un cuadro con aire alrededor, no a sangre: el PNG que sale de
- * acá es sin pérdida, así que el peso lo manda la cantidad de píxeles
+ * aquí es sin pérdida, así que el peso lo manda la cantidad de píxeles
  * fotográficos. Menos foto y más color plano = preview que WhatsApp sí baja
  * (corta arriba de ~600 KB). Medido: a sangre daba 887 KB en la foto más
  * detallada del catálogo; así queda en un tercio de eso.

@@ -151,13 +151,13 @@ export const LAYOUT_BLOCKS: Partial<Record<LayoutId, LayoutBlockDef[]>> = {
     { id: "galeria", label: "Galería lifestyle", defaultTitle: "El look", fields: ["title"], removable: true, reorderable: true },
     { id: "catalog", label: "Catálogo", defaultTitle: "Toda la tienda", fields: ["title"], removable: false, reorderable: true },
     { id: "testimonios", label: "Reseñas de clientes", defaultTitle: "Lo que dicen de nosotros", fields: ["title"], removable: true, reorderable: true },
-    { id: "locales", label: "Nuestras tiendas", defaultTitle: "Nuestras tiendas", defaultSubtitle: "Vení a conocernos", fields: ["title", "subtitle"], removable: true, reorderable: true },
+    { id: "locales", label: "Nuestras tiendas", defaultTitle: "Nuestras tiendas", defaultSubtitle: "Ven a conocernos", fields: ["title", "subtitle"], removable: true, reorderable: true },
     { id: "marca", label: "Sobre la marca", defaultTitle: "La marca", defaultSubtitle: "Est. 2017 · Caracas", fields: ["title", "subtitle", "body"], removable: true, reorderable: true },
   ],
   "beauty-minimal": [
     { id: "categorias", label: "Navegación por tipo", defaultTitle: "Compra por categoría", fields: ["title"], removable: true, reorderable: true },
     { id: "shop-all", label: "Shop All (best sellers)", defaultTitle: "Lo más querido", defaultSubtitle: "Los favoritos de la casa", fields: ["title", "subtitle"], removable: true, reorderable: true },
-    { id: "get-the-look", label: "Get the look (sets/combos)", defaultTitle: "Get the look", defaultSubtitle: "Combiná tus esenciales", fields: ["title", "subtitle"], removable: true, reorderable: true },
+    { id: "get-the-look", label: "Get the look (sets/combos)", defaultTitle: "Get the look", defaultSubtitle: "Combina tus esenciales", fields: ["title", "subtitle"], removable: true, reorderable: true },
     { id: "catalog", label: "Catálogo", defaultTitle: "Todo", fields: ["title"], removable: false, reorderable: true },
     { id: "testimonios", label: "Historias reales", defaultTitle: "Historias reales", fields: ["title"], removable: true, reorderable: true },
     { id: "historia", label: "Manifiesto de marca", defaultTitle: "Nuestra historia", fields: ["title", "body"], removable: true, reorderable: true },
@@ -235,8 +235,6 @@ export const THEME_PRESETS: {
   category: string;
   /** The category's base template. */
   standard?: boolean;
-  /** Reference site this template is inspired by. */
-  inspiration?: string;
   theme: Pick<StoreTheme, "colors" | "font" | "buttonStyle" | "cardStyle">;
 }[] = [
   {
@@ -274,7 +272,6 @@ export const THEME_PRESETS: {
     desc: "Ropa premium · lifestyle",
     icon: "medal",
     category: "fashion",
-    inspiration: "https://www.cutsclothing.com",
     theme: {
       colors: { primary: "#292524", accent: "#a8917a", surface: "#fafaf9" },
       font: "inter",
@@ -288,9 +285,8 @@ export const THEME_PRESETS: {
     desc: "Urbano · comunidad",
     icon: "flame",
     category: "fashion",
-    inspiration: "https://paw3r.com",
     theme: {
-      // Crema + negro bold, magenta como acento estrella (estilo paw3r).
+      // Crema + negro bold, magenta como acento estrella.
       colors: { primary: "#141414", accent: "#ec1c8e", surface: "#f6f1ea" },
       font: "montserrat",
       buttonStyle: "square",
@@ -333,9 +329,8 @@ export const THEME_PRESETS: {
     desc: "Suave · premium · aire",
     icon: "flower",
     category: "beauty",
-    inspiration: "https://www.glossier.com",
     theme: {
-      // Neutro y suave, rosado tenue, mucho aire (estilo Glossier).
+      // Neutro y suave, rosado tenue, mucho aire.
       colors: { primary: "#a8657a", accent: "#e7b6ae", surface: "#fcf8f6" },
       font: "poppins",
       buttonStyle: "rounded",
@@ -392,7 +387,6 @@ export const THEME_PRESETS: {
     desc: "Coleccionables · hype",
     icon: "zap",
     category: "sports",
-    inspiration: "https://www.repzarg.com",
     theme: {
       // Oscuro premium, acento neón, estética de drops/coleccionista.
       colors: { primary: "#101014", accent: "#a3e635", surface: "#0a0a0c" },
@@ -547,7 +541,7 @@ export const LAYOUT_CHROME: Record<LayoutId, LayoutChrome> = {
 /**
  * Merge a store's saved customization over defaults into a full theme.
  *
- * Aplica el plan acá adentro, no en los call sites: si la tienda no tiene Pro
+ * Aplica el plan aquí adentro, no en los call sites: si la tienda no tiene Pro
  * vigente, la plantilla cae a la estándar de su categoría. Al hacerlo en un
  * solo lugar, ninguna página puede olvidarse del candado y filtrar una
  * plantilla Pro. Los campos de plan son opcionales: sin ellos (o con un store

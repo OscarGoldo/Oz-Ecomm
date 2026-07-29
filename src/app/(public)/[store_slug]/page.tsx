@@ -254,7 +254,7 @@ export default async function StorefrontHome({
       ? { icon: StoreIcon, title: "Retiro en tienda", text: "Busca tu pedido cuando quieras" }
       : null,
     { icon: BadgeDollarSign, title: "Precios en USD y Bs", text: "Pagas como te quede mejor" },
-    { icon: ShieldCheck, title: "Compra segura", text: "Confirmás tu pago y recibís" },
+    { icon: ShieldCheck, title: "Compra segura", text: "Confirmas tu pago y recibes" },
   ].filter(Boolean) as { icon: typeof Truck; title: string; text: string }[];
 
   // Ordered content sections (catalog is always present).

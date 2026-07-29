@@ -90,7 +90,7 @@ export default async function SuperPayoutsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Pagos a tiendas</h1>
         <p className="text-sm text-muted-foreground">
-          Lo recaudado por PayPal entra a tu cuenta. Aquí ves cuánto le debés a
+          Lo recaudado por PayPal entra a tu cuenta. Aquí ves cuánto le debes a
           cada tienda (neto, ya descontada la comisión de PayPal) y registras el
           pago.
         </p>
@@ -141,7 +141,7 @@ export default async function SuperPayoutsPage() {
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Le debés</p>
+                  <p className="text-xs text-muted-foreground">Le debes</p>
                   <p className="text-xl font-bold">{formatUSD(r.owed)}</p>
                   {r.count > 0 && (
                     <p className="text-[11px] text-muted-foreground">

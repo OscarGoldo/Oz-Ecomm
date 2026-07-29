@@ -59,7 +59,7 @@ export function BeautyStorefront({
               <h2 className="text-lg font-semibold">Rutinas y kits</h2>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Armá tu rutina con nuestros favoritos.
+              Arma tu rutina con nuestros favoritos.
             </p>
             <div className="-mx-1 mt-4 flex gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {routine.map((p) => (

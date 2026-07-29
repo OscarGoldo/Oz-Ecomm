@@ -150,7 +150,7 @@ export async function createProduct(input: ProductInput): Promise<ActionResult> 
     if ((count ?? 0) >= maxProducts) {
       return {
         ok: false,
-        error: `Llegaste a los ${maxProducts} productos del plan Gratis. Activá Pro para cargar productos ilimitados.`,
+        error: `Llegaste a los ${maxProducts} productos del plan Gratis. Activa Pro para cargar productos ilimitados.`,
       };
     }
   }

@@ -66,8 +66,8 @@ export function PlanCheckout({
   const nothingConfigured = payments.length === 0 && !paypalClientId;
 
   async function submit() {
-    if (!method) return toast.error("Elegí cómo pagaste");
-    if (!proof) return toast.error("Subí la foto del comprobante");
+    if (!method) return toast.error("Elige cómo pagaste");
+    if (!proof) return toast.error("Sube la foto del comprobante");
 
     setSending(true);
     const res = await requestProUpgrade({
@@ -85,7 +85,7 @@ export function PlanCheckout({
     router.refresh();
   }
 
-  // JSX en variables, no en componentes anidados: un componente definido acá
+  // JSX en variables, no en componentes anidados: un componente definido aquí
   // adentro cambia de identidad en cada render y React lo remontaría, con lo
   // que el input de referencia perdería el foco en cada tecla.
   const manualPayment = (
@@ -114,7 +114,7 @@ export function PlanCheckout({
       {selected && (
         <div className="space-y-2 rounded-xl border p-3">
           <p className="text-xs font-medium text-muted-foreground">
-            Pagá a estos datos:
+            Paga a estos datos:
           </p>
           {selected.fields.map((f) => (
             <CopyRow key={f.label} label={f.label} value={f.value} />
@@ -123,7 +123,7 @@ export function PlanCheckout({
       )}
 
       <div className="space-y-2">
-        <Label className="text-xs">3. Subí el comprobante</Label>
+        <Label className="text-xs">3. Sube el comprobante</Label>
         <PaymentProofUpload
           storeId={storeId}
           folder="subs"
@@ -179,9 +179,9 @@ export function PlanCheckout({
         />
       )}
       <p className="text-center text-xs text-muted-foreground">
-        Podés pagar con tarjeta de débito o crédito sin tener cuenta de PayPal.
+        Puedes pagar con tarjeta de débito o crédito sin tener cuenta de PayPal.
         {planIds &&
-          ` Se renueva ${months >= 12 ? "cada año" : "cada mes"} y podés cancelar cuando quieras.`}
+          ` Se renueva ${months >= 12 ? "cada año" : "cada mes"} y puedes cancelar cuando quieras.`}
       </p>
     </div>
   );
@@ -192,8 +192,8 @@ export function PlanCheckout({
         <CardTitle className="text-base">Activar Pro</CardTitle>
         <p className="text-xs text-muted-foreground">
           {paypalClientId
-            ? "Pagá con PayPal o tarjeta y se activa solo, o pagá en bolívares y subí el comprobante."
-            : "Hacé el pago, subí el comprobante y lo confirmamos. No necesitás tarjeta de crédito."}
+            ? "Paga con PayPal o tarjeta y se activa solo, o paga en bolívares y sube el comprobante."
+            : "Haz el pago, sube el comprobante y lo confirmamos. No necesitas tarjeta de crédito."}
         </p>
       </CardHeader>
       <CardContent className="space-y-5">

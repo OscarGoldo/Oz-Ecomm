@@ -74,7 +74,7 @@ export default async function ReferidosPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Referidos</h1>
         <p className="text-sm text-muted-foreground">
-          Invitá a otro emprendedor y ganá {REFERRAL_REWARD_MONTHS === 1 ? "un mes" : `${REFERRAL_REWARD_MONTHS} meses`} de Pro
+          Invita a otro emprendedor y gana {REFERRAL_REWARD_MONTHS === 1 ? "un mes" : `${REFERRAL_REWARD_MONTHS} meses`} de Pro
           cuando su tienda arranque.
         </p>
       </div>
@@ -83,7 +83,7 @@ export default async function ReferidosPage() {
         <h2 className="mb-1 font-semibold">Tu link para invitar</h2>
         <p className="mb-4 text-sm text-muted-foreground">
           Mandáselo a quien tenga algo para vender. Si se registra desde tu link,
-          queda asociado a vos.
+          queda asociado a ti.
         </p>
         <ReferralShare
           code={store.referral_code}
@@ -114,7 +114,7 @@ export default async function ReferidosPage() {
           El premio se acredita cuando la tienda que invitaste publica al menos{" "}
           {QUALIFY_MIN_PRODUCTS} productos y confirma{" "}
           {QUALIFY_MIN_ORDERS === 1 ? "su primera venta" : `${QUALIFY_MIN_ORDERS} ventas`}.
-          Los meses se suman al final de tu período actual — si pagás con
+          Los meses se suman al final de tu período actual — si pagas con
           suscripción de PayPal, el cobro sigue igual y tu vencimiento se corre
           hacia adelante.
         </p>
@@ -125,7 +125,7 @@ export default async function ReferidosPage() {
           <Users className="mb-3 size-9 text-muted-foreground" />
           <p className="font-medium">Todavía no invitaste a nadie</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Compartí tu link con otro emprendedor y empezá a sumar meses.
+            Comparte tu link con otro emprendedor y empieza a sumar meses.
           </p>
         </div>
       ) : (

@@ -540,7 +540,7 @@ export async function createOrder(
   }
 
   // Los pedidos en efectivo y por PayPal nacen confirmados: nunca pasan por
-  // confirmPayment, así que el referido que trajo a esta tienda se evalúa acá
+  // confirmPayment, así que el referido que trajo a esta tienda se evalúa aquí
   // también. Los que quedan en pending_confirmation se evalúan al confirmarse.
   if (status === "confirmed") {
     await maybeQualifyReferral(store.id);

@@ -391,7 +391,7 @@ export function CheckoutForm({
               ) : (
                 store.pickup_address && (
                   <p className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
-                    Retirás en:{" "}
+                    Retiras en:{" "}
                     <span className="font-medium text-foreground">{store.pickup_address}</span>
                   </p>
                 )
@@ -448,7 +448,7 @@ export function CheckoutForm({
               {isPaypal && selectedMethod ? (
                 <div className="rounded-lg border bg-muted/30 p-3">
                   <p className="text-xs text-muted-foreground">
-                    Pagas con PayPal, tarjeta de crédito o débito. Confirmás el
+                    Pagas con PayPal, tarjeta de crédito o débito. Confirmas el
                     pago más abajo. Tu pedido se confirma al instante.
                   </p>
                 </div>

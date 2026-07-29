@@ -82,7 +82,7 @@ export function OrderQuickStatus({
         isConfirm ? "Pago confirmado" : `Pedido: ${ORDER_STATUS_META[to].label}`,
         wa
           ? {
-              description: "Avisale al cliente que cambió su pedido.",
+              description: "Avísale al cliente que cambió su pedido.",
               action: {
                 label: "Avisar 📲",
                 onClick: () => window.open(wa, "_blank"),

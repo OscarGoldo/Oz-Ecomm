@@ -63,7 +63,7 @@ export default async function OrderDetailPage({
       order.payment_method_type)
     : "—";
 
-  // Recibo de 1 tap para WhatsApp. Se arma acá (server) y viaja como texto ya
+  // Recibo de 1 tap para WhatsApp. Se arma aquí (server) y viaja como texto ya
   // listo, así el componente cliente no necesita los ítems ni los totales.
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
   const receiptMessage = orderReceiptCustomerMessage(

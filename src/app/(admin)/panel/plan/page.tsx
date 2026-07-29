@@ -88,7 +88,7 @@ export default async function PlanPage() {
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {!pro
-            ? "Tenés lo esencial para vender. Activá Pro cuando quieras crecer."
+            ? "Tienes lo esencial para vender. Activa Pro cuando quieras crecer."
             : store.plan_expires_at
               ? `Vigente hasta el ${fmtDate(store.plan_expires_at)}${
                   daysLeft !== null && daysLeft >= 0
@@ -117,7 +117,7 @@ export default async function PlanPage() {
       {lastRejected && (
         <p className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
           Tu último comprobante no pudo confirmarse
-          {lastRejected.review_note ? `: ${lastRejected.review_note}` : "."} Podés
+          {lastRejected.review_note ? `: ${lastRejected.review_note}` : "."} Puedes
           enviarlo de nuevo.
         </p>
       )}
@@ -170,7 +170,7 @@ export default async function PlanPage() {
 
       {pro && !pending && !subscribed && (
         <p className="text-center text-xs text-muted-foreground">
-          Si renovás antes de que venza, los meses se suman a lo que ya tenés.
+          Si renuevas antes de que venza, los meses se suman a lo que ya tienes.
         </p>
       )}
 

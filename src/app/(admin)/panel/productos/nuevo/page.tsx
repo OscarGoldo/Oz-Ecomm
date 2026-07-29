@@ -46,7 +46,7 @@ export default async function NewProductPage() {
       {atLimit ? (
         <ProUpsell
           title={`Llegaste a los ${maxProducts} productos del plan Gratis`}
-          text="Tus productos actuales siguen publicados y los podés seguir editando. Con Pro cargás productos ilimitados."
+          text="Tus productos actuales siguen publicados y los puedes seguir editando. Con Pro cargas productos ilimitados."
         />
       ) : (
         <ProductForm storeId={store.id} categories={categories ?? []} />

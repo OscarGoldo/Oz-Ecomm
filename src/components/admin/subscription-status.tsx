@@ -54,7 +54,7 @@ export function SubscriptionStatus({
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
           PayPal no pudo procesar el cobro — suele ser una tarjeta vencida o sin
-          fondos. Revisá tu método de pago en PayPal.
+          fondos. Revisa tu método de pago en PayPal.
           {until && ` Tu plan sigue activo hasta el ${until}.`}
         </p>
       </div>
@@ -69,7 +69,7 @@ export function SubscriptionStatus({
           {until
             ? `Tu plan Pro sigue activo hasta el ${until}. Después pasa a Gratis.`
             : "Tu plan pasa a Gratis al vencer."}{" "}
-          Podés volver a suscribirte cuando quieras.
+          Puedes volver a suscribirte cuando quieras.
         </p>
       </div>
     );
@@ -83,18 +83,18 @@ export function SubscriptionStatus({
       </p>
       <p className="mt-1 text-sm text-muted-foreground">
         {until
-          ? `Se renueva sola el ${until}. No tenés que hacer nada.`
+          ? `Se renueva sola el ${until}. No tienes que hacer nada.`
           : "Se renueva sola al final de cada período."}
       </p>
 
       {confirming ? (
         <div className="mt-3 space-y-2">
           <p className="text-sm">
-            Al cancelar dejás de pagar, pero{" "}
+            Al cancelar dejas de pagar, pero{" "}
             <span className="font-medium">
-              seguís con Pro {until ? `hasta el ${until}` : "hasta el vencimiento"}
+              sigues con Pro {until ? `hasta el ${until}` : "hasta el vencimiento"}
             </span>
-            . ¿Confirmás?
+            . ¿Confirmas?
           </p>
           <div className="flex gap-2">
             <Button size="sm" variant="destructive" onClick={cancel} disabled={busy}>

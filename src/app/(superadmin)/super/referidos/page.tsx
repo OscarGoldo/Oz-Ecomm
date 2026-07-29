@@ -88,7 +88,7 @@ export default async function SuperReferidosPage() {
         <h1 className="text-2xl font-bold tracking-tight">Referidos</h1>
         <p className="text-sm text-muted-foreground">
           Los premios se acreditan solos hasta {REWARD_CAP_PER_30D} por tienda
-          cada {REWARD_CAP_WINDOW_DAYS} días. Lo que pasa ese tope cae acá.
+          cada {REWARD_CAP_WINDOW_DAYS} días. Lo que pasa ese tope cae aquí.
         </p>
       </div>
 

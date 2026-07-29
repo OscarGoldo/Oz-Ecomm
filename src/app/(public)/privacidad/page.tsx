@@ -52,7 +52,7 @@ export default function PrivacidadPage() {
             teléfono en el checkout pero no completas la compra, guardamos esos
             datos junto con los productos que dejaste en el carrito, para que la
             tienda pueda escribirte y ayudarte a terminar el pedido. Si no
-            querés que te contacten, escribile a la tienda o a{" "}
+            quieres que te contacten, escríbele a la tienda o a{" "}
             <a
               href="mailto:ovalery1903@gmail.com"
               className="font-medium text-primary hover:underline"

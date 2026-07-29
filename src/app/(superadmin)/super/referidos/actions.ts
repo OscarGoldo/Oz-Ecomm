@@ -21,7 +21,7 @@ function revalidate() {
 
 /**
  * Acreditar a mano un referido que quedó esperando: el que superó el tope
- * automático, o uno que querés premiar igual.
+ * automático, o uno que quieres premiar igual.
  *
  * `grantReferralReward` reclama la fila antes de tocar el plan, así que dos
  * clics seguidos no suman dos veces.

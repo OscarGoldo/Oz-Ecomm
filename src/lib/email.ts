@@ -158,7 +158,7 @@ export function referralRewardEmail(p: ReferralRewardEmailParams): {
       p.lifetime
         ? ""
         : `<p style="margin:0 0 16px;color:#64748b;font-size:14px;line-height:1.5">
-      Los meses se agregan al final de tu período actual. Si pagás tu plan con
+      Los meses se agregan al final de tu período actual. Si pagas tu plan con
       suscripción de PayPal, el cobro de este mes sigue igual y tu vencimiento
       se corre hacia adelante.
     </p>`

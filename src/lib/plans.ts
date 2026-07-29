@@ -7,7 +7,7 @@ import type { Store } from "@/types/database";
  * component. La UI solo los comunica — ocultar un botón no es seguridad.
  *
  * Nunca se bloquea la operación (pedidos, confirmar pagos, WhatsApp, finanzas):
- * si le tocás la caja al comerciante, se va. El límite muerde en crecimiento y
+ * si le tocas la caja al comerciante, se va. El límite muerde en crecimiento y
  * presentación (diseño, analítica, volumen).
  *
  * Nota: este archivo NO es "use server" — exporta constantes y funciones puras.
@@ -67,7 +67,7 @@ export type PlanFields = Pick<Store, "plan" | "plan_expires_at" | "plan_source">
 /**
  * ¿Esta tienda tiene Pro vigente ahora mismo?
  *
- * El vencimiento se evalúa acá, en lectura, no con un cron que marque tiendas
+ * El vencimiento se evalúa aquí, en lectura, no con un cron que marque tiendas
  * como vencidas: si el job falla, nadie queda regalado ni cortado por error.
  * `plan_expires_at` NULL con plan 'pro' = cortesía de por vida.
  */

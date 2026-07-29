@@ -82,7 +82,7 @@ export function OrderActions({
       title,
       wa
         ? {
-            description: "Avisale al cliente que cambió su pedido.",
+            description: "Avísale al cliente que cambió su pedido.",
             action: {
               label: "Avisar 📲",
               onClick: () => window.open(wa, "_blank"),

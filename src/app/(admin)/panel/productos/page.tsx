@@ -98,9 +98,9 @@ export default async function ProductosPage({
       {atLimit && (
         <p className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
           Llegaste a los {maxProducts} productos del plan Gratis. Tus productos
-          siguen publicados y podés seguir editándolos;{" "}
+          siguen publicados y puedes seguir editándolos;{" "}
           <Link href="/panel/plan" className="font-medium text-primary underline">
-            activá Pro
+            activa Pro
           </Link>{" "}
           para cargar más.
         </p>
@@ -118,7 +118,7 @@ export default async function ProductosPage({
           </p>
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
             {hasFilters
-              ? "Prueba con otra búsqueda o quitá los filtros."
+              ? "Prueba con otra búsqueda o quita los filtros."
               : "Crea tu primer producto para empezar a vender."}
           </p>
           {!hasFilters && (

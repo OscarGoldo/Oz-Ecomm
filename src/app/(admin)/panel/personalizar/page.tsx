@@ -35,7 +35,7 @@ export default async function PersonalizarPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Personalizar tienda</h1>
           <p className="text-sm text-muted-foreground">
-            Cambiá colores, tipografía, textos y secciones. Mira la vista previa
+            Cambia colores, tipografía, textos y secciones. Mira la vista previa
             y guarda.
           </p>
         </div>

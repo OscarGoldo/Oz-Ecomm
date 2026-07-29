@@ -291,7 +291,7 @@ export function PaymentMethodsManager({
                   Los pagos con PayPal y tarjeta se procesan de forma segura a
                   través de la plataforma. El cliente paga el total online y el
                   pedido se confirma al instante. Aplican comisiones del
-                  procesador de pago, que se descuentan de lo que recibís.
+                  procesador de pago, que se descuentan de lo que recibes.
                 </p>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">¿Cómo quieres que te paguemos?</p>
@@ -371,7 +371,7 @@ export function PaymentMethodsManager({
                 onChange={(e) =>
                   setForm((f) => ({ ...f, instructions: e.target.value }))
                 }
-                placeholder="Ej. Indicá el número de pedido en la referencia."
+                placeholder="Ej. Indica el número de pedido en la referencia."
               />
             </div>
 

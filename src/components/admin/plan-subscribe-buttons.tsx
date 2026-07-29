@@ -132,13 +132,13 @@ export function PlanSubscribeButtons({
             const msg =
               err instanceof Error && err.message
                 ? err.message
-                : "Hubo un problema. Intentá de nuevo.";
+                : "Hubo un problema. Intenta de nuevo.";
             toast.error(msg.slice(0, 200));
           },
         });
 
       // Solo la tarjeta: se pide la fuente CARD sola, así no aparece el botón
-      // amarillo de PayPal. `isEligible` es obligatorio acá — si la cuenta o
+      // amarillo de PayPal. `isEligible` es obligatorio aquí — si la cuenta o
       // el país no admiten tarjeta suelta para suscripciones, renderizar igual
       // deja el contenedor vacío y el comerciante se queda sin forma de pagar.
       const card = build(paypal.FUNDING?.CARD);
@@ -159,7 +159,7 @@ export function PlanSubscribeButtons({
   if (failed) {
     return (
       <p className="text-sm text-destructive">
-        No se pudo cargar PayPal. Revisá tu conexión e intentá de nuevo.
+        No se pudo cargar PayPal. Revisa tu conexión e intenta de nuevo.
       </p>
     );
   }

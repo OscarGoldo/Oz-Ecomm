@@ -65,7 +65,7 @@ export function evaluateCoupon(
 /**
  * Look up a coupon by code (service role — codes aren't publicly readable).
  *
- * Los cupones son del plan Pro y el candado vive acá: es el único camino por
+ * Los cupones son del plan Pro y el candado vive aquí: es el único camino por
  * el que el checkout llega a un cupón (validar y aplicar), así que una tienda
  * que cayó a Gratis deja de aceptar códigos sin tocar el checkout. Los cupones
  * no se borran: vuelven a funcionar solos al reactivar Pro.

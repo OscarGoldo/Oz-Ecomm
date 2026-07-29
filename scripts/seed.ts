@@ -262,7 +262,7 @@ const PAYMENT_METHODS: Array<
       titular: "Alfa Electronic C.A.",
     } as Json,
     requires_proof: true,
-    instructions: "Indicá el número de pedido en la referencia.",
+    instructions: "Indica el número de pedido en la referencia.",
     display_order: 1,
   },
   {
@@ -274,7 +274,7 @@ const PAYMENT_METHODS: Array<
       titular: "Alfa Electronic",
     } as Json,
     requires_proof: true,
-    instructions: "Enviá la captura del envío al confirmar el pedido.",
+    instructions: "Envía la captura del envío al confirmar el pedido.",
     display_order: 2,
   },
   {
@@ -291,7 +291,7 @@ const PAYMENT_METHODS: Array<
     label: "Efectivo (al retirar/entregar)",
     details: {} as Json,
     requires_proof: false,
-    instructions: "Pagás en efectivo al recibir o retirar el pedido.",
+    instructions: "Pagas en efectivo al recibir o retirar el pedido.",
     display_order: 4,
   },
 ];

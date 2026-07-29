@@ -40,7 +40,7 @@ export type UpgradeInput = z.input<typeof schema>;
  *
  * Se escribe con service role y `status` fijo en 'pending': la tabla no tiene
  * policy de INSERT para tenants, así que nadie puede aprobarse el plan a sí
- * mismo. El monto también se recalcula acá desde los precios configurados —
+ * mismo. El monto también se recalcula aquí desde los precios configurados —
  * nunca se confía en el que mandó el cliente.
  */
 export async function requestProUpgrade(
@@ -56,7 +56,7 @@ export async function requestProUpgrade(
   if (!ctx?.store) return { ok: false, error: "No autorizado" };
 
   if (!d.proof_path) {
-    return { ok: false, error: "Subí la foto del comprobante" };
+    return { ok: false, error: "Sube la foto del comprobante" };
   }
   // El comprobante debe estar en la carpeta de la propia tienda: evita que se
   // referencie el archivo de otro tenant.
@@ -75,7 +75,7 @@ export async function requestProUpgrade(
   if ((pending ?? 0) > 0) {
     return {
       ok: false,
-      error: "Ya tenés un comprobante en revisión. Te avisamos apenas lo confirmemos.",
+      error: "Ya tienes un comprobante en revisión. Te avisamos apenas lo confirmemos.",
     };
   }
 
@@ -92,7 +92,7 @@ export async function requestProUpgrade(
     status: "pending",
   });
   if (error) {
-    return { ok: false, error: "No se pudo registrar el pago. Intentá de nuevo." };
+    return { ok: false, error: "No se pudo registrar el pago. Intenta de nuevo." };
   }
 
   revalidatePath("/panel/plan");
@@ -106,7 +106,7 @@ export async function requestProUpgrade(
  * Registra la suscripción recién aprobada por el comerciante.
  *
  * NO extiende el plan: eso lo hace el webhook cuando PayPal confirma el cobro
- * (PAYMENT.SALE.COMPLETED). Acá solo se guarda el id para poder mostrar el
+ * (PAYMENT.SALE.COMPLETED). Aquí solo se guarda el id para poder mostrar el
  * estado y ofrecer cancelar. Si esto se cayera, el webhook igual encuentra la
  * tienda por el `custom_id` que lleva la suscripción.
  */
@@ -155,14 +155,14 @@ export async function cancelProSubscription(): Promise<ActionResult> {
   if (!ctx?.store) return { ok: false, error: "No autorizado" };
 
   const subId = ctx.store.paypal_subscription_id;
-  if (!subId) return { ok: false, error: "No tenés una suscripción activa" };
+  if (!subId) return { ok: false, error: "No tienes una suscripción activa" };
 
   const creds = subscriptionCreds();
   if (!creds) return { ok: false, error: "PayPal no está configurado" };
 
   const done = await cancelSubscription(creds, subId, "Cancelada por el comerciante");
   if (!done) {
-    return { ok: false, error: "No se pudo cancelar. Intentá de nuevo." };
+    return { ok: false, error: "No se pudo cancelar. Intenta de nuevo." };
   }
 
   const db = createAdminClient();
@@ -176,7 +176,7 @@ export async function cancelProSubscription(): Promise<ActionResult> {
 }
 
 // ── Pago único del plan por PayPal / tarjeta ────────────────────────────────
-// A diferencia del comprobante, acá no hay revisión manual: si PayPal
+// A diferencia del comprobante, aquí no hay revisión manual: si PayPal
 // confirma la captura, el plan se activa en el momento.
 
 const periodSchema = z.coerce
@@ -191,7 +191,7 @@ export interface PaypalOrderResult extends ActionResult {
 /**
  * Abre la orden en PayPal por el precio del período elegido.
  *
- * El cliente manda SOLO los meses; el monto se calcula acá con los precios
+ * El cliente manda SOLO los meses; el monto se calcula aquí con los precios
  * configurados. Nunca se acepta un precio que venga del navegador — si no,
  * cualquiera abriría una orden de un centavo por doce meses de Pro.
  */

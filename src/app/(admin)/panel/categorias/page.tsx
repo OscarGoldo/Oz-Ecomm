@@ -37,7 +37,7 @@ export default async function CategoriasPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Categorías</h1>
         <p className="text-sm text-muted-foreground">
-          Organizá tu catálogo. Arrastrá el orden con las flechas; así se ven en
+          Organiza tu catálogo. Arrastra el orden con las flechas; así se ven en
           tu tienda.
         </p>
       </div>

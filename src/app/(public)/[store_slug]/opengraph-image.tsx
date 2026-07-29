@@ -22,7 +22,7 @@ import type { Store } from "@/types/database";
  * ("mira mi tienda"), así que va con el mismo cuidado que la del producto.
  *
  * El banner ocupa solo una franja arriba, no el fondo entero, a propósito: el
- * PNG que sale de acá se llena de color plano, que pesa casi nada, y así la
+ * PNG que sale de aquí se llena de color plano, que pesa casi nada, y así la
  * imagen entra cómoda bajo el límite que WhatsApp acepta para las previews.
  */
 

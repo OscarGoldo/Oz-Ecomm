@@ -52,7 +52,7 @@ BEGIN
 END;
 $$;
 
--- Las tiendas que ya existen se quedan sin código hasta acá; se lo damos ahora.
+-- Las tiendas que ya existen se quedan sin código hasta aquí; se lo damos ahora.
 -- Fila por fila y no con un UPDATE masivo a propósito: dentro de una sola
 -- sentencia, el chequeo de colisión de la función no vería los códigos que esa
 -- misma sentencia acaba de escribir, y dos tiendas podrían quedar iguales.

@@ -40,7 +40,7 @@ export default async function CarritosPage() {
         <h1 className="text-2xl font-bold tracking-tight">Carritos abandonados</h1>
         <p className="text-sm text-muted-foreground">
           Clientes que dejaron sus datos pero no terminaron de comprar.
-          Escribiles y recuperá la venta.
+          Escríbeles y recupera la venta.
         </p>
       </div>
 
@@ -50,7 +50,7 @@ export default async function CarritosPage() {
           <p className="font-medium">No hay carritos pendientes</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Cuando alguien llene sus datos en el checkout y no termine de
-            comprar, aparece acá para que lo recuperes.
+            comprar, aparece aquí para que lo recuperes.
           </p>
         </div>
       ) : (

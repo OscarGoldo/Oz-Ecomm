@@ -118,7 +118,7 @@ export function PlanPaypalButtons({
             const msg =
               err instanceof Error && err.message
                 ? err.message
-                : "Hubo un problema con el pago. Intentá de nuevo.";
+                : "Hubo un problema con el pago. Intenta de nuevo.";
             toast.error(msg.slice(0, 200));
           },
         });
@@ -138,7 +138,7 @@ export function PlanPaypalButtons({
   if (failed) {
     return (
       <p className="text-sm text-destructive">
-        No se pudo cargar PayPal. Revisá tu conexión e intentá de nuevo.
+        No se pudo cargar PayPal. Revisa tu conexión e intenta de nuevo.
       </p>
     );
   }

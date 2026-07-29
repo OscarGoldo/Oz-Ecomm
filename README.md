@@ -33,12 +33,12 @@ Supabase (Postgres + Auth + Storage) · Server Actions.
 ### 1. Crear el proyecto Supabase
 
 1. https://supabase.com → **New project** (`tiendify`, región East US).
-2. Project Settings → **API**: copiá `Project URL`, `anon key` y
+2. Project Settings → **API**: copia `Project URL`, `anon key` y
    `service_role key`.
 
 ### 2. Variables de entorno
 
-Completá `.env.local` (ya existe; está en `.gitignore`):
+Completa `.env.local` (ya existe; está en `.gitignore`):
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
@@ -52,7 +52,7 @@ entrar al panel de Alfa). Por defecto usa `ovalery1903@gmail.com`.
 
 ### 3. Aplicar el esquema
 
-En Supabase → **SQL Editor**, ejecutá en orden el contenido de:
+En Supabase → **SQL Editor**, ejecuta en orden el contenido de:
 
 1. `supabase/migrations/0001_init_schema.sql`
 2. `supabase/migrations/0002_rls_policies.sql`
@@ -64,9 +64,9 @@ En Supabase → **SQL Editor**, ejecutá en orden el contenido de:
 En Supabase → **Authentication → URL Configuration**:
 
 - **Site URL:** `http://localhost:3000`
-- **Redirect URLs:** agregá `http://localhost:3000/**`
+- **Redirect URLs:** agrega `http://localhost:3000/**`
 
-(Al desplegar a producción, agregá también la URL real de Vercel.)
+(Al desplegar a producción, agrega también la URL real de Vercel.)
 
 ### 5. Cargar Alfa Electronic
 
@@ -76,7 +76,7 @@ npm run seed
 ```
 
 Crea la tienda, su dueño (usuario de auth + perfil), categorías, productos y
-métodos de pago. Es **idempotente**: podés re-ejecutarlo.
+métodos de pago. Es **idempotente**: puedes re-ejecutarlo.
 
 ### 6. Levantar la app
 
@@ -86,8 +86,8 @@ npm run dev
 
 - Landing: http://localhost:3000
 - Tienda pública: http://localhost:3000/alfa-electronic
-- Panel del dueño: http://localhost:3000/login → ingresá el `SEED_OWNER_EMAIL`
-  → te llega el magic link → entrás a `/panel`.
+- Panel del dueño: http://localhost:3000/login → ingresa el `SEED_OWNER_EMAIL`
+  → te llega el magic link → entras a `/panel`.
 
 ### 7. (Opcional) Crear tu usuario super-admin
 
@@ -95,8 +95,8 @@ npm run dev
 SUPERADMIN_EMAIL=tu+super@gmail.com npm run create-superadmin
 ```
 
-Entrás en `/login` con ese email → caés en `/super` (gestión de todas las
-tiendas). Usá un alias `+super` para que sea una cuenta distinta de tu login de
+Entras en `/login` con ese email → caes en `/super` (gestión de todas las
+tiendas). Usa un alias `+super` para que sea una cuenta distinta de tu login de
 dueño pero llegue al mismo inbox.
 
 ---
@@ -120,20 +120,20 @@ Dos cosas distintas:
 
 1. **Magic links (login/registro)** — los envía Supabase Auth. El servicio
    integrado es solo para pruebas (limita a ~3-4 correos/hora). Para producción,
-   conectá un SMTP propio: Supabase → **Authentication → Emails → SMTP Settings**
-   y cargá los datos de un proveedor como [Resend](https://resend.com) (con tu
+   conecta un SMTP propio: Supabase → **Authentication → Emails → SMTP Settings**
+   y carga los datos de un proveedor como [Resend](https://resend.com) (con tu
    dominio verificado).
 2. **Aviso de pedido nuevo al dueño** — lo manda la app vía la API de Resend.
-   Cargá `RESEND_API_KEY` y `EMAIL_FROM` (ver `.env.example`). Si lo dejás
+   Carga `RESEND_API_KEY` y `EMAIL_FROM` (ver `.env.example`). Si lo dejas
    vacío, los pedidos funcionan igual pero sin enviar el email. Para enviar a
-   cualquier dirección necesitás un **dominio verificado** en Resend.
+   cualquier dirección necesitas un **dominio verificado** en Resend.
 
 ---
 
 ## Deploy a Vercel
 
-1. Subí el repo a GitHub (sin `.env.local`, ya está en `.gitignore`).
-2. En [vercel.com](https://vercel.com) → **Add New → Project** → importá el repo
+1. Sube el repo a GitHub (sin `.env.local`, ya está en `.gitignore`).
+2. En [vercel.com](https://vercel.com) → **Add New → Project** → importa el repo
    (framework Next.js, detectado automáticamente).
 3. **Environment Variables** (Project Settings → Environment Variables):
    - `NEXT_PUBLIC_SUPABASE_URL`
@@ -141,9 +141,9 @@ Dos cosas distintas:
    - `SUPABASE_SERVICE_ROLE_KEY` (secreto)
    - `NEXT_PUBLIC_APP_URL` = la URL de producción (ej. `https://tiendifyapp.com`)
 4. **Deploy**.
-5. En Supabase → **Authentication → URL Configuration**: agregá tu dominio de
+5. En Supabase → **Authentication → URL Configuration**: agrega tu dominio de
    Vercel como **Site URL** y a **Redirect URLs** (`https://tu-dominio.vercel.app/**`).
-6. Asegurate de haber corrido las **migraciones** y el **seed** sobre el mismo
+6. Asegúrate de haber corrido las **migraciones** y el **seed** sobre el mismo
    proyecto Supabase.
 
 > El `NEXT_PUBLIC_APP_URL` se usa para los magic links y los enlaces de la

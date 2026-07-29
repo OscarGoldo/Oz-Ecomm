@@ -90,11 +90,11 @@ export async function updateStoreTheme(input: ThemeInput): Promise<ActionResult>
   if (!ctx?.store) return { ok: false, error: "No autorizado" };
 
   // Candado de plantillas. El editor ya las muestra con candado, pero la
-  // validación real vive acá: ocultar un botón no es seguridad.
+  // validación real vive aquí: ocultar un botón no es seguridad.
   if (!isPro(ctx.store) && !isFreeLayout(parsed.data.layout)) {
     return {
       ok: false,
-      error: "Esa plantilla es del plan Pro. Activá Pro para usarla.",
+      error: "Esa plantilla es del plan Pro. Activa Pro para usarla.",
     };
   }
 

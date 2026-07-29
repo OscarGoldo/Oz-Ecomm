@@ -12,7 +12,7 @@ export interface ActionResult {
 }
 
 /**
- * Todas las escrituras pasan por acá con el store_id de la sesión: la tabla no
+ * Todas las escrituras pasan por aquí con el store_id de la sesión: la tabla no
  * tiene policy de UPDATE para el dueño, así que el filtro es la seguridad.
  */
 async function updateCart(

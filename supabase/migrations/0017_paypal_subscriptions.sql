@@ -3,7 +3,7 @@
 --
 --   Reusa la Orders API que ya existe para el checkout de las tiendas
 --   (src/lib/paypal.ts): cobro único con captura, no suscripción recurrente.
---   La diferencia con el pago por comprobante es que acá no hay revisión
+--   La diferencia con el pago por comprobante es que aquí no hay revisión
 --   manual — si PayPal devuelve COMPLETED, el plan se activa solo.
 --
 --   `paypal_capture_id` es UNIQUE a propósito: es la defensa contra procesar

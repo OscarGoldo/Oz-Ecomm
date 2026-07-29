@@ -7,7 +7,7 @@ import { STORE_IMAGES_BUCKET, getImageUrl } from "@/lib/storage";
  * OJO: todo esto corre en el runtime EDGE. Las tarjetas van en edge porque
  * `next/og` en runtime Node se rompe en Windows al cargar su fuente por defecto
  * (arma `.\file:\C:\...`, que no es una URL válida), así que en local no se
- * podrían probar. Consecuencias que hay que respetar acá:
+ * podrían probar. Consecuencias que hay que respetar aquí:
  *   - no hay `Buffer` → base64 a mano
  *   - nada de `server-only` ni de librerías que asuman Node
  *   - el bundle tiene tope, por eso se habla con PostgREST por `fetch` pelado

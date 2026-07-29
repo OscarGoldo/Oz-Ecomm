@@ -185,7 +185,7 @@ export function orderReceiptCustomerMessage(d: OrderMessageData): string {
     opt(d.paymentLabel, (v) => `💳 Pago: ${v}`),
     fulfillmentLine(d),
     opt(d.orderUrl, () => ""),
-    opt(d.orderUrl, (v) => `Seguí tu pedido acá:\n${v}`),
+    opt(d.orderUrl, (v) => `Sigue tu pedido aquí:\n${v}`),
     "",
     "¡Gracias por tu compra! 🙌",
   ]);
@@ -245,7 +245,7 @@ export interface AbandonedCartMessageData {
 
 /**
  * Mensaje para recuperar un carrito abandonado. Sin descuentos ni presión: el
- * comerciante decide si regala algo, acá solo se le recuerda lo que dejó y se
+ * comerciante decide si regala algo, aquí solo se le recuerda lo que dejó y se
  * le ofrece ayuda — que es lo que suele destrabar la compra.
  */
 export function abandonedCartMessage(d: AbandonedCartMessageData): string {

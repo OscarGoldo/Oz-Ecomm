@@ -194,7 +194,7 @@ async function main() {
   const yearly = await findOrCreatePlan(productId, PLAN_YEARLY, "YEAR", YEARLY_USD);
   const webhookId = await findOrCreateWebhook();
 
-  console.log("\n── Poné esto en tus variables de entorno ──");
+  console.log("\n── Pon esto en tus variables de entorno ──");
   console.log(`PAYPAL_PLAN_MONTHLY=${monthly}`);
   console.log(`PAYPAL_PLAN_YEARLY=${yearly}`);
   if (webhookId) console.log(`PAYPAL_WEBHOOK_ID=${webhookId}`);

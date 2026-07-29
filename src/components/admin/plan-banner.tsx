@@ -54,7 +54,7 @@ export function PlanBanner({
         <span>
           Estás en el plan Gratis.{" "}
           <Link href="/panel/plan" className="font-medium underline">
-            Activá Pro
+            Activa Pro
           </Link>{" "}
           para tener todas las plantillas, analítica, cupones y productos
           ilimitados.

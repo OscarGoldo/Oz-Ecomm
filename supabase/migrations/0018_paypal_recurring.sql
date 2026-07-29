@@ -25,7 +25,7 @@ CREATE INDEX IF NOT EXISTS idx_stores_paypal_sub
   ON stores(paypal_subscription_id)
   WHERE paypal_subscription_id IS NOT NULL;
 
--- Cada cobro (el primero y cada renovación) queda registrado acá.
+-- Cada cobro (el primero y cada renovación) queda registrado aquí.
 ALTER TABLE subscription_payments
   ADD COLUMN IF NOT EXISTS paypal_subscription_id TEXT;
 

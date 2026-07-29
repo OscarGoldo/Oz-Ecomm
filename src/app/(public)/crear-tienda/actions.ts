@@ -117,7 +117,7 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
   if (existingUser) {
     return {
       ok: false,
-      error: "Ese email ya tiene una cuenta. Iniciá sesión.",
+      error: "Ese email ya tiene una cuenta. Inicia sesión.",
     };
   }
 
