@@ -10,13 +10,18 @@ import {
 } from "@/app/(admin)/panel/plan/actions";
 
 interface PaypalButtonsApi {
+  FUNDING: { CARD: string };
   Buttons: (opts: {
+    fundingSource?: string;
     style?: Record<string, unknown>;
     createOrder: () => Promise<string>;
     onApprove: (data: { orderID: string }) => Promise<void>;
     onError?: (err: unknown) => void;
     onCancel?: () => void;
-  }) => { render: (el: HTMLElement) => Promise<void> };
+  }) => {
+    render: (el: HTMLElement) => Promise<void>;
+    isEligible?: () => boolean;
+  };
 }
 
 function loadPaypalSdk(clientId: string): Promise<PaypalButtonsApi | null> {
@@ -83,8 +88,9 @@ export function PlanPaypalButtons({
       }
       renderedRef.current = true;
       setLoading(false);
-      paypal
-        .Buttons({
+      const build = (fundingSource?: string) =>
+        paypal.Buttons({
+          ...(fundingSource ? { fundingSource } : {}),
           style: { layout: "vertical", shape: "rect", label: "pay" },
           createOrder: async () => {
             const res = await createProPaypalOrder(monthsRef.current);
@@ -115,9 +121,13 @@ export function PlanPaypalButtons({
                 : "Hubo un problema con el pago. Intentá de nuevo.";
             toast.error(msg.slice(0, 200));
           },
-        })
-        .render(containerRef.current)
-        .catch(() => setFailed(true));
+        });
+
+      // Solo tarjeta. Si la cuenta no la admite suelta, se cae a la pila
+      // completa: renderizar igual dejaría el contenedor vacío.
+      const card = build(paypal.FUNDING?.CARD);
+      const target = card.isEligible && !card.isEligible() ? build() : card;
+      target.render(containerRef.current).catch(() => setFailed(true));
     });
     return () => {
       cancelled = true;

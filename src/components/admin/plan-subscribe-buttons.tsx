@@ -6,8 +6,17 @@ import { toast } from "sonner";
 
 import { registerProSubscription } from "@/app/(admin)/panel/plan/actions";
 
+interface PaypalButtonsInstance {
+  render: (el: HTMLElement) => Promise<void>;
+  /** Si la fuente de fondeo pedida no aplica para esta cuenta/país/moneda. */
+  isEligible?: () => boolean;
+}
+
 interface PaypalSdk {
+  FUNDING: { CARD: string; PAYPAL: string };
   Buttons: (opts: {
+    /** Renderiza una sola fuente de fondeo en vez de la pila completa. */
+    fundingSource?: string;
     style?: Record<string, unknown>;
     createSubscription: (
       data: unknown,
@@ -15,7 +24,7 @@ interface PaypalSdk {
     ) => Promise<string>;
     onApprove: (data: { subscriptionID?: string | null }) => Promise<void>;
     onError?: (err: unknown) => void;
-  }) => { render: (el: HTMLElement) => Promise<void> };
+  }) => PaypalButtonsInstance;
 }
 
 /**
@@ -69,6 +78,9 @@ export function PlanSubscribeButtons({
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [working, setWorking] = useState(false);
+  // Arranca en true y baja a false solo si PayPal dice que la tarjeta suelta
+  // no aplica; cambia el texto de ayuda para no prometer algo que no se ve.
+  const [cardOnly, setCardOnly] = useState(true);
 
   useEffect(() => {
     planRef.current = planId;
@@ -85,8 +97,10 @@ export function PlanSubscribeButtons({
       }
       renderedRef.current = true;
       setLoading(false);
-      paypal
-        .Buttons({
+
+      const build = (fundingSource?: string) =>
+        paypal.Buttons({
+          ...(fundingSource ? { fundingSource } : {}),
           style: { layout: "vertical", shape: "rect", label: "subscribe" },
           createSubscription: (_data, actions) =>
             actions.subscription.create({
@@ -121,9 +135,20 @@ export function PlanSubscribeButtons({
                 : "Hubo un problema. Intentá de nuevo.";
             toast.error(msg.slice(0, 200));
           },
-        })
-        .render(containerRef.current)
-        .catch(() => setFailed(true));
+        });
+
+      // Solo la tarjeta: se pide la fuente CARD sola, así no aparece el botón
+      // amarillo de PayPal. `isEligible` es obligatorio acá — si la cuenta o
+      // el país no admiten tarjeta suelta para suscripciones, renderizar igual
+      // deja el contenedor vacío y el comerciante se queda sin forma de pagar.
+      const card = build(paypal.FUNDING?.CARD);
+      let target = card;
+      if (card.isEligible && !card.isEligible()) {
+        setCardOnly(false);
+        target = build();
+      }
+
+      target.render(containerRef.current).catch(() => setFailed(true));
     });
     return () => {
       cancelled = true;
@@ -147,6 +172,12 @@ export function PlanSubscribeButtons({
         </div>
       )}
       <div ref={containerRef} />
+      {!loading && !cardOnly && (
+        <p className="mt-2 text-center text-[11px] text-muted-foreground">
+          Tu cuenta de PayPal no admite pagar solo con tarjeta en suscripciones,
+          así que se muestran todas las opciones.
+        </p>
+      )}
       {working && (
         <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" /> Registrando tu
