@@ -7,6 +7,7 @@ import { getSessionContext } from "@/lib/auth";
 import { customerOrderStatusEmail, sendEmail } from "@/lib/email";
 import { orderStatusClientMessage } from "@/lib/order-messages";
 import { ORDER_STATUS_META } from "@/lib/constants";
+import { maybeQualifyReferral } from "@/lib/referrals-server";
 import type { OrderStatus, Store } from "@/types/database";
 
 export interface ActionResult {
@@ -162,6 +163,9 @@ export async function confirmPayment(orderId: string): Promise<ActionResult> {
   if (error) return { ok: false, error: "No se pudo confirmar el pago" };
 
   await notifyCustomerEmail(orderId, "confirmed", store.name);
+  // Confirmar una venta es lo que puede activar el referido que trajo a esta
+  // tienda. Sale en la primera consulta si no hay ninguno pendiente.
+  await maybeQualifyReferral(storeId);
   revalidate(orderId);
   return { ok: true };
 }

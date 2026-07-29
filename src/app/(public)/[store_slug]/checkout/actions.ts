@@ -14,6 +14,7 @@ import {
 } from "@/lib/email";
 import { buildOrderMessageData } from "@/lib/order-messages";
 import { evaluateCoupon, findCouponByCode } from "@/lib/coupons";
+import { maybeQualifyReferral } from "@/lib/referrals-server";
 import {
   capturePaypalOrder,
   createPaypalOrder,
@@ -536,6 +537,13 @@ export async function createOrder(
       .from("coupons")
       .update({ times_used: appliedCoupon.times_used + 1 })
       .eq("id", appliedCoupon.id);
+  }
+
+  // Los pedidos en efectivo y por PayPal nacen confirmados: nunca pasan por
+  // confirmPayment, así que el referido que trajo a esta tienda se evalúa acá
+  // también. Los que quedan en pending_confirmation se evalúan al confirmarse.
+  if (status === "confirmed") {
+    await maybeQualifyReferral(store.id);
   }
 
   // El visitante compró: su carrito abandonado deja de estar pendiente. Se

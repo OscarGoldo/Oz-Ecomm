@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Gift,
   LayoutDashboard,
   Lock,
   Package,
@@ -40,6 +41,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/panel/clientes", label: "Clientes", icon: Users },
   { href: "/panel/analitica", label: "Analítica", icon: BarChart3, pro: true },
   { href: "/panel/finanzas", label: "Finanzas", icon: Wallet },
+  { href: "/panel/referidos", label: "Referidos", icon: Gift },
   { href: "/panel/plan", label: "Plan", icon: Sparkles },
   { href: "/panel/configuracion", label: "Ajustes", icon: Settings },
 ];

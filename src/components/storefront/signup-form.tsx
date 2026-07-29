@@ -30,7 +30,17 @@ interface Success {
   storeName: string;
 }
 
-export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
+export function SignupForm({
+  prefillEmail = "",
+  referralCode = "",
+}: {
+  prefillEmail?: string;
+  /**
+   * Código de referido de la URL. El respaldo, no la fuente: normalmente el
+   * server action lo saca de la cookie que dejó /r/<codigo>.
+   */
+  referralCode?: string;
+}) {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<Success | null>(null);
   // When the form was rendered (server rejects instant bot submissions).
@@ -69,6 +79,7 @@ export function SignupForm({ prefillEmail = "" }: { prefillEmail?: string }) {
       primary_color: values.primary_color || undefined,
       website: values.website,
       form_ts: startedAt.current,
+      ref: referralCode || undefined,
     });
     setSubmitting(false);
     if (!res.ok || !res.slug) {

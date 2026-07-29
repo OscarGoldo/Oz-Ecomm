@@ -14,10 +14,18 @@ export default async function SuperLayout({
 
   // Comprobantes esperando revisión: es plata que ya te pagaron pero que el
   // comerciante todavía no está recibiendo, así que va visible en el nav.
-  const { count: pendingSubs } = await createClient()
+  const supabase = createClient();
+  const { count: pendingSubs } = await supabase
     .from("subscription_payments")
     .select("id", { count: "exact", head: true })
     .eq("status", "pending");
+
+  // Referidos que se activaron pero pasaron el tope automático: hasta que los
+  // mires, hay un comerciante esperando su mes.
+  const { count: pendingReferrals } = await supabase
+    .from("referrals")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "qualified");
 
   return (
     <div className="min-h-dvh bg-muted/30">
@@ -54,6 +62,17 @@ export default async function SuperLayout({
                 {pendingSubs ? (
                   <span className="grid min-w-5 place-items-center rounded-full bg-warning px-1 text-[11px] font-bold leading-5 text-warning-foreground">
                     {pendingSubs > 99 ? "99+" : pendingSubs}
+                  </span>
+                ) : null}
+              </Link>
+              <Link
+                href="/super/referidos"
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                Referidos
+                {pendingReferrals ? (
+                  <span className="grid min-w-5 place-items-center rounded-full bg-warning px-1 text-[11px] font-bold leading-5 text-warning-foreground">
+                    {pendingReferrals > 99 ? "99+" : pendingReferrals}
                   </span>
                 ) : null}
               </Link>

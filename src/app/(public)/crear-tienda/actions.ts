@@ -1,9 +1,11 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { REFERRAL_COOKIE } from "@/lib/referrals";
+import { attachReferral } from "@/lib/referrals-server";
 import { isReservedSlug, slugify } from "@/lib/slug";
 
 /** Best-effort client IP from the proxy headers (Vercel sets x-forwarded-for). */
@@ -40,6 +42,8 @@ const schema = z.object({
   website: z.string().optional(),
   /** Timestamp of when the form was rendered (bot speed check). */
   form_ts: z.coerce.number().optional(),
+  /** Código de referido de la URL; la cookie de /r/<codigo> tiene prioridad. */
+  ref: z.string().trim().max(40).optional(),
 });
 
 export type SignupInput = z.input<typeof schema>;
@@ -178,6 +182,16 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
     await db.from("stores").delete().eq("id", store.id);
     return { ok: false, error: "No se pudo crear tu cuenta. Intenta de nuevo." };
   }
+
+  // ¿Alguien la trajo? La cookie manda: la deja /r/<codigo> y sobrevive a que
+  // el visitante dé vueltas por la landing antes de decidirse. El `ref` del
+  // formulario es el respaldo para quien entra derecho a /crear-tienda?ref=…
+  await attachReferral({
+    referredStoreId: store.id,
+    referredEmail: d.owner_email,
+    code: cookies().get(REFERRAL_COOKIE)?.value ?? d.ref,
+    signupIp: ip === "unknown" ? null : ip,
+  });
 
   // Default cash payment method so checkout works immediately.
   await db.from("payment_methods").insert({

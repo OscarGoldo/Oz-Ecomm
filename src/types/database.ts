@@ -24,6 +24,11 @@ export type SubscriptionPaymentStatus = "pending" | "approved" | "rejected";
 export type SubscriptionMethod = "pago_movil" | "zelle" | "binance" | "paypal";
 /** Espejo del estado de la suscripción recurrente en PayPal. */
 export type SubscriptionState = "active" | "suspended" | "cancelled" | "expired";
+/**
+ * En qué va un referido. 'qualified' = la tienda referida se activó pero el
+ * premio todavía no se acreditó (pasó el tope y espera revisión en /super).
+ */
+export type ReferralStatus = "pending" | "qualified" | "rewarded" | "rejected";
 
 export type ProductStatus = "active" | "draft" | "archived";
 
@@ -104,6 +109,7 @@ export interface Database {
           plan_note: string | null;
           paypal_subscription_id: string | null;
           paypal_subscription_status: SubscriptionState | null;
+          referral_code: string;
           created_at: string;
           updated_at: string;
         };
@@ -140,6 +146,7 @@ export interface Database {
           plan_note?: string | null;
           paypal_subscription_id?: string | null;
           paypal_subscription_status?: SubscriptionState | null;
+          referral_code?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -578,6 +585,36 @@ export interface Database {
         >;
         Relationships: [];
       };
+      referrals: {
+        Row: {
+          id: string;
+          referrer_store_id: string;
+          referred_store_id: string;
+          code_used: string;
+          status: ReferralStatus;
+          reward_months: number;
+          signup_ip: string | null;
+          qualified_at: string | null;
+          rewarded_at: string | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          referrer_store_id: string;
+          referred_store_id: string;
+          code_used: string;
+          status?: ReferralStatus;
+          reward_months?: number;
+          signup_ip?: string | null;
+          qualified_at?: string | null;
+          rewarded_at?: string | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["referrals"]["Insert"]>;
+        Relationships: [];
+      };
       subscription_payments: {
         Row: {
           id: string;
@@ -700,3 +737,4 @@ export type Coupon = Tables["coupons"]["Row"];
 export type SubscriptionPayment = Tables["subscription_payments"]["Row"];
 export type PlatformSettings = Tables["platform_settings"]["Row"];
 export type AbandonedCart = Tables["abandoned_carts"]["Row"];
+export type Referral = Tables["referrals"]["Row"];

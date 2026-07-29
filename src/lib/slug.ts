@@ -24,6 +24,8 @@ const RESERVED_SLUGS = new Set([
   "crear-tienda",
   "signup",
   "registro",
+  "r", // /r/<codigo>: el link corto de referidos
+  "referidos",
   "recuperar",
   "actualizar-clave",
   "terminos",

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function CrearTiendaPage({
   searchParams,
 }: {
-  searchParams: { email?: string };
+  searchParams: { email?: string; ref?: string };
 }) {
   return (
     <main className="min-h-dvh bg-muted/30">
@@ -40,7 +40,10 @@ export default function CrearTiendaPage({
         <p className="mt-1 mb-6 text-muted-foreground">
           En un minuto tienes tu tienda online lista para vender.
         </p>
-        <SignupForm prefillEmail={searchParams.email ?? ""} />
+        <SignupForm
+          prefillEmail={searchParams.email ?? ""}
+          referralCode={searchParams.ref ?? ""}
+        />
         <p className="mt-4 text-center text-xs text-muted-foreground">
           Al crear tu tienda aceptas los{" "}
           <Link href="/terminos" className="font-medium text-primary hover:underline">

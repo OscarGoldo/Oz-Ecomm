@@ -104,6 +104,50 @@ export function newOrderEmail(p: NewOrderEmailParams): {
   return { subject, html };
 }
 
+interface ReferralRewardEmailParams {
+  ownerName: string;
+  storeName: string;
+  /** null si la tienda referida se borró entre el premio y el correo. */
+  referredName: string | null;
+  months: number;
+}
+
+/**
+ * Aviso al comerciante de que su referido se activó y ya tiene el mes de Pro.
+ *
+ * Dice explícitamente que los meses se suman al FINAL del período: si tiene la
+ * suscripción recurrente de PayPal, el premio no le frena el cobro de este mes,
+ * y sin esa línea llega el reclamo.
+ */
+export function referralRewardEmail(p: ReferralRewardEmailParams): {
+  subject: string;
+  html: string;
+} {
+  const monthLabel = p.months === 1 ? "1 mes" : `${p.months} meses`;
+  const subject = `🎁 Ganaste ${monthLabel} de Pro por tu referido`;
+  const html = `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+    <h2 style="margin:0 0 4px">¡Tu referido arrancó! 🎉</h2>
+    <p style="margin:0 0 16px;color:#64748b">Hola ${esc(p.ownerName)}</p>
+    <div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:16px">
+      <p style="margin:0 0 8px;color:#334155;line-height:1.5">
+        ${p.referredName ? `<strong>${esc(p.referredName)}</strong> ya` : "La tienda que trajiste ya"}
+        publicó sus productos y confirmó su primera venta.
+      </p>
+      <p style="margin:0;font-size:18px;font-weight:700">
+        Sumamos ${esc(monthLabel)} de Pro a ${esc(p.storeName)}
+      </p>
+    </div>
+    <p style="margin:0 0 16px;color:#64748b;font-size:14px;line-height:1.5">
+      Los meses se agregan al final de tu período actual. Si pagás tu plan con
+      suscripción de PayPal, el cobro de este mes sigue igual y tu vencimiento
+      se corre hacia adelante.
+    </p>
+    <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Tiendify</p>
+  </div>`;
+  return { subject, html };
+}
+
 interface CustomerStatusEmailParams {
   storeName: string;
   orderNumber: number;
