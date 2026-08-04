@@ -173,6 +173,8 @@ interface CustomerStatusEmailParams {
   orderNumber: number;
   statusLabel: string;
   message: string;
+  /** Página pública de seguimiento del pedido. */
+  orderUrl?: string | null;
 }
 
 /** Build the "order status update" email for the customer. */
@@ -188,6 +190,11 @@ export function customerOrderStatusEmail(p: CustomerStatusEmailParams): {
       <p style="margin:0 0 8px;font-size:18px;font-weight:700">Pedido #${esc(p.orderNumber)} · ${esc(p.statusLabel)}</p>
       <p style="margin:0;color:#334155;line-height:1.5">${esc(p.message)}</p>
     </div>
+    ${
+      p.orderUrl
+        ? `<a href="${esc(p.orderUrl)}" style="display:inline-block;margin-top:16px;background:#0EA5E9;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">Ver mi pedido</a>`
+        : ""
+    }
     <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Enviado por ${esc(p.storeName)} vía Tiendify</p>
   </div>`;
   return { subject, html };

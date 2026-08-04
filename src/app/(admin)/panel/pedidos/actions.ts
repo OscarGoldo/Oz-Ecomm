@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSessionContext } from "@/lib/auth";
 import { customerOrderStatusEmail, sendEmail } from "@/lib/email";
-import { orderStatusClientMessage } from "@/lib/order-messages";
+import {
+  orderStatusClientMessage,
+  shouldNotifyCustomer,
+} from "@/lib/order-messages";
 import { ORDER_STATUS_META } from "@/lib/constants";
 import { maybeQualifyReferral } from "@/lib/referrals-server";
 import type { OrderStatus, Store } from "@/types/database";
@@ -30,12 +33,12 @@ function revalidate(orderId: string) {
 /**
  * Automatically email the customer about a status change. No-op if the order
  * has no email or Resend isn't configured. Never fails the action.
+ *
+ * Se llama desde TODA transición de estado del pedido: si mañana aparece otro
+ * camino que toca `orders.status`, tiene que pasar por acá.
  */
-async function notifyCustomerEmail(
-  orderId: string,
-  status: OrderStatus,
-  storeName: string,
-) {
+async function notifyCustomerEmail(orderId: string, status: OrderStatus, store: Store) {
+  if (!shouldNotifyCustomer(status)) return;
   try {
     const db = createAdminClient();
     const { data: order } = await db
@@ -48,13 +51,15 @@ async function notifyCustomerEmail(
       status,
       order.customer_name,
       order.order_number,
-      storeName,
+      store.name,
     );
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
     const { subject, html } = customerOrderStatusEmail({
-      storeName,
+      storeName: store.name,
       orderNumber: order.order_number,
       statusLabel: ORDER_STATUS_META[status].label,
       message,
+      orderUrl: `${appUrl}/${store.slug}/pedido/${orderId}`,
     });
     await sendEmail({ to: order.customer_email, subject, html });
   } catch {
@@ -162,7 +167,7 @@ export async function confirmPayment(orderId: string): Promise<ActionResult> {
     .eq("store_id", storeId);
   if (error) return { ok: false, error: "No se pudo confirmar el pago" };
 
-  await notifyCustomerEmail(orderId, "confirmed", store.name);
+  await notifyCustomerEmail(orderId, "confirmed", store);
   // Confirmar una venta es lo que puede activar el referido que trajo a esta
   // tienda. Sale en la primera consulta si no hay ninguno pendiente.
   await maybeQualifyReferral(storeId);
@@ -195,6 +200,18 @@ export async function updateOrderStatus(
 
   const now = new Date().toISOString();
   const db = createAdminClient();
+
+  // Si el pedido ya está en ese estado no se reescribe ni se le manda otro
+  // correo al cliente: dos taps seguidos en "En camino" no son dos avisos.
+  const { data: current } = await db
+    .from("orders")
+    .select("status")
+    .eq("id", orderId)
+    .eq("store_id", store.id)
+    .maybeSingle();
+  if (!current) return { ok: false, error: "Pedido no encontrado" };
+  if (current.status === status) return { ok: true };
+
   const { error } = await db
     .from("orders")
     .update({
@@ -206,7 +223,7 @@ export async function updateOrderStatus(
     .eq("store_id", store.id);
   if (error) return { ok: false, error: "No se pudo actualizar el pedido" };
 
-  await notifyCustomerEmail(orderId, status, store.name);
+  await notifyCustomerEmail(orderId, status, store);
   revalidate(orderId);
   return { ok: true };
 }
