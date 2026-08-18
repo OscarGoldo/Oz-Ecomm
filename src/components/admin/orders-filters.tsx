@@ -32,6 +32,8 @@ export function OrdersFilters({
     const sp = new URLSearchParams(params.toString());
     if (value === "all") sp.delete("status");
     else sp.set("status", value);
+    // Cambiar de filtro vuelve a la primera página.
+    sp.delete("ver");
     startTransition(() => router.replace(`${pathname}?${sp.toString()}`));
   }
 

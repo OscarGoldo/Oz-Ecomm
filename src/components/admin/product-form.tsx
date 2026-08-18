@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
-import { Loader2, Save, Trash2 } from "lucide-react";
+import { ChevronDown, Loader2, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,7 @@ import {
   type ProductInput,
 } from "@/app/(admin)/panel/productos/actions";
 import { cleanVariantOptions, variantCombos, variantKey } from "@/lib/variants";
+import { cn } from "@/lib/utils";
 import type {
   Category,
   Product,
@@ -111,6 +112,16 @@ export function ProductForm({
   const [deleting, setDeleting] = useState(false);
   const [variantState, setVariantState] = useState<VariantState>(() =>
     initialVariantState(product?.variant_options, variants),
+  );
+  /* Abierto de entrada solo si el producto ya usa algo de ahí adentro: si no,
+     esconderlo le ocultaría al comerciante datos que él mismo cargó. */
+  const [showAdvanced, setShowAdvanced] = useState(
+    () =>
+      Boolean(product?.variant_options?.length) ||
+      Boolean(product?.category_id) ||
+      product?.cost != null ||
+      Boolean(product?.featured) ||
+      (product != null && product.status !== "active"),
   );
 
   const {
@@ -208,7 +219,28 @@ export function ProductForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pb-24 md:pb-0">
+      {/* Las fotos van primero: es lo primero que quiere hacer alguien que tiene
+          el producto en la mano. Antes eran la cuarta tarjeta. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Fotos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Controller
+            control={control}
+            name="images"
+            render={({ field }) => (
+              <ImageUploader
+                storeId={storeId}
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
+          />
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Información</CardTitle>
@@ -239,34 +271,6 @@ export function ProductForm({
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Categoría</Label>
-              <Controller
-                control={control}
-                name="category_id"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sin categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>Sin categoría</SelectItem>
-                      {categories.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sku">SKU / Código</Label>
-              <Input id="sku" {...register("sku")} placeholder="Opcional" />
-            </div>
-          </div>
         </CardContent>
       </Card>
 
@@ -305,29 +309,6 @@ export function ProductForm({
                 {...register("compare_at_price")}
                 placeholder="Opcional (oferta)"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cost">Costo (USD)</Label>
-              <Input
-                id="cost"
-                type="number"
-                step="0.01"
-                min="0"
-                inputMode="decimal"
-                {...register("cost")}
-                placeholder="Cuánto te cuesta"
-              />
-              <p className="text-xs text-muted-foreground">
-                {(() => {
-                  const p = Number(watch("price"));
-                  const c = Number(watch("cost"));
-                  if (p > 0 && c > 0 && c <= p) {
-                    const margin = Math.round(((p - c) / p) * 100);
-                    return `Ganancia: $${(p - c).toFixed(2)} · margen ${margin}%`;
-                  }
-                  return "Para ver márgenes en Finanzas.";
-                })()}
-              </p>
             </div>
           </div>
 
@@ -386,6 +367,85 @@ export function ProductForm({
         </CardContent>
       </Card>
 
+      {/* Todo lo de abajo es opcional. Plegado, cargar un producto es foto,
+          nombre, precio, stock y guardar — que es lo que hace el 90% de las
+          veces un comerciante apurado desde el celular. Se abre solo al editar
+          un producto que ya usa alguna de estas cosas. */}
+      <button
+        type="button"
+        onClick={() => setShowAdvanced((v) => !v)}
+        aria-expanded={showAdvanced}
+        className="flex w-full items-center justify-between rounded-lg border bg-card px-4 py-3 text-sm font-medium transition-colors hover:bg-muted/50"
+      >
+        Más opciones
+        <span className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
+          Variantes, categoría, costo, destacado
+          <ChevronDown
+            className={cn("size-4 transition-transform", showAdvanced && "rotate-180")}
+          />
+        </span>
+      </button>
+
+      <div className={cn("space-y-6", showAdvanced ? "block" : "hidden")}>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Organización y costo</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Categoría</Label>
+              <Controller
+                control={control}
+                name="category_id"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sin categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>Sin categoría</SelectItem>
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sku">SKU / Código</Label>
+              <Input id="sku" {...register("sku")} placeholder="Opcional" />
+            </div>
+          </div>
+          <div className="space-y-2 sm:max-w-[50%]">
+            <Label htmlFor="cost">Costo (USD)</Label>
+            <Input
+              id="cost"
+              type="number"
+              step="0.01"
+              min="0"
+              inputMode="decimal"
+              {...register("cost")}
+              placeholder="Cuánto te cuesta"
+            />
+            <p className="text-xs text-muted-foreground">
+              {(() => {
+                const p = Number(watch("price"));
+                const c = Number(watch("cost"));
+                if (p > 0 && c > 0 && c <= p) {
+                  const margin = Math.round(((p - c) / p) * 100);
+                  return `Ganancia: ${(p - c).toFixed(2)} · margen ${margin}%`;
+                }
+                return "Para ver márgenes en Finanzas.";
+              })()}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Variantes</CardTitle>
@@ -399,24 +459,6 @@ export function ProductForm({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Imágenes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Controller
-            control={control}
-            name="images"
-            render={({ field }) => (
-              <ImageUploader
-                storeId={storeId}
-                value={field.value}
-                onChange={field.onChange}
-              />
-            )}
-          />
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
@@ -462,8 +504,56 @@ export function ProductForm({
           </div>
         </CardContent>
       </Card>
+      </div>
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* En móvil queda fijo sobre la barra de navegación: estaba al final de
+          cinco pantallazos de scroll y había que buscarlo cada vez. */}
+      <div className="fixed inset-x-0 bottom-[3.25rem] z-30 flex gap-3 border-t bg-background/95 p-3 backdrop-blur md:hidden">
+        <Button
+          type="button"
+          variant="outline"
+          className="flex-1"
+          onClick={() => router.push("/panel/productos")}
+        >
+          Cancelar
+        </Button>
+        <Button type="submit" className="flex-[2]" disabled={submitting}>
+          {submitting ? <Loader2 className="animate-spin" /> : <Save />}
+          {isEdit ? "Guardar" : "Crear producto"}
+        </Button>
+      </div>
+
+      {isEdit && (
+        <div className="md:hidden">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button type="button" variant="outline" className="w-full text-destructive">
+                <Trash2 /> Eliminar producto
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Eliminar este producto?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Se quitará de tu catálogo. Esta acción no se puede deshacer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={onDelete}
+                  disabled={deleting}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {deleting ? "Eliminando…" : "Eliminar"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
+
+      <div className="hidden flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between md:flex">
         {isEdit ? (
           <AlertDialog>
             <AlertDialogTrigger asChild>

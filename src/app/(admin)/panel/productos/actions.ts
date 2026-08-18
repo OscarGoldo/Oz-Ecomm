@@ -265,3 +265,39 @@ export async function setProductStatus(
   revalidatePath("/panel/productos");
   return { ok: true };
 }
+
+/**
+ * Ajusta el stock de un producto desde la lista, sin abrir el formulario.
+ *
+ * Bajar de 4 a 3 unidades obligaba a entrar al producto, buscar el campo entre
+ * seis tarjetas y guardar el formulario entero. Es una tarea de todos los días,
+ * y es la razón por la que el stock se desactualiza y la tienda termina
+ * vendiendo lo que no tiene.
+ *
+ * Solo toca `stock`, y solo de un producto de la tienda del usuario.
+ */
+export async function setProductStock(
+  id: string,
+  stock: number,
+): Promise<ActionResult> {
+  if (!Number.isFinite(stock) || stock < 0) {
+    return { ok: false, error: "Cantidad inválida" };
+  }
+
+  const ctx = await getSessionContext();
+  if (!ctx?.store) return { ok: false, error: "No autorizado" };
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("products")
+    .update({ stock: Math.floor(stock) })
+    .eq("id", id)
+    .eq("store_id", ctx.store.id);
+
+  if (error) {
+    return { ok: false, error: "No se pudo actualizar el stock" };
+  }
+
+  revalidatePath("/panel/productos");
+  return { ok: true };
+}

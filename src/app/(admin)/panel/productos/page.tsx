@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProductStatusBadge } from "@/components/admin/status-badge";
 import { ProductsFilters } from "@/components/admin/products-filters";
+import { StockQuickEdit } from "@/components/admin/stock-quick-edit";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatUSD } from "@/lib/format";
@@ -172,12 +173,21 @@ export default async function ProductosPage({
                     </div>
                   </div>
 
-                  <div className="shrink-0 text-right">
-                    <p className="font-semibold">{formatUSD(p.price)}</p>
-                    {p.compare_at_price != null && (
-                      <p className="text-xs text-muted-foreground line-through">
-                        {formatUSD(p.compare_at_price)}
-                      </p>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <div className="text-right">
+                      <p className="font-semibold">{formatUSD(p.price)}</p>
+                      {p.compare_at_price != null && (
+                        <p className="text-xs text-muted-foreground line-through">
+                          {formatUSD(p.compare_at_price)}
+                        </p>
+                      )}
+                    </div>
+                    {p.track_stock && (
+                      <StockQuickEdit
+                        productId={p.id}
+                        stock={p.stock}
+                        lowThreshold={p.low_stock_threshold}
+                      />
                     )}
                   </div>
                 </Link>
