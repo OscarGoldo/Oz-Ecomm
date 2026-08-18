@@ -640,6 +640,14 @@ export function themeStyle(theme: StoreTheme): CSSProperties {
   if (primary) {
     style["--primary"] = primary;
     style["--ring"] = primary;
+    // El texto que va ENCIMA del color de marca. Sin esto quedaba blanco fijo:
+    // un comerciante que elegía amarillo, lima o rosa claro terminaba con todos
+    // los botones primarios, el badge del carrito y el hero en blanco sobre
+    // claro, ilegibles. El caso del fondo oscuro ya estaba resuelto abajo; este
+    // era el mismo cuidado que faltaba del otro lado.
+    style["--primary-foreground"] = isDarkColor(theme.colors.primary)
+      ? "0 0% 100%"
+      : "222 47% 11%";
   }
   if (accent) style["--brand-accent"] = accent;
   if (surface) style["--background"] = surface;

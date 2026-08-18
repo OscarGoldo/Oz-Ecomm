@@ -7,7 +7,7 @@ import { UserMenu } from "@/components/admin/user-menu";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { abandonedCartCutoff } from "@/lib/constants";
-import { hexToHslTriplet } from "@/lib/color";
+import { hexToHslTriplet, isDarkColor } from "@/lib/color";
 import { daysUntilExpiry, isPro } from "@/lib/plans";
 import { getImageUrl } from "@/lib/storage";
 import type { CSSProperties } from "react";
@@ -54,7 +54,15 @@ export default async function PanelLayout({
   // Apply the store's brand color to the panel theme.
   const primaryHsl = hexToHslTriplet(store.primary_color);
   const brandStyle = primaryHsl
-    ? ({ "--primary": primaryHsl, "--ring": primaryHsl } as CSSProperties)
+    ? ({
+        "--primary": primaryHsl,
+        "--ring": primaryHsl,
+        // Igual que en la tienda: el texto sobre el color de marca se decide
+        // por la luminosidad, no se asume blanco.
+        "--primary-foreground": isDarkColor(store.primary_color)
+          ? "0 0% 100%"
+          : "222 47% 11%",
+      } as CSSProperties)
     : undefined;
 
   return (

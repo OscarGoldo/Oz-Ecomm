@@ -26,7 +26,7 @@ const storeSchema = z.object({
     .string()
     .trim()
     .regex(/^#[0-9a-fA-F]{6}$/, "Color inválido (#RRGGBB)")
-    .default("#2563EB"),
+    .default("#0EA5E9"),
   logo_url: optStr,
   banner_url: optStr,
   whatsapp: optStr,
@@ -58,12 +58,34 @@ export async function updateStoreSettings(
   }
 
   const supabase = createClient();
+
+  // El color vive en dos lugares: `primary_color` (esta pantalla, y lo que usa
+  // el panel) y `customization.colors.primary` (Personalizar, y lo que usa la
+  // tienda). `resolveTheme` prefiere el segundo, así que apenas el comerciante
+  // tocaba Personalizar una vez, este campo dejaba de tener efecto sobre su
+  // tienda para siempre: cambiaba el color, guardaba, abría su tienda y no veía
+  // nada distinto. Guardar acá ahora escribe los dos.
+  const { data: current } = await supabase
+    .from("stores")
+    .select("customization")
+    .eq("id", storeId)
+    .maybeSingle();
+  const customization = {
+    ...((current?.customization as Record<string, unknown>) ?? {}),
+    colors: {
+      ...(((current?.customization as { colors?: Record<string, unknown> } | null)
+        ?.colors) ?? {}),
+      primary: d.primary_color,
+    },
+  };
+
   const { error } = await supabase
     .from("stores")
     .update({
       name: d.name,
       description: d.description?.trim() ? d.description.trim() : null,
       primary_color: d.primary_color,
+      customization,
       logo_url: d.logo_url || null,
       banner_url: d.banner_url || null,
       whatsapp: d.whatsapp?.trim() ? d.whatsapp.trim() : null,

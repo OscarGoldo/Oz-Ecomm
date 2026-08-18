@@ -34,7 +34,7 @@ export function AddToCartButton({
   const [pending, startTransition] = useTransition();
 
   const baseClass = cn(
-    "relative z-20 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-70",
+    "relative z-20 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-70",
     className,
   );
 

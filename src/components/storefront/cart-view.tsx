@@ -96,7 +96,7 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
                     type="button"
                     onClick={() => remove(line.product.id, line.variantId)}
                     disabled={pending}
-                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                    className="-mr-2 -mt-1 grid size-11 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                     aria-label="Quitar"
                   >
                     <Trash2 className="size-4" />
@@ -123,7 +123,7 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
                       type="button"
                       onClick={() => change(line.product.id, line.variantId, line.qty - 1)}
                       disabled={pending}
-                      className="grid size-8 place-items-center text-muted-foreground hover:text-foreground"
+                      className="grid size-11 place-items-center text-muted-foreground hover:text-foreground"
                       aria-label="Menos"
                     >
                       <Minus className="size-3.5" />
@@ -135,7 +135,7 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
                       type="button"
                       onClick={() => change(line.product.id, line.variantId, Math.min(cap, line.qty + 1))}
                       disabled={pending || line.qty >= cap}
-                      className="grid size-8 place-items-center text-muted-foreground hover:text-foreground disabled:opacity-30"
+                      className="grid size-11 place-items-center text-muted-foreground hover:text-foreground disabled:opacity-30"
                       aria-label="Más"
                     >
                       <Plus className="size-3.5" />
