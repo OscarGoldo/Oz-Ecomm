@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { StorefrontHeader } from "@/components/storefront/storefront-header";
 import { StorefrontFooter } from "@/components/storefront/storefront-footer";
+import { WhatsappFloat } from "@/components/storefront/whatsapp-float";
 import { getStoreBySlug } from "@/lib/storefront";
 import { getCartCount } from "@/lib/cart";
 import { resolveTheme, themeStyle } from "@/lib/theme";
@@ -51,6 +52,7 @@ export default async function StoreLayout({
       <StorefrontHeader store={store} cartCount={cartCount} layout={theme.layout} />
       <div className="flex-1">{children}</div>
       <StorefrontFooter store={store} layout={theme.layout} />
+      <WhatsappFloat phone={store.whatsapp} storeName={store.name} />
     </div>
   );
 }

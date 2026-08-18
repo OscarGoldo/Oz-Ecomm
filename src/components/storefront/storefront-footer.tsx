@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { AtSign, MapPin, Phone } from "lucide-react";
+import { AtSign, MapPin, MessageCircle, Phone } from "lucide-react";
 
 import { isPro } from "@/lib/plans";
+import { whatsappUrl } from "@/lib/whatsapp";
 import { LAYOUT_CHROME, type LayoutId } from "@/lib/theme";
 import type { Store } from "@/types/database";
 
@@ -25,6 +26,11 @@ export function StorefrontFooter({
     </Link>
   );
 
+  // Enlaces de verdad, no texto plano. El teléfono y el Instagram estaban
+  // escritos como cadenas sueltas: en un celular, tocarlos no hacía nada.
+  const waUrl = whatsappUrl(store.whatsapp);
+  const igUser = store.instagram?.replace(/^@/, "").trim();
+
   const contact = (
     <>
       {store.address && (
@@ -32,15 +38,33 @@ export function StorefrontFooter({
           <MapPin className="size-4 shrink-0" /> {store.address}
         </span>
       )}
-      {store.phone && (
-        <span className="inline-flex items-center gap-2">
-          <Phone className="size-4 shrink-0" /> {store.phone}
-        </span>
+      {waUrl && (
+        <a
+          href={waUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-11 items-center gap-2 hover:underline"
+        >
+          <MessageCircle className="size-4 shrink-0" /> Escríbenos por WhatsApp
+        </a>
       )}
-      {store.instagram && (
-        <span className="inline-flex items-center gap-2">
-          <AtSign className="size-4 shrink-0" /> {store.instagram}
-        </span>
+      {store.phone && (
+        <a
+          href={`tel:${store.phone.replace(/[^\d+]/g, "")}`}
+          className="inline-flex min-h-11 items-center gap-2 hover:underline"
+        >
+          <Phone className="size-4 shrink-0" /> {store.phone}
+        </a>
+      )}
+      {igUser && (
+        <a
+          href={`https://instagram.com/${igUser}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-11 items-center gap-2 hover:underline"
+        >
+          <AtSign className="size-4 shrink-0" /> {igUser}
+        </a>
       )}
     </>
   );

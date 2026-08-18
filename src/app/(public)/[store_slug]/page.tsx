@@ -24,11 +24,13 @@ import { BeautyMinimalStorefront } from "@/components/storefront/beauty-minimal-
 import {
   getStoreBySlug,
   getStoreCategories,
-  getStoreProducts,
+  getStoreCatalogPage,
+  CATALOG_PAGE_SIZE,
 } from "@/lib/storefront";
 import { getImageUrl } from "@/lib/storage";
 import { formatBs } from "@/lib/format";
 import { resolveTheme, type SectionId } from "@/lib/theme";
+import { LoadMore } from "@/components/storefront/load-more";
 
 export async function generateMetadata({
   params,
@@ -60,7 +62,7 @@ export default async function StorefrontHome({
   searchParams,
 }: {
   params: { store_slug: string };
-  searchParams: { q?: string; cat?: string };
+  searchParams: { q?: string; cat?: string; ver?: string };
 }) {
   const store = await getStoreBySlug(params.store_slug);
   if (!store) notFound();
@@ -70,10 +72,38 @@ export default async function StorefrontHome({
   const catSlug = searchParams.cat || undefined;
   const hasFilters = Boolean(q || catSlug);
 
-  const [categories, products] = await Promise.all([
+  // Cuántos productos mostrar. Crece con "Ver más" vía `?ver=N`, con techo para
+  // que un bot pidiendo ?ver=999999 no arrastre la tabla entera.
+  const shown = Math.min(
+    2000,
+    Math.max(CATALOG_PAGE_SIZE, Number(searchParams.ver) || CATALOG_PAGE_SIZE),
+  );
+
+  const [categories, page] = await Promise.all([
     getStoreCategories(store.id),
-    getStoreProducts(store.id, { q, categorySlug: catSlug }),
+    getStoreCatalogPage(store.id, { q, categorySlug: catSlug }, shown),
   ]);
+  const products = page.products;
+
+  /**
+   * Las plantillas verticales arman su propia estructura y devuelven temprano,
+   * así que el "Ver más" se les cuelga por fuera, al final de la página — que
+   * es donde termina la grilla del catálogo en todas ellas.
+   */
+  const loadMore = page.hasMore ? (
+    <LoadMore
+      storeSlug={store.slug}
+      shown={products.length}
+      step={CATALOG_PAGE_SIZE}
+      searchParams={{ q, cat: catSlug }}
+    />
+  ) : null;
+  const withMore = (el: React.ReactNode) => (
+    <>
+      {el}
+      {loadMore}
+    </>
+  );
 
   const banner = getImageUrl(store.banner_url);
   const featured = !hasFilters
@@ -94,7 +124,7 @@ export default async function StorefrontHome({
 
   // Vertical layouts change the whole structure (not just styles).
   if (theme.layout === "fashion") {
-    return (
+    return withMore(
       <FashionStorefront
         store={store}
         theme={theme}
@@ -109,7 +139,7 @@ export default async function StorefrontHome({
   }
 
   if (theme.layout === "fashion-athletic") {
-    return (
+    return withMore(
       <AthleteEditorialStorefront
         store={store}
         theme={theme}
@@ -125,7 +155,7 @@ export default async function StorefrontHome({
   }
 
   if (theme.layout === "fashion-streetwear") {
-    return (
+    return withMore(
       <StreetStorefront
         store={store}
         theme={theme}
@@ -141,7 +171,7 @@ export default async function StorefrontHome({
   }
 
   if (theme.layout === "tech-discover") {
-    return (
+    return withMore(
       <DiscoverStorefront
         store={store}
         theme={theme}
@@ -157,7 +187,7 @@ export default async function StorefrontHome({
   }
 
   if (theme.layout === "tech") {
-    return (
+    return withMore(
       <TechStorefront
         store={store}
         theme={theme}
@@ -171,7 +201,7 @@ export default async function StorefrontHome({
   }
 
   if (theme.layout === "sports") {
-    return (
+    return withMore(
       <SportsStorefront
         store={store}
         theme={theme}
@@ -186,7 +216,7 @@ export default async function StorefrontHome({
   }
 
   if (theme.layout === "sports-drops") {
-    return (
+    return withMore(
       <DropsStorefront
         store={store}
         theme={theme}
@@ -202,7 +232,7 @@ export default async function StorefrontHome({
   }
 
   if (theme.layout === "accessories") {
-    return (
+    return withMore(
       <AccessoriesStorefront
         store={store}
         theme={theme}
@@ -216,7 +246,7 @@ export default async function StorefrontHome({
   }
 
   if (theme.layout === "beauty") {
-    return (
+    return withMore(
       <BeautyStorefront
         store={store}
         theme={theme}
@@ -231,7 +261,7 @@ export default async function StorefrontHome({
   }
 
   if (theme.layout === "beauty-minimal") {
-    return (
+    return withMore(
       <BeautyMinimalStorefront
         store={store}
         theme={theme}
@@ -392,6 +422,7 @@ export default async function StorefrontHome({
       )}
 
       {order.map((id) => renderSection(id))}
+      {loadMore}
     </main>
   );
 }

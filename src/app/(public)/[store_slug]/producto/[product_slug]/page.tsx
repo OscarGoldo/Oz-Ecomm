@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Check, X } from "lucide-react";
+import { ArrowLeft, Check, MessageCircle, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Price } from "@/components/storefront/price";
@@ -19,6 +19,7 @@ import {
   isAvailable,
 } from "@/lib/storefront";
 import { getImageUrl } from "@/lib/storage";
+import { whatsappUrl } from "@/lib/whatsapp";
 
 export async function generateMetadata({
   params,
@@ -76,6 +77,11 @@ export default async function ProductDetailPage({
     : [];
 
   const related = await getRelatedProducts(store.id, product, 8);
+
+  const askUrl = whatsappUrl(
+    store.whatsapp,
+    `Hola! Me interesa "${product.name}" de ${store.name}.`,
+  );
 
   return (
     <main className="container py-6">
@@ -151,6 +157,20 @@ export default async function ProductDetailPage({
                 maxQty={product.track_stock ? product.stock : null}
               />
             </>
+          )}
+
+          {/* Preguntar antes de pagar por adelantado es parte de cómo se compra
+              acá. El mensaje llega con el producto ya escrito. */}
+          {askUrl && (
+            <a
+              href={askUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-12 items-center justify-center gap-2 rounded-lg border-2 text-sm font-semibold transition-colors hover:border-[#25D366] hover:text-[#25D366]"
+            >
+              <MessageCircle className="size-4" />
+              ¿Dudas? Pregúntanos por WhatsApp
+            </a>
           )}
 
           {product.description && (

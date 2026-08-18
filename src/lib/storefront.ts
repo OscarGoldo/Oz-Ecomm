@@ -71,10 +71,44 @@ export interface CatalogFilters {
   categorySlug?: string;
 }
 
+/**
+ * Cuántos productos trae una página del catálogo.
+ *
+ * Antes no había techo: la home hacía un SELECT sin `limit` y renderizaba el
+ * arreglo completo. Con 500 productos eso son 500 tarjetas en el HTML y 500
+ * pedidos de optimización de imagen — sobre datos móviles, una home que no
+ * termina de cargar nunca. 24 llena varias pantallas en celular y deja el peso
+ * inicial acotado.
+ */
+export const CATALOG_PAGE_SIZE = 24;
+
+export interface CatalogPage {
+  products: Product[];
+  /** Hay más para traer: se dibuja el botón "Ver más". */
+  hasMore: boolean;
+}
+
+/**
+ * Una página del catálogo público.
+ *
+ * Pide un producto de más que el límite para saber si hay siguiente sin pagar
+ * un COUNT aparte, y lo descarta antes de devolver.
+ */
+export async function getStoreCatalogPage(
+  storeId: string,
+  filters: CatalogFilters = {},
+  limit: number = CATALOG_PAGE_SIZE,
+): Promise<CatalogPage> {
+  const products = await getStoreProducts(storeId, filters, limit + 1);
+  const hasMore = products.length > limit;
+  return { products: hasMore ? products.slice(0, limit) : products, hasMore };
+}
+
 /** Active products for the public catalog, with optional search/category. */
 export async function getStoreProducts(
   storeId: string,
   filters: CatalogFilters = {},
+  limit?: number,
 ): Promise<Product[]> {
   const supabase = publicDb();
   let query = supabase
@@ -84,6 +118,8 @@ export async function getStoreProducts(
     .eq("status", "active")
     .order("featured", { ascending: false })
     .order("created_at", { ascending: false });
+
+  if (limit != null) query = query.limit(limit);
 
   if (filters.q) query = query.ilike("name", `%${filters.q}%`);
 
