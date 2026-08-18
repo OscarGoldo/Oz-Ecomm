@@ -3,8 +3,10 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { paypalCredsFromEnv } from "@/lib/paypal";
 import {
+  DEFAULT_PRO_PRICE_QUARTERLY_USD,
   DEFAULT_PRO_PRICE_USD,
   DEFAULT_PRO_PRICE_YEARLY_USD,
+  type PlanPrices,
 } from "@/lib/plans";
 import type { SubscriptionMethod } from "@/types/database";
 
@@ -17,7 +19,7 @@ export interface PlatformPayment {
 }
 
 export interface PlatformConfig {
-  prices: { monthly: number; yearly: number };
+  prices: PlanPrices;
   /** Métodos manuales: el comerciante copia los datos y sube comprobante. */
   payments: PlatformPayment[];
   /**
@@ -29,7 +31,11 @@ export interface PlatformConfig {
 }
 
 const FALLBACK: PlatformConfig = {
-  prices: { monthly: DEFAULT_PRO_PRICE_USD, yearly: DEFAULT_PRO_PRICE_YEARLY_USD },
+  prices: {
+    monthly: DEFAULT_PRO_PRICE_USD,
+    quarterly: DEFAULT_PRO_PRICE_QUARTERLY_USD,
+    yearly: DEFAULT_PRO_PRICE_YEARLY_USD,
+  },
   payments: [],
   paypalEnabled: false,
 };
@@ -94,6 +100,11 @@ export async function getPlatformConfig(): Promise<PlatformConfig> {
   return {
     prices: {
       monthly: Number(data.pro_price_usd) || DEFAULT_PRO_PRICE_USD,
+      // Si la migración 0022 todavía no corrió, la columna no viene y el
+      // trimestre cae a 3× el mensual en vez de a 0.
+      quarterly:
+        Number(data.pro_price_quarterly_usd) ||
+        (Number(data.pro_price_usd) || DEFAULT_PRO_PRICE_USD) * 3,
       yearly: Number(data.pro_price_yearly_usd) || DEFAULT_PRO_PRICE_YEARLY_USD,
     },
     payments,

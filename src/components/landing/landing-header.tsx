@@ -7,11 +7,16 @@ import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TiendifyLogo } from "@/components/landing/tiendify-logo";
 
+/**
+ * Cada enlace tiene que apuntar a una sección que exista de verdad en la
+ * landing. "Soluciones" y "Plataforma" no existían: eran anclas muertas que no
+ * hacían nada al tocarlas.
+ */
 const NAV = [
-  { label: "Soluciones", href: "#soluciones" },
-  { label: "Plataforma", href: "#plataforma" },
-  { label: "Precios", href: "#precios" },
+  { label: "Funciones", href: "#funciones" },
+  { label: "Cómo funciona", href: "#como-funciona" },
   { label: "Plantillas", href: "#plantillas" },
+  { label: "Precios", href: "#precios" },
 ];
 
 export function LandingHeader() {

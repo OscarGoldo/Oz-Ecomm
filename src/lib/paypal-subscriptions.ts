@@ -34,12 +34,20 @@ export async function accessToken(c: PaypalCreds): Promise<string | null> {
 /**
  * Los ids de los planes de facturación que creó `scripts/paypal-setup.ts`.
  * Van por entorno porque son distintos en sandbox y en live.
+ *
+ * Devuelve null para cualquier período que NO tenga un plan recurrente creado
+ * en PayPal — hoy, el trimestre. Ese null es lo que hace que la UI caiga al
+ * cobro único, y es intencional: antes esto era `months >= 12 ? anual :
+ * mensual`, así que un período nuevo se habría suscrito calladamente al plan
+ * MENSUAL. El comerciante creía estar pagando tres meses y quedaba con un
+ * débito mensual. Si algún día se crea un plan trimestral en PayPal, se agrega
+ * acá y la UI lo toma sola.
  */
 export function planIdFor(months: number): string | null {
-  const id =
-    months >= 12
-      ? process.env.PAYPAL_PLAN_YEARLY
-      : process.env.PAYPAL_PLAN_MONTHLY;
+  let id: string | undefined;
+  if (months >= 12) id = process.env.PAYPAL_PLAN_YEARLY;
+  else if (months === 1) id = process.env.PAYPAL_PLAN_MONTHLY;
+  else return null;
   return (id ?? "").trim() || null;
 }
 

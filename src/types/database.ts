@@ -703,6 +703,12 @@ export interface Database {
           binance: Json;
           paypal: Json;
           pro_price_usd: number;
+          /**
+           * Opcional a nivel de tipo: la agrega la migración 0022. Así el
+           * panel no revienta si el código llega antes que el SQL — cae a
+           * 3× el mensual (ver lib/platform.ts).
+           */
+          pro_price_quarterly_usd?: number;
           pro_price_yearly_usd: number;
           updated_at: string;
         };
@@ -713,6 +719,7 @@ export interface Database {
           binance?: Json;
           paypal?: Json;
           pro_price_usd?: number;
+          pro_price_quarterly_usd?: number;
           pro_price_yearly_usd?: number;
           updated_at?: string;
         };

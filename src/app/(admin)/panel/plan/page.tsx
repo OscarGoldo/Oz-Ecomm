@@ -6,6 +6,7 @@ import { getCachedBcvRates } from "@/lib/bcv";
 import { formatUSD } from "@/lib/format";
 import {
   FREE_MAX_PRODUCTS,
+  PLAN_PERIODS,
   daysUntilExpiry,
   isPro,
   priceFor,
@@ -162,7 +163,13 @@ export default async function PlanPage() {
           paypalClientId={paypalEnabled ? paypalClientId() : null}
           planIds={
             recurringOn
-              ? { monthly: planIdFor(1)!, yearly: planIdFor(12)! }
+              ? // Solo los períodos que tienen plan recurrente creado en
+                // PayPal. El trimestre no está y por eso se cobra una vez.
+                Object.fromEntries(
+                  PLAN_PERIODS.map(
+                    (m) => [m, planIdFor(m)] as [number, string | null],
+                  ).filter((e): e is [number, string] => e[1] !== null),
+                )
               : null
           }
         />

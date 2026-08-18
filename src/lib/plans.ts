@@ -18,13 +18,28 @@ export type PlanId = "free" | "pro";
 /** Cuánto puede subir el plan gratis antes de pedir upgrade. */
 export const FREE_MAX_PRODUCTS = 30;
 
-/** Meses que puede comprar el comerciante de una vez. */
-export const PLAN_PERIODS = [1, 12] as const;
+/**
+ * Meses que puede comprar el comerciante de una vez.
+ *
+ * El trimestre existe por el pago manual: quien paga por Pago Móvil o Zelle no
+ * tiene renovación automática, así que cada mes es una transferencia más un
+ * comprobante más una revisión. Tres meses es el punto medio entre atarse un
+ * año y hacer el trámite doce veces.
+ */
+export const PLAN_PERIODS = [1, 3, 12] as const;
 export type PlanPeriod = (typeof PLAN_PERIODS)[number];
 
 /** Precios por defecto, si `platform_settings` todavía no existe. */
 export const DEFAULT_PRO_PRICE_USD = 5;
+export const DEFAULT_PRO_PRICE_QUARTERLY_USD = 15;
 export const DEFAULT_PRO_PRICE_YEARLY_USD = 50;
+
+/** Los tres precios configurables desde `platform_settings`. */
+export interface PlanPrices {
+  monthly: number;
+  quarterly: number;
+  yearly: number;
+}
 
 export interface PlanLimits {
   /** Infinity en Pro. */
@@ -127,10 +142,35 @@ export function extendExpiry(
   return next.toISOString();
 }
 
-/** Precio en USD de un período, según los precios configurados. */
-export function priceFor(
-  months: number,
-  prices: { monthly: number; yearly: number },
-): number {
-  return months >= 12 ? prices.yearly * (months / 12) : prices.monthly * months;
+/**
+ * Precio en USD de un período, según los precios configurados.
+ *
+ * Cada período tiene su propio precio guardado en vez de salir de una fórmula,
+ * para poder moverlos por separado sin redeploy. Solo el múltiplo de años se
+ * calcula, porque hoy no se venden períodos de más de 12 meses.
+ */
+export function priceFor(months: number, prices: PlanPrices): number {
+  if (months >= 12) return prices.yearly * (months / 12);
+  if (months === 3) return prices.quarterly;
+  return prices.monthly * months;
+}
+
+/**
+ * Cuánto se ahorra por mes contra pagar mes a mes, en porcentaje. 0 = sin
+ * descuento. La UI lo usa para no anunciar un ahorro que no existe: si el
+ * trimestre está a 3× el mensual, no muestra nada.
+ */
+export function savingPct(months: number, prices: PlanPrices): number {
+  if (months <= 1 || prices.monthly <= 0) return 0;
+  const perMonth = priceFor(months, prices) / months;
+  const pct = Math.round((1 - perMonth / prices.monthly) * 100);
+  return pct > 0 ? pct : 0;
+}
+
+/** Meses regalados respecto de pagar mes a mes (para el copy del anual). */
+export function freeMonths(months: number, prices: PlanPrices): number {
+  if (months <= 1 || prices.monthly <= 0) return 0;
+  const full = prices.monthly * months;
+  const saved = full - priceFor(months, prices);
+  return Math.round(saved / prices.monthly);
 }

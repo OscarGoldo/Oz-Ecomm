@@ -14,6 +14,7 @@ import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { TiendifyLogo } from "@/components/landing/tiendify-logo";
 import {
+  DEFAULT_PRO_PRICE_QUARTERLY_USD,
   DEFAULT_PRO_PRICE_USD,
   DEFAULT_PRO_PRICE_YEARLY_USD,
   FREE_MAX_PRODUCTS,
@@ -78,7 +79,7 @@ export default function LandingPage() {
       <LandingHero />
 
       {/* Features */}
-      <section className="border-t bg-muted/30">
+      <section id="funciones" className="scroll-mt-24 border-t bg-muted/30">
         <div className="container py-16">
           <h2 className="max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">
             Todo lo que tu negocio necesita para vender online
@@ -98,7 +99,7 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="container py-16">
+      <section id="como-funciona" className="container scroll-mt-24 py-16">
         <h2 className="text-center text-3xl font-bold tracking-tight sm:text-4xl">
           Empieza en 3 pasos
         </h2>
@@ -115,8 +116,71 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Plantillas */}
+      <section id="plantillas" className="scroll-mt-24 border-t">
+        <div className="container py-16">
+          <h2 className="max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">
+            Una plantilla para tu rubro
+          </h2>
+          <p className="mt-3 max-w-xl text-muted-foreground">
+            No es solo el color: cada plantilla cambia la estructura completa de
+            la tienda. Se elige desde el panel y se cambia cuando quieras, sin
+            perder productos ni pedidos.
+          </p>
+
+          <ul className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {THEME_PRESETS.map((p) => (
+              <li
+                key={p.id}
+                className="flex items-center gap-3 rounded-2xl border bg-card p-3"
+              >
+                {/* Miniatura con los colores reales de la plantilla: fondo,
+                    barra de marca y punto de acento. Es el mismo dato que
+                    consume el storefront, no una captura. */}
+                <span
+                  aria-hidden
+                  className="grid size-14 shrink-0 place-items-center gap-1 rounded-xl border p-2"
+                  style={{ background: p.theme.colors.surface }}
+                >
+                  <span
+                    className="h-1.5 w-full rounded-full"
+                    style={{ background: p.theme.colors.primary }}
+                  />
+                  <span
+                    className="h-4 w-full rounded"
+                    style={{ background: `${p.theme.colors.primary}1a` }}
+                  />
+                  <span
+                    className="h-1.5 w-1/2 justify-self-start rounded-full"
+                    style={{ background: p.theme.colors.accent }}
+                  />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate font-semibold">{p.label}</p>
+                    {!p.standard && (
+                      <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                        Pro
+                      </span>
+                    )}
+                  </div>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {p.desc}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <p className="mt-4 text-sm text-muted-foreground">
+            Las {FREE_LAYOUTS.length} marcadas sin etiqueta están en el plan
+            Gratis. Las {THEME_PRESETS.length} vienen con Pro.
+          </p>
+        </div>
+      </section>
+
       {/* Precios */}
-      <section id="precios" className="border-t bg-muted/30">
+      <section id="precios" className="scroll-mt-24 border-t bg-muted/30">
         <div className="container py-16">
           <h2 className="text-center text-3xl font-bold tracking-tight sm:text-4xl">
             Empieza gratis. Crece cuando quieras.
@@ -159,7 +223,8 @@ export default function LandingPage() {
                 </span>
               </p>
               <p className="text-sm text-muted-foreground">
-                o ${DEFAULT_PRO_PRICE_YEARLY_USD} al año (2 meses gratis)
+                o ${DEFAULT_PRO_PRICE_QUARTERLY_USD} por 3 meses · $
+                {DEFAULT_PRO_PRICE_YEARLY_USD} al año (2 meses gratis)
               </p>
               <ul className="mt-5 space-y-2.5 text-sm">
                 <PlanFeature>Productos ilimitados</PlanFeature>

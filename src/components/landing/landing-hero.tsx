@@ -1,7 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import { PhoneMockup } from "@/components/landing/phone-mockup";
+import { FREE_MAX_PRODUCTS } from "@/lib/plans";
+
+/** Lo que de verdad diferencia a Tiendify de un Shopify: cómo se cobra acá. */
+const PAYMENTS = ["Pago Móvil", "Zelle", "Binance", "Efectivo", "PayPal"];
 
 export function LandingHero() {
   return (
@@ -14,15 +18,13 @@ export function LandingHero() {
       <div className="container grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-2">
         {/* Copy */}
         <div className="text-center lg:text-left">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            <Sparkles className="size-3.5" /> Ecommerce para emprendedores de Venezuela
-          </span>
-          <h1 className="mt-4 text-balance text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
+          <h1 className="text-balance text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
             Crea tu tienda online y empieza a vender hoy
           </h1>
           <p className="mx-auto mt-5 max-w-md text-lg text-muted-foreground lg:mx-0">
-            Catálogo, carrito, pagos locales y gestión de pedidos. Todo en un
-            solo lugar, sin complicaciones y sin programar.
+            Catálogo, carrito y gestión de pedidos en un solo lugar. Tus
+            clientes pagan como se paga aquí y suben el comprobante desde el
+            teléfono.
           </p>
 
           <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
@@ -40,8 +42,19 @@ export function LandingHero() {
             </Link>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
-            Gratis. Sin tarjeta. Tu tienda lista en minutos.
+            Gratis hasta {FREE_MAX_PRODUCTS} productos. Sin tarjeta de crédito.
           </p>
+
+          {/* Los métodos de pago, en texto y no en logos: son los nombres que
+              el comerciante busca para saber si esto le sirve. */}
+          <ul className="mt-6 flex flex-wrap justify-center gap-x-2 gap-y-1.5 text-xs font-medium text-muted-foreground lg:justify-start">
+            {PAYMENTS.map((p, i) => (
+              <li key={p} className="flex items-center gap-2">
+                {i > 0 && <span aria-hidden className="text-border">·</span>}
+                {p}
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Phone mockup */}

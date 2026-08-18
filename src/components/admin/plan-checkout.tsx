@@ -14,7 +14,13 @@ import { PlanPaypalButtons } from "@/components/admin/plan-paypal-buttons";
 import { PlanSubscribeButtons } from "@/components/admin/plan-subscribe-buttons";
 import { requestProUpgrade } from "@/app/(admin)/panel/plan/actions";
 import { formatBs, formatUSD, usdToBs } from "@/lib/format";
-import { PLAN_PERIODS, priceFor } from "@/lib/plans";
+import {
+  PLAN_PERIODS,
+  freeMonths,
+  priceFor,
+  savingPct,
+  type PlanPrices,
+} from "@/lib/plans";
 import type { SubscriptionMethod } from "@/types/database";
 import { cn } from "@/lib/utils";
 
@@ -36,17 +42,17 @@ export function PlanCheckout({
   planIds,
 }: {
   storeId: string;
-  prices: { monthly: number; yearly: number };
+  prices: PlanPrices;
   payments: PlatformPaymentView[];
   /** Tasa BCV para mostrar el monto en Bs. null = solo USD. */
   bcvRate: number | null;
   /** Client id público de PayPal. null = PayPal no configurado. */
   paypalClientId: string | null;
   /**
-   * Ids de los planes de facturación. Presentes = se cobra recurrente;
-   * null = se cae al pago único, que no se renueva solo.
+   * Ids de los planes de facturación de PayPal, por período. Un período que
+   * no está acá (el trimestre) se cobra una sola vez y no se renueva.
    */
-  planIds: { monthly: string; yearly: string } | null;
+  planIds: Partial<Record<number, string>> | null;
 }) {
   const router = useRouter();
   const [months, setMonths] = useState<number>(12);
@@ -64,6 +70,13 @@ export function PlanCheckout({
   const amountBs = usdToBs(amount, bcvRate);
   const selected = payments.find((p) => p.method === method);
   const nothingConfigured = payments.length === 0 && !paypalClientId;
+  /**
+   * Plan recurrente para el período elegido, si existe. El trimestre no tiene,
+   * así que se cobra una sola vez — y hay que decírselo al comerciante, porque
+   * la diferencia entre "se renueva solo" y "se vence" es justo la que le hace
+   * perder el Pro sin darse cuenta.
+   */
+  const recurringPlanId = planIds?.[months] ?? null;
 
   async function submit() {
     if (!method) return toast.error("Elige cómo pagaste");
@@ -164,10 +177,10 @@ export function PlanCheckout({
 
   const paypalPayment = paypalClientId && (
     <div className="space-y-2">
-      {planIds ? (
+      {recurringPlanId ? (
         <PlanSubscribeButtons
           clientId={paypalClientId}
-          planId={months >= 12 ? planIds.yearly : planIds.monthly}
+          planId={recurringPlanId}
           storeId={storeId}
           onSubscribed={() => router.refresh()}
         />
@@ -179,9 +192,10 @@ export function PlanCheckout({
         />
       )}
       <p className="text-center text-xs text-muted-foreground">
-        Puedes pagar con tarjeta de débito o crédito sin tener cuenta de PayPal.
-        {planIds &&
-          ` Se renueva ${months >= 12 ? "cada año" : "cada mes"} y puedes cancelar cuando quieras.`}
+        Puedes pagar con tarjeta de débito o crédito sin tener cuenta de PayPal.{" "}
+        {recurringPlanId
+          ? `Se renueva ${months >= 12 ? "cada año" : "cada mes"} y puedes cancelar cuando quieras.`
+          : "Es un pago único: no se renueva solo, te avisamos antes de que venza."}
       </p>
     </div>
   );
@@ -200,34 +214,47 @@ export function PlanCheckout({
         {/* 1. Período */}
         <div className="space-y-2">
           <Label className="text-xs">1. ¿Por cuánto tiempo?</Label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             {PLAN_PERIODS.map((m) => {
               const total = priceFor(m, prices);
               const perMonth = total / m;
-              const saving =
-                m >= 12 ? Math.round((1 - perMonth / prices.monthly) * 12) : 0;
+              // El anual se cuenta en "meses gratis" porque es como se entiende
+              // de un vistazo; el trimestre, en porcentaje. Y si el precio no
+              // trae descuento, no se anuncia ninguno.
+              const free = freeMonths(m, prices);
+              const pct = savingPct(m, prices);
+              const badge =
+                m >= 12 && free > 0
+                  ? `${free} ${free === 1 ? "mes" : "meses"} gratis`
+                  : pct > 0
+                    ? `ahorras ${pct}%`
+                    : null;
               return (
                 <button
                   key={m}
                   type="button"
                   onClick={() => setMonths(m)}
                   className={cn(
-                    "rounded-xl border p-3 text-left transition-colors",
+                    "rounded-xl border p-2.5 text-left transition-colors",
                     months === m
                       ? "border-primary ring-1 ring-primary"
                       : "hover:border-primary/40",
                   )}
                 >
-                  <p className="text-sm font-semibold">
+                  <p className="text-xs font-semibold">
                     {m === 1 ? "1 mes" : `${m} meses`}
                   </p>
-                  <p className="text-lg font-bold tracking-tight">
+                  <p className="text-base font-bold tracking-tight">
                     {formatUSD(total)}
                   </p>
                   {m > 1 && (
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-[11px] leading-tight text-muted-foreground">
                       {formatUSD(perMonth)}/mes
-                      {saving > 0 && ` · ${saving} meses gratis`}
+                    </p>
+                  )}
+                  {badge && (
+                    <p className="text-[11px] font-medium leading-tight text-success">
+                      {badge}
                     </p>
                   )}
                 </button>
