@@ -497,11 +497,17 @@ export async function createOrder(
     paymentProof = null;
     paymentFee = cap.fee;
     paymentNet = cap.net;
+  } else if (!method.requires_proof) {
+    status = "confirmed";
+  } else if (data.payment_proof_path) {
+    status = "pending_confirmation";
   } else {
-    if (method.requires_proof && !data.payment_proof_path) {
-      return { ok: false, error: "Sube el comprobante de pago" };
-    }
-    status = method.requires_proof ? "pending_confirmation" : "confirmed";
+    // Eligió pagar por fuera y todavía no tiene la captura. Antes esto era un
+    // error y el pedido simplemente no existía: el cliente se iba a la app de
+    // su banco y no volvía, y el comerciante nunca se enteraba de que hubo una
+    // compra. Ahora el pedido nace en "esperando pago" y el comprobante se
+    // sube después desde la página del pedido (ver `attachPaymentProof`).
+    status = "pending_payment";
   }
 
   const { data: order, error: orderErr } = await db
@@ -700,7 +706,12 @@ export async function createOrder(
   // Recibo al cliente apenas compra.
   try {
     const { subject, html } = customerOrderReceiptEmail(messageData, {
-      pendingProof: status === "pending_confirmation",
+      state:
+        status === "pending_payment"
+          ? "awaiting_payment"
+          : status === "pending_confirmation"
+            ? "pending_proof"
+            : "confirmed",
     });
     await sendEmail({ to: data.customer_email, subject, html });
   } catch (e) {
@@ -711,4 +722,111 @@ export async function createOrder(
   await recordEvent(store.id, "purchase");
   await clearCart(store.id);
   return { ok: true, orderId: order.id };
+}
+
+const attachProofSchema = z.object({
+  order_id: z.string().uuid(),
+  store_id: z.string().uuid(),
+  payment_proof_path: z.string().trim().min(1).max(400),
+  payment_reference: z.string().trim().max(120).optional(),
+});
+
+export type AttachProofInput = z.input<typeof attachProofSchema>;
+
+/**
+ * Sube el comprobante de un pedido que quedó en "esperando pago".
+ *
+ * Es la segunda mitad del checkout en dos tiempos: el cliente compró, se fue a
+ * pagar a la app de su banco y vuelve por el enlace del pedido con la captura.
+ *
+ * Quién puede llamarlo: cualquiera que tenga el UUID del pedido — el mismo
+ * modelo de capacidad que ya usa la página de seguimiento. Para que eso sea
+ * seguro, el action es deliberadamente angosto: solo escribe el comprobante y
+ * la referencia, solo sobre un pedido en `pending_payment` de esa tienda, y
+ * solo si todavía no tiene uno. No se puede reemplazar el comprobante de un
+ * pedido ya confirmado ni tocar ninguna otra columna.
+ */
+export async function attachPaymentProof(
+  input: AttachProofInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const parsed = attachProofSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Datos inválidos" };
+  }
+  const d = parsed.data;
+
+  // La ruta tiene que caer dentro de la carpeta de ESTA tienda. Sin esto, un
+  // path armado a mano podría apuntar al comprobante de otro comercio.
+  if (!d.payment_proof_path.startsWith(`${d.store_id}/proofs/`)) {
+    return { ok: false, error: "El comprobante no es válido" };
+  }
+
+  const db = createAdminClient();
+  const { data: order } = await db
+    .from("orders")
+    .select("id, status, payment_proof_url, order_number, customer_name")
+    .eq("id", d.order_id)
+    .eq("store_id", d.store_id)
+    .maybeSingle();
+
+  if (!order) return { ok: false, error: "No encontramos el pedido" };
+  if (order.payment_proof_url) {
+    return { ok: false, error: "Este pedido ya tiene un comprobante cargado" };
+  }
+  if (order.status !== "pending_payment") {
+    return {
+      ok: false,
+      error: "Este pedido ya no está esperando el comprobante",
+    };
+  }
+
+  const { error } = await db
+    .from("orders")
+    .update({
+      payment_proof_url: d.payment_proof_path,
+      payment_reference: d.payment_reference || null,
+      status: "pending_confirmation" satisfies OrderStatus,
+    })
+    .eq("id", order.id)
+    .eq("store_id", d.store_id)
+    // Condición de carrera: si entre el SELECT y el UPDATE la tienda ya movió
+    // el pedido, este filtro hace que no se pise nada.
+    .eq("status", "pending_payment");
+
+  if (error) {
+    return { ok: false, error: "No se pudo guardar el comprobante. Intenta de nuevo." };
+  }
+
+  // El comerciante tiene que enterarse: para él esto es un pedido nuevo por
+  // revisar. Nunca puede tumbar la carga del comprobante, que ya está hecha.
+  try {
+    const { data: store } = await db
+      .from("stores")
+      .select("name")
+      .eq("id", d.store_id)
+      .maybeSingle();
+    const { data: owners } = await db
+      .from("users")
+      .select("email")
+      .eq("store_id", d.store_id)
+      .in("role", ["store_owner", "store_staff"])
+      .eq("active", true);
+    const recipients = (owners ?? [])
+      .map((o) => o.email)
+      .filter((e): e is string => Boolean(e));
+    if (recipients.length > 0) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      await sendEmail({
+        to: recipients,
+        subject: `Comprobante recibido · Pedido #${order.order_number}`,
+        html: `<p>${order.customer_name} subió el comprobante del pedido #${order.order_number}${
+          store?.name ? ` en ${store.name}` : ""
+        }.</p><p><a href="${appUrl}/panel/pedidos/${order.id}">Verificar el pago</a></p>`,
+      });
+    }
+  } catch {
+    // Notificar nunca puede fallar la operación.
+  }
+
+  return { ok: true };
 }

@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import {
+  AlertTriangle,
   ArrowLeft,
   Bike,
   Check,
   ChevronDown,
   ChevronUp,
+  Clock,
   Copy,
   CreditCard,
   Loader2,
@@ -46,11 +48,17 @@ import { cn } from "@/lib/utils";
 import type { EnrichedCart } from "@/lib/cart";
 import type { PaymentMethod, Store } from "@/types/database";
 
+/**
+ * Etiquetas legibles de los datos de cobro. Tienen que cubrir todas las claves
+ * de `PAYMENT_TYPE_FIELDS` en lib/constants: la que falte se le muestra al
+ * cliente con el nombre crudo de la columna en plena pantalla de pago.
+ */
 const DETAIL_LABELS: Record<string, string> = {
   banco: "Banco",
   telefono: "Teléfono",
   cedula: "Cédula / RIF",
   titular: "Titular",
+  cuenta: "N° de cuenta",
   email: "Email",
   email_o_id: "Email o ID",
   usuario: "Usuario",
@@ -94,6 +102,8 @@ export function CheckoutForm({
 }) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2>(1);
+  /** Contenedor del teléfono: el input vive dentro de PhoneInput, sin id propio. */
+  const phoneRef = useRef<HTMLDivElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [proofPath, setProofPath] = useState<string | null>(null);
   /**
@@ -122,6 +132,8 @@ export function CheckoutForm({
     watch,
     getValues,
     setValue,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
@@ -140,6 +152,69 @@ export function CheckoutForm({
   const fulfillment = watch("fulfillment_type");
   const methodId = watch("payment_method_id");
   const selectedMethod = paymentMethods.find((m) => m.id === methodId);
+
+  /* ── Borrador del checkout ────────────────────────────────────────────────
+   * Todo lo que el cliente escribe vive en memoria, así que irse a la app del
+   * banco a pagar y volver —el flujo NORMAL con Pago Móvil— borraba nombre,
+   * dirección, cupón y el paso en el que iba. En un Android de gama baja la
+   * pestaña se descarta sola con solo cambiar de app. Guardar el borrador es lo
+   * que hace que el checkout en dos tiempos sea usable.
+   * Solo datos de contacto y entrega: nunca el comprobante ni nada de pago.  */
+  const draftKey = `oz_checkout_draft:${store.id}`;
+  const restored = useRef(false);
+
+  useEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
+    try {
+      const raw = window.localStorage.getItem(draftKey);
+      if (!raw) return;
+      const d = JSON.parse(raw) as Partial<FormValues> & { step?: 1 | 2 };
+      const keys: (keyof FormValues)[] = [
+        "customer_name",
+        "customer_phone",
+        "customer_email",
+        "fulfillment_type",
+        "delivery_address",
+        "delivery_notes",
+        "notes",
+      ];
+      for (const k of keys) {
+        const v = d[k];
+        if (typeof v === "string" && v) setValue(k, v as never);
+      }
+      // El método guardado puede haberse desactivado desde entonces.
+      if (d.payment_method_id && paymentMethods.some((m) => m.id === d.payment_method_id)) {
+        setValue("payment_method_id", d.payment_method_id);
+      }
+      if (d.step === 2) setStep(2);
+    } catch {
+      // Borrador ilegible o localStorage bloqueado (modo privado): se sigue.
+    }
+  }, [draftKey, paymentMethods, setValue]);
+
+  useEffect(() => {
+    const sub = watch((values) => {
+      try {
+        window.localStorage.setItem(
+          draftKey,
+          JSON.stringify({ ...values, step }),
+        );
+      } catch {
+        // Sin espacio o sin permiso: guardar el borrador es un extra.
+      }
+    });
+    return () => sub.unsubscribe();
+  }, [watch, draftKey, step]);
+
+  /** Se llama al crear el pedido: el borrador ya no sirve para nada. */
+  function clearDraft() {
+    try {
+      window.localStorage.removeItem(draftKey);
+    } catch {
+      /* nada que hacer */
+    }
+  }
 
   const subtotal = cart.subtotalUsd;
   const deliveryFee = Number(store.delivery_fee ?? 0);
@@ -179,37 +254,106 @@ export function CheckoutForm({
     }
   }
 
-  async function copy(text: string) {
+  /**
+   * Copiar con red de contención. `navigator.clipboard` no existe en varios
+   * navegadores embebidos (el de Instagram, entre otros), que es justo de donde
+   * llega buena parte de los compradores. Antes el fallo se tragaba en silencio:
+   * el cliente tocaba el ícono, no pasaba nada y no había explicación.
+   */
+  async function copy(text: string, what = "Dato") {
     try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Copiado");
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        toast.success(`${what} copiado`);
+        return;
+      }
+      throw new Error("sin clipboard");
     } catch {
-      /* clipboard unavailable */
+      // Camino viejo: un textarea fuera de pantalla + execCommand. Funciona en
+      // los WebView donde la API moderna está bloqueada.
+      try {
+        const el = document.createElement("textarea");
+        el.value = text;
+        el.setAttribute("readonly", "");
+        el.style.position = "fixed";
+        el.style.opacity = "0";
+        document.body.appendChild(el);
+        el.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(el);
+        if (ok) {
+          toast.success(`${what} copiado`);
+          return;
+        }
+      } catch {
+        /* sigue al aviso de abajo */
+      }
+      toast.error("Tu navegador no deja copiar", {
+        description: "Mantén presionado el dato para seleccionarlo y copiarlo.",
+      });
     }
+  }
+
+  /**
+   * Valida el paso 1 marcando los campos, no tirando un toast.
+   *
+   * El toast se iba solo a los pocos segundos y no dejaba rastro de CUÁL campo
+   * estaba mal; peor todavía cuando el error se detectaba desde el paso 2 y el
+   * cliente aterrizaba en una pantalla anterior sin nada resaltado. Ahora el
+   * mensaje queda debajo del campo y la página hace foco en el primero que
+   * falla.
+   */
+  function validateStep1(): boolean {
+    const v = getValues();
+    clearErrors();
+    const problems: { field: keyof FormValues; message: string }[] = [];
+
+    if (v.customer_name.trim().length < 2) {
+      problems.push({ field: "customer_name", message: "Ingresa tu nombre y apellido" });
+    }
+    if (v.customer_phone.trim().length < 6) {
+      problems.push({
+        field: "customer_phone",
+        message: "Ingresa tu teléfono, por ahí te escribe la tienda",
+      });
+    }
+    if (!EMAIL_RE.test(v.customer_email.trim())) {
+      problems.push({
+        field: "customer_email",
+        message: v.customer_email.trim()
+          ? "Revisa el email, parece incompleto"
+          : "Ingresa tu email para recibir el recibo",
+      });
+    }
+    if (v.fulfillment_type === "delivery" && v.delivery_address.trim().length < 5) {
+      problems.push({
+        field: "delivery_address",
+        message: "Escribe la dirección con un punto de referencia",
+      });
+    }
+
+    if (problems.length === 0) return true;
+
+    for (const p of problems) setError(p.field, { message: p.message });
+    setStep(1);
+    // Al primero que falla: en un celular el campo puede estar fuera de la
+    // pantalla y sin esto el cliente no ve el mensaje que acabamos de poner.
+    const first = problems[0]!.field;
+    requestAnimationFrame(() => {
+      const el =
+        first === "customer_phone"
+          ? phoneRef.current?.querySelector("input")
+          : document.getElementById(first);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      (el as HTMLElement | null | undefined)?.focus?.({ preventScroll: true });
+    });
+    return false;
   }
 
   /** Validate step 1 (data + delivery) before moving to payment. */
   function goToPayment() {
     const v = getValues();
-    if (v.customer_name.trim().length < 2) {
-      toast.error("Ingresa tu nombre");
-      return;
-    }
-    if (v.customer_phone.trim().length < 6) {
-      toast.error("Ingresa tu teléfono");
-      return;
-    }
-    if (!EMAIL_RE.test(v.customer_email.trim())) {
-      toast.error("Ingresa tu email");
-      return;
-    }
-    if (
-      v.fulfillment_type === "delivery" &&
-      v.delivery_address.trim().length < 5
-    ) {
-      toast.error("Ingresa la dirección de entrega");
-      return;
-    }
+    if (!validateStep1()) return;
     // El cliente ya dio sus datos para comprar: guardamos el carrito por si no
     // termina, así el comerciante puede recuperarlo. Sin await — no puede
     // demorar el paso al pago, y el action se traga sus propios errores.
@@ -233,31 +377,10 @@ export function CheckoutForm({
   /** Build + validate the checkout payload (shared by manual submit + PayPal). */
   function buildInput(): CheckoutInput | null {
     const values = getValues();
-    if (values.customer_name.trim().length < 2) {
-      setStep(1);
-      toast.error("Ingresa tu nombre");
-      return null;
-    }
-    if (values.customer_phone.trim().length < 6) {
-      setStep(1);
-      toast.error("Ingresa tu teléfono");
-      return null;
-    }
-    if (!EMAIL_RE.test(values.customer_email.trim())) {
-      setStep(1);
-      toast.error("Ingresa tu email");
-      return null;
-    }
-    if (
-      values.fulfillment_type === "delivery" &&
-      values.delivery_address.trim().length < 5
-    ) {
-      setStep(1);
-      toast.error("Ingresa la dirección de entrega");
-      return null;
-    }
+    // Marca los campos y hace foco; también devuelve al paso 1 si hace falta.
+    if (!validateStep1()) return null;
     if (!selectedMethod) {
-      toast.error("Elige un método de pago");
+      toast.error("Elige cómo vas a pagar");
       return null;
     }
     return {
@@ -279,11 +402,7 @@ export function CheckoutForm({
 
   async function onSubmit() {
     if (!selectedMethod) {
-      toast.error("Elige un método de pago");
-      return;
-    }
-    if (selectedMethod.requires_proof && !proofPath) {
-      toast.error("Sube el comprobante de pago");
+      toast.error("Elige cómo vas a pagar");
       return;
     }
     const input = buildInput();
@@ -296,6 +415,7 @@ export function CheckoutForm({
         toast.error(res.error ?? "No se pudo crear el pedido");
         return;
       }
+      clearDraft();
       router.push(`/${store.slug}/pedido/${res.orderId}`);
     } catch {
       // Se cortó la conexión en pleno envío. El pedido PUEDE haberse creado —
@@ -317,6 +437,8 @@ export function CheckoutForm({
       ? (selectedMethod.details as Record<string, unknown>)
       : {};
   const isPaypal = selectedMethod?.type === "paypal";
+  /** Va a comprar sin haber pagado todavía: el pedido nace esperando el pago. */
+  const awaitingPayment = Boolean(selectedMethod?.requires_proof) && !proofPath;
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
   const detailEntries = Object.entries(details).filter(
     ([, v]) => typeof v === "string" && v.length > 0,
@@ -327,6 +449,7 @@ export function CheckoutForm({
       {/* Order summary — top on mobile (collapsible), right on desktop (sticky) */}
       <aside className="lg:order-2 lg:sticky lg:top-4">
         <OrderSummary
+          openOnMobile={step === 2}
           cart={cart}
           subtotal={subtotal}
           discount={discount}
@@ -340,6 +463,23 @@ export function CheckoutForm({
 
       {/* Steps + form */}
       <form onSubmit={handleSubmit(onSubmit)} className="lg:order-1">
+        {cart.changes.length > 0 && (
+          <div className="mb-5 rounded-xl border border-warning/40 bg-warning/10 p-3">
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <AlertTriangle className="size-4 shrink-0 text-warning-foreground" />
+              Ajustamos tu pedido
+            </p>
+            <ul className="mt-1.5 space-y-0.5 pl-6 text-sm text-muted-foreground">
+              {cart.changes.map((c, i) => (
+                <li key={`${c.name}-${i}`}>
+                  {c.kind === "removed"
+                    ? `${c.name} se agotó y lo quitamos.`
+                    : `De ${c.name} quedaban ${c.available}, así que llevas esa cantidad.`}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <Stepper step={step} />
 
         {/* ── Step 1: Entrega ─────────────────────────────────────────────── */}
@@ -362,12 +502,20 @@ export function CheckoutForm({
                 )}
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
+                <div className="space-y-2" ref={phoneRef}>
                   <Label>Teléfono / WhatsApp *</Label>
                   <PhoneInput
-                    onChange={(v) => setValue("customer_phone", v)}
+                    onChange={(v) => {
+                      setValue("customer_phone", v);
+                      if (v.trim().length >= 6) clearErrors("customer_phone");
+                    }}
                     placeholder="424 1234567"
                   />
+                  {errors.customer_phone && (
+                    <p className="text-xs text-destructive">
+                      {errors.customer_phone.message}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="customer_email">Email *</Label>
@@ -431,7 +579,13 @@ export function CheckoutForm({
                       {...register("delivery_address")}
                       placeholder="Calle, casa/edificio, punto de referencia, zona…"
                       rows={3}
+                      aria-invalid={Boolean(errors.delivery_address)}
                     />
+                    {errors.delivery_address && (
+                      <p className="text-xs text-destructive">
+                        {errors.delivery_address.message}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="delivery_notes">Indicaciones (opcional)</Label>
@@ -508,6 +662,20 @@ export function CheckoutForm({
                 </div>
               ) : selectedMethod ? (
                 <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+                  {selectedMethod.requires_proof && (
+                    <AmountToPay
+                      total={total}
+                      totalBs={totalBs}
+                      /* Pago Móvil y transferencia se pagan en bolívares; Zelle
+                         y Binance en dólares. El cliente tiene que ver EL
+                         número que va a tipear en la app del banco. */
+                      inBs={
+                        selectedMethod.type === "pago_movil" ||
+                        selectedMethod.type === "transfer"
+                      }
+                      onCopy={copy}
+                    />
+                  )}
                   {detailEntries.length > 0 && (
                     <ul className="space-y-1.5">
                       {detailEntries.map(([key, val]) => (
@@ -546,6 +714,14 @@ export function CheckoutForm({
                         value={proofPath}
                         onChange={setProofPath}
                       />
+                      {!proofPath && (
+                        <p className="flex items-start gap-2 rounded-lg bg-muted/60 p-2.5 text-xs text-muted-foreground">
+                          <Clock className="mt-0.5 size-3.5 shrink-0" />
+                          ¿Todavía no pagaste? Confirma el pedido igual: te
+                          guardamos el carrito y el precio, y subes el
+                          comprobante cuando lo tengas.
+                        </p>
+                      )}
                       <div className="space-y-2">
                         <Label htmlFor="payment_reference">Referencia (opcional)</Label>
                         <Input
@@ -641,7 +817,10 @@ export function CheckoutForm({
                 <PaypalButtons
                   clientId={paypalClientId}
                   getInput={buildInput}
-                  onSuccess={(id) => router.push(`/${store.slug}/pedido/${id}`)}
+                  onSuccess={(id) => {
+                    clearDraft();
+                    router.push(`/${store.slug}/pedido/${id}`);
+                  }}
                 />
                 <p className="mt-2 text-center text-xs text-muted-foreground">
                   Pago seguro procesado por PayPal · {formatUSD(total)}
@@ -656,10 +835,14 @@ export function CheckoutForm({
             <>
               <Button type="submit" size="lg" className="w-full" disabled={submitting}>
                 {submitting ? <Loader2 className="animate-spin" /> : <Lock />}
-                Confirmar pedido · {formatUSD(total)}
+                {awaitingPayment
+                  ? `Guardar mi pedido · ${formatUSD(total)}`
+                  : `Confirmar pedido · ${formatUSD(total)}`}
               </Button>
               <p className="text-center text-xs text-muted-foreground">
-                Al confirmar, la tienda recibe tu pedido para procesarlo.
+                {awaitingPayment
+                  ? "Te mandamos el enlace por email para que subas el comprobante cuando pagues."
+                  : "Al confirmar, la tienda recibe tu pedido para procesarlo."}
               </p>
             </>
           )}
@@ -732,6 +915,7 @@ function OrderSummary({
   totalBs,
   showShippingRow,
   couponCode,
+  openOnMobile = false,
 }: {
   cart: EnrichedCart;
   subtotal: number;
@@ -741,15 +925,26 @@ function OrderSummary({
   totalBs: number | null;
   showShippingRow: boolean;
   couponCode?: string;
+  /** En el paso de pago se despliega solo: es cuando el cliente compara. */
+  openOnMobile?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(openOnMobile);
+  const [touched, setTouched] = useState(false);
+
+  // Se abre al llegar al pago, salvo que el cliente ya lo haya cerrado a mano.
+  useEffect(() => {
+    if (openOnMobile && !touched) setOpen(true);
+  }, [openOnMobile, touched]);
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
       {/* Mobile collapsible header */}
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          setTouched(true);
+          setOpen((o) => !o);
+        }}
         className="flex w-full items-center justify-between gap-3 p-4 lg:hidden"
         aria-expanded={open}
       >
@@ -837,6 +1032,59 @@ function OrderSummary({
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Cuánto tiene que transferir el cliente, en la moneda en la que va a pagar.
+ *
+ * Es el dato que faltaba justo donde se toma la decisión: el total en Bs vivía
+ * solo dentro del resumen, que en celular arranca colapsado. El cliente se iba
+ * a la app del banco a tipear un número que no tenía a la vista, y transfería
+ * de más, de menos, o abandonaba.
+ *
+ * El botón de copiar entrega el número PELADO (sin "Bs", sin separadores de
+ * miles) porque eso es lo que acepta el campo de monto de la app del banco.
+ */
+function AmountToPay({
+  total,
+  totalBs,
+  inBs,
+  onCopy,
+}: {
+  total: number;
+  totalBs: number | null;
+  inBs: boolean;
+  onCopy: (text: string, what?: string) => void;
+}) {
+  const showBs = inBs && totalBs !== null;
+  const raw = showBs ? totalBs!.toFixed(2) : total.toFixed(2);
+
+  return (
+    <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+      <p className="text-xs font-medium text-muted-foreground">
+        Transfiere exactamente
+      </p>
+      <div className="mt-1 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-2xl font-bold leading-tight tracking-tight">
+            {showBs ? formatBs(totalBs!) : formatUSD(total)}
+          </p>
+          {showBs && (
+            <p className="text-xs text-muted-foreground">
+              equivale a {formatUSD(total)}
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => onCopy(raw, "Monto")}
+          className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-primary/40 bg-background px-3 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+        >
+          <Copy className="size-4" /> Copiar
+        </button>
       </div>
     </div>
   );

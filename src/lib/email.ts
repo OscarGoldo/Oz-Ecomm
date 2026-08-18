@@ -205,13 +205,25 @@ export function customerOrderStatusEmail(p: CustomerStatusEmailParams): {
  * WhatsApp (`orderReceiptCustomerMessage`), por eso comparte `OrderMessageData`:
  * si cambia lo que se le informa al cliente, cambia en los dos canales.
  */
+/**
+ * En qué punto del camino está el pedido cuando se manda el recibo.
+ *  - awaiting_payment: eligió pago por fuera y todavía no subió el comprobante.
+ *  - pending_proof:    ya lo subió y la tienda tiene que verificarlo.
+ *  - confirmed:        efectivo o PayPal, no hay nada que esperar.
+ */
+export type ReceiptState = "awaiting_payment" | "pending_proof" | "confirmed";
+
 export function customerOrderReceiptEmail(
   d: OrderMessageData,
-  opts: { pendingProof: boolean },
+  opts: { state: ReceiptState },
 ): { subject: string; html: string } {
-  const subject = opts.pendingProof
-    ? `Recibimos tu pedido #${d.orderNumber} · ${d.storeName}`
-    : `Pedido #${d.orderNumber} confirmado · ${d.storeName}`;
+  const awaiting = opts.state === "awaiting_payment";
+  const pendingProof = opts.state === "pending_proof";
+  const subject = awaiting
+    ? `Termina tu pedido #${d.orderNumber} · ${d.storeName}`
+    : pendingProof
+      ? `Recibimos tu pedido #${d.orderNumber} · ${d.storeName}`
+      : `Pedido #${d.orderNumber} confirmado · ${d.storeName}`;
 
   const rows = d.items
     .map(
@@ -253,12 +265,20 @@ export function customerOrderReceiptEmail(
   const html = `
   <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
     <p style="margin:0 0 4px;color:#64748b">${esc(d.storeName)}</p>
-    <h2 style="margin:0 0 4px">${opts.pendingProof ? "¡Recibimos tu pedido! ⏳" : "¡Pedido confirmado! ✅"}</h2>
+    <h2 style="margin:0 0 4px">${
+      awaiting
+        ? "Te guardamos tu pedido ⏳"
+        : pendingProof
+          ? "¡Recibimos tu pedido! ⏳"
+          : "¡Pedido confirmado! ✅"
+    }</h2>
     <p style="margin:0 0 16px;color:#64748b">
       ${
-        opts.pendingProof
-          ? "Estamos verificando tu pago. Te avisamos apenas quede confirmado."
-          : "Ya lo estamos preparando. Te avisamos cuando avance."
+        awaiting
+          ? "Falta que hagas el pago y subas el comprobante. Abre el enlace de abajo cuando lo tengas: te toma menos de un minuto."
+          : pendingProof
+            ? "Estamos verificando tu pago. Te avisamos apenas quede confirmado."
+            : "Ya lo estamos preparando. Te avisamos cuando avance."
       }
     </p>
 

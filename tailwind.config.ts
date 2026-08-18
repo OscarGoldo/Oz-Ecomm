@@ -19,6 +19,13 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
+      fontSize: {
+        // Los dos escalones por debajo de `text-xs`. Existen para que las
+        // insignias y las ayudas dejen de escribirse como `text-[11px]` suelto
+        // en cada pantalla. Nada de la interfaz baja de 10px.
+        "2xs": ["0.6875rem", { lineHeight: "1rem" }],
+        "3xs": ["0.625rem", { lineHeight: "0.875rem" }],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

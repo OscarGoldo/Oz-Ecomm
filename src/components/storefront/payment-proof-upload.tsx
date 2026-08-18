@@ -1,19 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileImage, Loader2, X } from "lucide-react";
+import { Camera, FileImage, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { createClient } from "@/lib/supabase/client";
-import { PAYMENT_PROOFS_BUCKET, fileExt } from "@/lib/storage";
-import { createProofUploadTicket } from "@/lib/storage-actions";
+import { PAYMENT_PROOFS_BUCKET } from "@/lib/storage";
+import { uploadImage } from "@/lib/upload";
+import { formatBytes } from "@/lib/image-compress";
 
-/**
- * Tiene que coincidir con `file_size_limit` del bucket (migración 0021). El
- * chequeo de acá es solo cortesía para dar un mensaje decente: el límite real
- * lo aplica Storage, porque un control en el navegador no es un control.
- */
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 25 * 1024 * 1024;
 
 interface PaymentProofUploadProps {
   storeId: string;
@@ -40,70 +36,73 @@ export function PaymentProofUpload({
   hint = "Lo verá la tienda al revisar tu pedido.",
 }: PaymentProofUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "compressing" | "uploading">("idle");
+  const [percent, setPercent] = useState(0);
   const [preview, setPreview] = useState<string | null>(null);
+  const [finalSize, setFinalSize] = useState<number | null>(null);
+
+  const busy = phase !== "idle";
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Sube una imagen del comprobante");
+      toast.error("Sube una foto o captura del comprobante");
       return;
     }
     if (file.size > MAX_BYTES) {
-      toast.error("La imagen supera 5 MB. Sácale una foto más liviana.");
+      toast.error("La imagen es demasiado grande. Prueba con una captura.");
       return;
     }
 
-    setUploading(true);
-    try {
-      // La ruta la decide el servidor, no este componente: así el archivo
-      // nunca puede terminar en la carpeta de otra tienda.
-      const ticket = await createProofUploadTicket(
-        storeId,
-        fileExt(file.name),
-        folder,
-      );
-      if (!ticket.ok || !ticket.path || !ticket.token) {
-        toast.error(ticket.error ?? "No se pudo subir el comprobante");
-        return;
-      }
+    const supabase = createClient();
+    setPhase("compressing");
+    setPercent(0);
 
-      const supabase = createClient();
-      const { error } = await supabase.storage
-        .from(PAYMENT_PROOFS_BUCKET)
-        .uploadToSignedUrl(ticket.path, ticket.token, file);
+    const path = `${storeId}/${folder}/${crypto.randomUUID()}.jpg`;
+    const res = await uploadImage({
+      supabase,
+      bucket: PAYMENT_PROOFS_BUCKET,
+      path,
+      file,
+      onProgress: (p) => {
+        setPhase("uploading");
+        setPercent(p);
+      },
+    });
 
-      if (error) {
-        toast.error("No se pudo subir el comprobante. Intenta de nuevo.");
-        return;
-      }
-      setPreview(URL.createObjectURL(file));
-      onChange(ticket.path);
-    } catch {
-      toast.error("Se cortó la subida. Revisa tu conexión e intenta de nuevo.");
-    } finally {
-      setUploading(false);
+    setPhase("idle");
+    setPercent(0);
+
+    if (!res.ok || !res.path) {
+      toast.error("No se pudo subir el comprobante. Revisa tu conexión.", {
+        description: "Puedes intentar de nuevo con la misma foto.",
+      });
+      return;
     }
+    setPreview(URL.createObjectURL(file));
+    setFinalSize(file.size);
+    onChange(res.path);
   }
 
   function clear() {
     setPreview(null);
+    setFinalSize(null);
     onChange(null);
     if (inputRef.current) inputRef.current.value = "";
   }
 
   if (value) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+      <div className="flex items-center gap-3 rounded-lg border border-success/40 bg-success/5 p-3">
         {preview ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={preview}
             alt="Comprobante"
-            className="size-14 rounded-md object-cover"
+            className="size-14 shrink-0 rounded-md border object-cover"
           />
         ) : (
-          <span className="grid size-14 place-items-center rounded-md bg-muted text-muted-foreground">
+          <span className="grid size-14 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
             <FileImage className="size-6" />
           </span>
         )}
@@ -114,11 +113,40 @@ export function PaymentProofUpload({
         <button
           type="button"
           onClick={clear}
-          className="text-muted-foreground hover:text-destructive"
+          className="grid size-11 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
           aria-label="Quitar comprobante"
         >
-          <X className="size-4" />
+          <X className="size-5" />
         </button>
+      </div>
+    );
+  }
+
+  if (busy) {
+    return (
+      <div className="space-y-2 rounded-lg border p-4">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Loader2 className="size-4 animate-spin text-primary" />
+          {phase === "compressing" ? "Preparando la imagen…" : "Subiendo…"}
+          {phase === "uploading" && (
+            <span className="ml-auto tabular-nums text-muted-foreground">
+              {percent}%
+            </span>
+          )}
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary transition-[width] duration-300"
+            style={{ width: phase === "compressing" ? "8%" : `${percent}%` }}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {phase === "compressing"
+            ? "Achicamos la foto para que suba rápido y gastes menos datos."
+            : finalSize
+              ? `Enviando ${formatBytes(finalSize)}`
+              : "No cierres esta pantalla."}
+        </p>
       </div>
     );
   }
@@ -128,18 +156,14 @@ export function PaymentProofUpload({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed p-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+        className="flex min-h-[72px] w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary"
       >
-        {uploading ? (
-          <>
-            <Loader2 className="size-4 animate-spin" /> Subiendo…
-          </>
-        ) : (
-          <>
-            <FileImage className="size-4" /> {label}
-          </>
-        )}
+        <span className="inline-flex items-center gap-2">
+          <Camera className="size-5" /> {label}
+        </span>
+        <span className="text-xs font-normal text-muted-foreground">
+          Una foto o captura de la pantalla de tu banco
+        </span>
       </button>
       <input
         ref={inputRef}

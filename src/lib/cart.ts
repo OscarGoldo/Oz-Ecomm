@@ -33,6 +33,19 @@ export interface CartLine {
   lineTotalUsd: number;
 }
 
+/**
+ * Un ajuste que el carrito le hizo al pedido del cliente sin que él lo pidiera.
+ * Existe para poder AVISARLO: antes las líneas sin stock desaparecían y las
+ * cantidades se recortaban en silencio, así que alguien podía poner 5, pagar 2
+ * y enterarse recién cuando le llegaba el pedido.
+ */
+export interface CartChange {
+  name: string;
+  kind: "removed" | "clamped";
+  /** Cuántas quedaron, en el caso de un recorte. */
+  available?: number;
+}
+
 export interface EnrichedCart {
   lines: CartLine[];
   count: number;
@@ -40,6 +53,8 @@ export interface EnrichedCart {
   subtotalBs: number | null;
   exchangeRate: number | null;
   showBs: boolean;
+  /** Qué se quitó o se recortó al armar este carrito. Vacío si no cambió nada. */
+  changes: CartChange[];
 }
 
 function parseCart(raw: string | undefined): Cart | null {
@@ -103,6 +118,7 @@ export async function getEnrichedCart(
       subtotalBs: store.show_bs_prices ? 0 : null,
       exchangeRate: store.exchange_rate,
       showBs: store.show_bs_prices,
+      changes: [],
     };
   }
 
@@ -135,16 +151,31 @@ export async function getEnrichedCart(
   const variantById = new Map((variants ?? []).map((v) => [v.id, v]));
 
   const lines: CartLine[] = [];
+  const changes: CartChange[] = [];
   for (const item of cart.items) {
     const product = byId.get(item.id);
-    if (!product) continue;
+    if (!product) {
+      // No sabemos el nombre: el producto ya no está activo ni se pudo leer.
+      changes.push({ name: "Un producto", kind: "removed" });
+      continue;
+    }
 
     if (item.variantId) {
       const variant = variantById.get(item.variantId);
-      if (!variant || variant.product_id !== product.id || !variant.active) continue;
+      if (!variant || variant.product_id !== product.id || !variant.active) {
+        changes.push({ name: product.name, kind: "removed" });
+        continue;
+      }
       const unitPrice = variant.price != null ? variant.price : product.price;
       const available = Math.min(item.qty, variant.stock);
-      if (available <= 0) continue;
+      const label = `${product.name} ${variant.name}`;
+      if (available <= 0) {
+        changes.push({ name: label, kind: "removed" });
+        continue;
+      }
+      if (available < item.qty) {
+        changes.push({ name: label, kind: "clamped", available });
+      }
       lines.push({
         product: { ...product, track_stock: true, stock: variant.stock },
         variantId: variant.id,
@@ -160,7 +191,13 @@ export async function getEnrichedCart(
     const available = product.track_stock
       ? Math.min(item.qty, product.stock)
       : item.qty;
-    if (available <= 0) continue;
+    if (available <= 0) {
+      changes.push({ name: product.name, kind: "removed" });
+      continue;
+    }
+    if (available < item.qty) {
+      changes.push({ name: product.name, kind: "clamped", available });
+    }
     lines.push({
       product,
       variantId: null,
@@ -185,5 +222,6 @@ export async function getEnrichedCart(
     subtotalBs,
     exchangeRate: store.exchange_rate,
     showBs: store.show_bs_prices,
+    changes,
   };
 }

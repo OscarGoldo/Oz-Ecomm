@@ -8,15 +8,15 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import {
   STORE_IMAGES_BUCKET,
-  fileExt,
   getImageUrl,
   productImagePath,
   themeImagePath,
 } from "@/lib/storage";
-import { cn } from "@/lib/utils";
+import { uploadImage } from "@/lib/upload";
 
 const DEFAULT_MAX_IMAGES = 6;
-const MAX_BYTES = 15 * 1024 * 1024; // 15MB
+/** Techo antes de comprimir. Después de comprimir queda en ~300 KB. */
+const MAX_BYTES = 25 * 1024 * 1024;
 
 interface ImageUploaderProps {
   storeId: string;
@@ -40,49 +40,77 @@ export function ImageUploader({
   hideCoverHint = false,
 }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  /** Índice y total mientras sube un lote, para "Subiendo 2 de 4". */
+  const [batch, setBatch] = useState({ done: 0, total: 0 });
+  const [percent, setPercent] = useState(0);
   const maxImages = max;
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     const remaining = maxImages - value.length;
     if (remaining <= 0) {
-      toast.error(`Máximo ${maxImages} imágenes`);
+      toast.error(`Ya tienes las ${maxImages} imágenes permitidas`);
       return;
     }
 
     const selected = Array.from(files).slice(0, remaining);
-    const supabase = createClient();
-    setUploading(true);
-    const uploaded: string[] = [];
+    if (files.length > remaining) {
+      toast.info(`Solo caben ${remaining} imágenes más; subimos las primeras.`);
+    }
 
-    for (const file of selected) {
+    const supabase = createClient();
+    setBusy(true);
+    setBatch({ done: 0, total: selected.length });
+    const uploaded: string[] = [];
+    let failed = 0;
+
+    for (const [i, file] of selected.entries()) {
+      setBatch({ done: i, total: selected.length });
+      setPercent(0);
+
       if (!file.type.startsWith("image/")) {
         toast.error(`${file.name}: no es una imagen`);
+        failed++;
         continue;
       }
       if (file.size > MAX_BYTES) {
-        toast.error(`${file.name}: supera 15 MB`);
+        toast.error(`${file.name}: es demasiado grande`);
+        failed++;
         continue;
       }
 
-      const fileName = `${crypto.randomUUID()}.${fileExt(file.name)}`;
+      const fileName = `${crypto.randomUUID()}.jpg`;
       const path = folder
         ? themeImagePath(storeId, folder, fileName)
         : productImagePath(storeId, fileName);
-      const { error } = await supabase.storage
-        .from(STORE_IMAGES_BUCKET)
-        .upload(path, file, { cacheControl: "3600", upsert: false });
 
-      if (error) {
-        toast.error(`No se pudo subir ${file.name}`);
+      const res = await uploadImage({
+        supabase,
+        bucket: STORE_IMAGES_BUCKET,
+        path,
+        file,
+        onProgress: setPercent,
+      });
+      if (!res.ok || !res.path) {
+        failed++;
         continue;
       }
-      uploaded.push(path);
+      uploaded.push(res.path);
     }
 
-    setUploading(false);
+    setBusy(false);
+    setBatch({ done: 0, total: 0 });
+    setPercent(0);
     if (inputRef.current) inputRef.current.value = "";
+
+    if (failed > 0) {
+      toast.error(
+        failed === 1
+          ? "Una imagen no se pudo subir. Intenta de nuevo."
+          : `${failed} imágenes no se pudieron subir. Revisa tu conexión.`,
+      );
+    }
     if (uploaded.length) onChange([...value, ...uploaded]);
   }
 
@@ -114,19 +142,21 @@ export function ImageUploader({
               className="object-cover"
             />
             {!hideCoverHint && i === 0 && (
-              <span className="absolute left-1 top-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
+              <span className="absolute left-1 top-1 rounded bg-primary px-1.5 py-0.5 text-2xs font-medium text-primary-foreground">
                 Portada
               </span>
             )}
-            <div className="absolute inset-x-0 bottom-0 flex justify-between gap-1 bg-gradient-to-t from-black/60 to-transparent p-1 opacity-0 transition-opacity group-hover:opacity-100">
+            {/* Siempre visibles: en móvil no hay hover y quedaban inalcanzables. */}
+            <div className="absolute inset-x-0 bottom-0 flex justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-1">
               {!hideCoverHint && i !== 0 ? (
                 <button
                   type="button"
                   onClick={() => makeCover(i)}
                   title="Hacer portada"
-                  className="grid size-6 place-items-center rounded bg-white/90 text-foreground hover:bg-white"
+                  aria-label="Hacer portada"
+                  className="grid size-9 place-items-center rounded bg-white/90 text-foreground hover:bg-white"
                 >
-                  <Star className="size-3.5" />
+                  <Star className="size-4" />
                 </button>
               ) : (
                 <span />
@@ -135,33 +165,41 @@ export function ImageUploader({
                 type="button"
                 onClick={() => remove(i)}
                 title="Quitar"
-                className="grid size-6 place-items-center rounded bg-white/90 text-destructive hover:bg-white"
+                aria-label={`Quitar imagen ${i + 1}`}
+                className="grid size-9 place-items-center rounded bg-white/90 text-destructive hover:bg-white"
               >
-                <X className="size-3.5" />
+                <X className="size-4" />
               </button>
             </div>
           </div>
         ))}
 
-        {value.length < maxImages && (
+        {value.length < maxImages && !busy && (
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            disabled={uploading}
-            className={cn(
-              "flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-muted-foreground transition-colors hover:border-primary hover:text-primary",
-              uploading && "pointer-events-none opacity-60",
-            )}
+            className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-muted-foreground transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary"
           >
-            {uploading ? (
-              <Loader2 className="size-5 animate-spin" />
-            ) : (
-              <ImagePlus className="size-5" />
-            )}
-            <span className="text-[11px]">
-              {uploading ? "Subiendo…" : "Agregar"}
-            </span>
+            <ImagePlus className="size-5" />
+            <span className="text-2xs">Agregar</span>
           </button>
+        )}
+
+        {busy && (
+          <div className="flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-2">
+            <Loader2 className="size-5 animate-spin text-primary" />
+            <span className="text-2xs text-center text-muted-foreground">
+              {batch.total > 1
+                ? `Subiendo ${batch.done + 1} de ${batch.total}`
+                : "Subiendo"}
+            </span>
+            <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-300"
+                style={{ width: `${Math.max(6, percent)}%` }}
+              />
+            </div>
+          </div>
         )}
       </div>
 
@@ -174,7 +212,7 @@ export function ImageUploader({
         onChange={(e) => handleFiles(e.target.files)}
       />
       <p className="text-xs text-muted-foreground">
-        Hasta {maxImages} imágenes (máx. 15 MB c/u).
+        Hasta {maxImages} fotos. Las achicamos solas para que suban rápido.
         {!hideCoverHint && " La primera es la portada."}
       </p>
     </div>

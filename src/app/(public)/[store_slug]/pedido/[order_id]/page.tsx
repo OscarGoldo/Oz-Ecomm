@@ -11,6 +11,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { OrderStatusBadge } from "@/components/admin/status-badge";
+import { OrderPayLater } from "@/components/storefront/order-pay-later";
 import { getStoreBySlug } from "@/lib/storefront";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatBs, formatUSD } from "@/lib/format";
@@ -49,10 +50,38 @@ export default async function OrderConfirmationPage({
   const orderItems = (items ?? []) as OrderItem[];
 
   const isPendingProof = order.status === "pending_confirmation";
+  /** Compró sin haber pagado: acá abajo sube el comprobante cuando lo tenga. */
+  const isAwaitingPayment = order.status === "pending_payment";
   const paymentLabel = order.payment_method_type
     ? (PAYMENT_METHOD_META[order.payment_method_type as PaymentMethodType]?.label ??
       order.payment_method_type)
     : null;
+
+  // Los datos de cobro para volver a mostrárselos a quien todavía no pagó. Se
+  // buscan por tipo porque el pedido guarda el tipo, no el id del método.
+  let payDetails: [string, string][] = [];
+  let payInstructions: string | null = null;
+  if (isAwaitingPayment && order.payment_method_type) {
+    const { data: method } = await db
+      .from("payment_methods")
+      .select("details, instructions")
+      .eq("store_id", store.id)
+      .eq("type", order.payment_method_type as PaymentMethodType)
+      .eq("active", true)
+      .maybeSingle();
+    if (method?.details && typeof method.details === "object") {
+      payDetails = Object.entries(method.details as Record<string, unknown>)
+        .filter(
+          ([k, v]) =>
+            typeof v === "string" &&
+            v.length > 0 &&
+            !k.startsWith("payout") &&
+            k !== "secret",
+        )
+        .map(([k, v]) => [k, v as string]);
+    }
+    payInstructions = method?.instructions ?? null;
+  }
 
   const waUrl = whatsappUrl(
     store.whatsapp,
@@ -88,11 +117,28 @@ export default async function OrderConfirmationPage({
           <OrderStatusBadge status={order.status} />
         </div>
         <p className="mt-3 max-w-md text-sm text-muted-foreground">
-          {isPendingProof
-            ? "Recibimos tu pedido y tu comprobante. La tienda va a verificar el pago y confirmarlo a la brevedad."
-            : "¡Pedido recibido! La tienda ya lo está procesando. Te contactarán para coordinar la entrega."}
+          {isAwaitingPayment
+            ? "Te guardamos el pedido. Falta que hagas el pago y subas el comprobante aquí abajo."
+            : isPendingProof
+              ? "Recibimos tu pedido y tu comprobante. La tienda va a verificar el pago y confirmarlo a la brevedad."
+              : "¡Pedido recibido! La tienda ya lo está procesando. Te contactarán para coordinar la entrega."}
         </p>
       </div>
+
+      {isAwaitingPayment && (
+        <OrderPayLater
+          orderId={order.id}
+          storeId={store.id}
+          total={order.total}
+          totalBs={order.total_bs}
+          payInBs={
+            order.payment_method_type === "pago_movil" ||
+            order.payment_method_type === "transfer"
+          }
+          details={payDetails}
+          instructions={payInstructions}
+        />
+      )}
 
       {/* WhatsApp notify */}
       {waUrl && (
