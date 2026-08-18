@@ -21,6 +21,13 @@ import {
 } from "@/lib/plans";
 import { FREE_LAYOUTS, THEME_PRESETS } from "@/lib/theme";
 
+/**
+ * La landing se prerenderiza y se revalida cada hora. Lo único que lee de la
+ * base es la tasa BCV, que el cron actualiza una vez al día — no hay razón
+ * para pagar una consulta por visita.
+ */
+export const revalidate = 3600;
+
 const features = [
   {
     icon: Smartphone,
@@ -82,8 +89,12 @@ export default function LandingPage() {
       <section id="funciones" className="scroll-mt-24 border-t bg-muted/30">
         <div className="container py-16">
           <h2 className="max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">
-            Todo lo que tu negocio necesita para vender online
+            Pensado para cómo se vende en Venezuela
           </h2>
+          <p className="mt-3 max-w-xl text-muted-foreground">
+            Doble moneda, pagos por comprobante y todo desde el teléfono. No es
+            una tienda genérica traducida al español.
+          </p>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
               <div key={f.title} className="rounded-2xl border bg-card p-6">
@@ -248,10 +259,11 @@ export default function LandingPage() {
       <section className="bg-primary text-primary-foreground">
         <div className="container flex flex-col items-center gap-6 py-16 text-center">
           <h2 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">
-            Tu tienda online te está esperando
+            Tu catálogo en línea, hoy mismo
           </h2>
           <p className="max-w-md text-primary-foreground/90">
-            Créala gratis hoy y empieza a recibir pedidos ordenados.
+            Creas la tienda, cargas tus productos y compartes el link. Eso es
+            todo.
           </p>
           <Button asChild size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90">
             <Link href="/crear-tienda">

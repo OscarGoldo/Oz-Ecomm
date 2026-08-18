@@ -1,3 +1,4 @@
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 // Official BCV rates via dolarapi (clean JSON, no scraping needed).
@@ -34,6 +35,28 @@ export interface CachedBcvRates {
   eur: number | null;
   source_date: string | null;
   updated_at: string;
+}
+
+/**
+ * La tasa USD cacheada, para páginas que se prerenderizan.
+ *
+ * Usa el cliente admin en vez del de sesión a propósito: `createClient()` lee
+ * cookies, y eso obliga a Next a renderizar la página en cada request. La
+ * landing es estática y tiene que seguir siéndolo — leer la tasa no puede
+ * costar una consulta por visita. La tabla `bcv_rates` es pública de todos
+ * modos (una fila, sin datos de nadie).
+ */
+export async function getPublicUsdRate(): Promise<number | null> {
+  try {
+    const { data } = await createAdminClient()
+      .from("bcv_rates")
+      .select("usd")
+      .eq("id", "current")
+      .maybeSingle();
+    return data?.usd != null ? Number(data.usd) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Read the cached BCV rates (refreshed daily by the cron). */

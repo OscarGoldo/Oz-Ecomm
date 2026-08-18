@@ -2,12 +2,17 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { PhoneMockup } from "@/components/landing/phone-mockup";
+import { getPublicUsdRate } from "@/lib/bcv";
 import { FREE_MAX_PRODUCTS } from "@/lib/plans";
 
 /** Lo que de verdad diferencia a Tiendify de un Shopify: cómo se cobra acá. */
 const PAYMENTS = ["Pago Móvil", "Zelle", "Binance", "Efectivo", "PayPal"];
 
-export function LandingHero() {
+export async function LandingHero() {
+  // La vista previa muestra precios en Bs con la tasa BCV real del día. Es la
+  // misma que usan las tiendas, así que la landing demuestra la función en vez
+  // de describirla. Si el cron todavía no cacheó nada, el mockup cae a USD.
+  const usdRate = await getPublicUsdRate();
   return (
     <section className="relative overflow-hidden">
       {/* Soft background accents */}
@@ -59,7 +64,7 @@ export function LandingHero() {
 
         {/* Phone mockup */}
         <div className="flex justify-center lg:justify-end">
-          <PhoneMockup />
+          <PhoneMockup bcvRate={usdRate} />
         </div>
       </div>
     </section>
