@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import { REFERRAL_COOKIE } from "@/lib/referrals";
 import { attachReferral } from "@/lib/referrals-server";
 import { isReservedSlug, slugify } from "@/lib/slug";
@@ -25,6 +26,8 @@ export interface SignupResult {
   ok: boolean;
   error?: string;
   slug?: string;
+  /** La sesión quedó abierta: el panel se abre directo, sin pasar por /login. */
+  signedIn?: boolean;
 }
 
 const schema = z.object({
@@ -147,7 +150,7 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
     .insert({
       slug,
       name: d.store_name,
-      primary_color: d.primary_color ?? "#2563EB",
+      primary_color: d.primary_color ?? "#0EA5E9",
       whatsapp: d.whatsapp?.trim() || null,
       active: true,
     })
@@ -204,5 +207,23 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
     display_order: 0,
   });
 
-  return { ok: true, slug };
+  // Dejarlo adentro. Antes la cuenta se creaba con la API admin y nadie iniciaba
+  // sesión: al comerciante que acababa de registrarse se le pedía autenticarse
+  // otra vez en /login, en el segundo de mayor intención que va a tener. Ahí se
+  // perdía gente que ya había dicho que sí.
+  // Si el login fallara, la tienda igual quedó creada: el formulario cae al
+  // mensaje de "entra con tu email", que es el comportamiento viejo.
+  let signedIn = false;
+  try {
+    const auth = createServerClient();
+    const { error: signInErr } = await auth.auth.signInWithPassword({
+      email: d.owner_email,
+      password: d.password,
+    });
+    signedIn = !signInErr;
+  } catch {
+    // Queda en false y el cliente muestra el camino manual.
+  }
+
+  return { ok: true, slug, signedIn };
 }

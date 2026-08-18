@@ -2,8 +2,9 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { CheckCircle2, ExternalLink, Loader2, Rocket } from "lucide-react";
+import { Check, CheckCircle2, ExternalLink, Loader2, Rocket } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,24 @@ import { Label } from "@/components/ui/label";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { signUpStore } from "@/app/(public)/crear-tienda/actions";
 import { slugify } from "@/lib/slug";
+import { cn } from "@/lib/utils";
+
+/**
+ * Colores de marca ofrecidos en el registro. Todos son oscuros a propósito: el
+ * texto de los botones primarios es blanco, así que un color claro dejaría la
+ * tienda con botones ilegibles. Elegir de una lista corta también evita que
+ * todas las tiendas nuevas nazcan del mismo azul por defecto.
+ */
+const BRAND_SWATCHES = [
+  { name: "Celeste", hex: "#0EA5E9" },
+  { name: "Azul", hex: "#2563EB" },
+  { name: "Violeta", hex: "#7C3AED" },
+  { name: "Fucsia", hex: "#DB2777" },
+  { name: "Rojo", hex: "#DC2626" },
+  { name: "Naranja", hex: "#EA580C" },
+  { name: "Verde", hex: "#059669" },
+  { name: "Negro", hex: "#171717" },
+] as const;
 
 interface FormValues {
   store_name: string;
@@ -41,6 +60,7 @@ export function SignupForm({
    */
   referralCode?: string;
 }) {
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<Success | null>(null);
   // When the form was rendered (server rejects instant bot submissions).
@@ -59,7 +79,7 @@ export function SignupForm({
       owner_email: prefillEmail,
       password: "",
       whatsapp: "",
-      primary_color: "#2563EB",
+      primary_color: "#0EA5E9",
       website: "",
     },
   });
@@ -84,6 +104,14 @@ export function SignupForm({
     setSubmitting(false);
     if (!res.ok || !res.slug) {
       toast.error(res.error ?? "No se pudo crear la tienda");
+      return;
+    }
+    if (res.signedIn) {
+      // Ya tiene sesión: se lo lleva al panel, que es donde va a hacer lo
+      // siguiente que importa (cargar su primer producto).
+      toast.success(`¡${values.store_name} está lista!`);
+      router.push("/panel");
+      router.refresh();
       return;
     }
     setDone({
@@ -215,20 +243,40 @@ export function SignupForm({
         </p>
       </div>
 
-      <div>
-        <div className="space-y-2">
-          <Label htmlFor="color">Color de tu tienda</Label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={/^#[0-9a-fA-F]{6}$/.test(color) ? color : "#2563EB"}
-              onChange={(e) => setValue("primary_color", e.target.value)}
-              className="h-10 w-12 cursor-pointer rounded border bg-background"
-              aria-label="Color"
-            />
-            <Input {...register("primary_color")} className="font-mono" />
-          </div>
+      {/* Muestras con nombre, no un hex. Quien vende ropa por Instagram no
+          tiene por qué saber qué es #2563EB, y el selector del sistema deja
+          elegir amarillos donde el texto blanco de los botones no se lee. */}
+      <div className="space-y-2">
+        <Label>Color de tu tienda</Label>
+        <div className="flex flex-wrap gap-2">
+          {BRAND_SWATCHES.map((s) => {
+            const active = color.toUpperCase() === s.hex;
+            return (
+              <button
+                key={s.hex}
+                type="button"
+                onClick={() => setValue("primary_color", s.hex)}
+                aria-label={s.name}
+                aria-pressed={active}
+                title={s.name}
+                className={cn(
+                  "grid size-11 place-items-center rounded-full transition-transform",
+                  active
+                    ? "ring-2 ring-foreground ring-offset-2 ring-offset-background"
+                    : "hover:scale-105",
+                )}
+                style={{ background: s.hex }}
+              >
+                {active && <Check className="size-5 text-white drop-shadow" />}
+              </button>
+            );
+          })}
         </div>
+        <p className="text-xs text-muted-foreground">
+          {BRAND_SWATCHES.find((s) => s.hex === color.toUpperCase())?.name ??
+            "Personalizado"}
+          . Lo puedes cambiar cuando quieras desde tu panel.
+        </p>
       </div>
 
       <Button type="submit" size="lg" className="w-full" disabled={submitting}>

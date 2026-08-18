@@ -39,7 +39,7 @@ export function StoreOnboardingForm() {
       slug: "",
       owner_name: "",
       owner_email: "",
-      primary_color: "#2563EB",
+      primary_color: "#0EA5E9",
       whatsapp: "",
     },
   });
