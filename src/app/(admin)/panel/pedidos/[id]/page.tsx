@@ -13,6 +13,7 @@ import {
 
 import { OrderStatusBadge } from "@/components/admin/status-badge";
 import { OrderActions } from "@/components/admin/order-actions";
+import { ProofViewer } from "@/components/admin/proof-viewer";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -54,7 +55,9 @@ export default async function OrderDetailPage({
   if (order.payment_proof_url) {
     const { data } = await createAdminClient()
       .storage.from(PAYMENT_PROOFS_BUCKET)
-      .createSignedUrl(order.payment_proof_url, 600);
+      // Una hora: con 10 minutos, dejar el pedido abierto y volver dejaba la
+      // imagen rota sin ningún mensaje que lo explicara.
+      .createSignedUrl(order.payment_proof_url, 3600);
     proofUrl = data?.signedUrl ?? null;
   }
 
@@ -97,6 +100,51 @@ export default async function OrderDetailPage({
           })}
         </p>
       </div>
+
+      {/* Verificación del pago — arriba de todo y solo cuando hay algo que
+          verificar. Antes el botón de confirmar estaba acá, el total en medio
+          de la lista de productos y el comprobante al fondo: para comparar la
+          captura con el monto había que bajar, memorizar una cifra y volver a
+          subir. Es la tarea más repetida del día del comerciante. */}
+      {order.status === "pending_confirmation" && (
+        <section className="rounded-xl border-2 border-warning/50 bg-warning/[0.06] p-4">
+          <h2 className="text-base font-bold tracking-tight">Verifica el pago</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Compara el monto del comprobante con el total del pedido.
+          </p>
+
+          <div className="mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-lg border bg-background p-3">
+            <span className="text-sm text-muted-foreground">Tiene que decir</span>
+            <div className="text-right">
+              <p className="text-2xl font-bold leading-tight tracking-tight">
+                {order.total_bs ? formatBs(order.total_bs) : formatUSD(order.total)}
+              </p>
+              {order.total_bs && (
+                <p className="text-xs text-muted-foreground">
+                  {formatUSD(order.total)} · {paymentLabel}
+                </p>
+              )}
+            </div>
+            {order.payment_reference && (
+              <p className="w-full text-sm">
+                <span className="text-muted-foreground">Referencia: </span>
+                <span className="font-medium">{order.payment_reference}</span>
+              </p>
+            )}
+          </div>
+
+          <div className="mt-3">
+            {proofUrl ? (
+              <ProofViewer url={proofUrl} />
+            ) : (
+              <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+                El cliente no adjuntó comprobante. Confírmalo solo si verificaste
+                el pago por tu cuenta.
+              </p>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Actions */}
       <div className="rounded-xl border bg-card p-4">
@@ -214,19 +262,13 @@ export default async function OrderDetailPage({
           </p>
         )}
         {proofUrl ? (
-          <a
-            href={proofUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 block overflow-hidden rounded-lg border"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={proofUrl}
-              alt="Comprobante de pago"
-              className="max-h-80 w-full bg-muted object-contain"
-            />
-          </a>
+          // Ya se muestra grande arriba mientras está por confirmar; acá abajo
+          // queda solo como registro del pedido una vez resuelto.
+          order.status !== "pending_confirmation" && (
+            <div className="mt-3">
+              <ProofViewer url={proofUrl} />
+            </div>
+          )
         ) : (
           order.payment_method_type &&
           order.payment_method_type !== "cash" && (
