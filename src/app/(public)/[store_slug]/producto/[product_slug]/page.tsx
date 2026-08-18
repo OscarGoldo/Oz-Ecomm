@@ -71,7 +71,9 @@ export default async function ProductDetailPage({
   const available = isAvailable(product);
 
   const hasVariants = Boolean(product.variant_options?.length);
-  const variants = hasVariants ? await getStoreProductVariants(product.id) : [];
+  const variants = hasVariants
+    ? await getStoreProductVariants(store.id, product.id)
+    : [];
 
   const related = await getRelatedProducts(store.id, product, 8);
 

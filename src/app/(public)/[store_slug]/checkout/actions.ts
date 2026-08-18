@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { reportError } from "@/lib/report-error";
 import { getOrCreateSessionId, recordEvent } from "@/lib/analytics";
 import { getEnrichedCart, readCartForStore } from "@/lib/cart";
 import { clearCart } from "@/lib/cart-actions";
@@ -38,10 +39,17 @@ const checkoutSchema = z.object({
   delivery_notes: z.string().trim().optional(),
   payment_method_id: z.string().uuid("Elige un método de pago"),
   payment_reference: z.string().trim().optional(),
-  payment_proof_path: z.string().trim().optional(),
+  payment_proof_path: z.string().trim().max(400).optional(),
   paypal_order_id: z.string().trim().optional(),
   coupon_code: z.string().trim().optional(),
   notes: z.string().trim().optional(),
+  /**
+   * Clave que genera el navegador UNA sola vez al entrar al paso de pago y
+   * reenvía en cada intento. Es lo que evita que una conexión que se corta a
+   * mitad del envío termine en dos pedidos idénticos: el índice UNIQUE
+   * (store_id, idempotency_key) deja pasar solo al primero.
+   */
+  idempotency_key: z.string().trim().min(8).max(64).optional(),
 });
 
 export type CheckoutInput = z.input<typeof checkoutSchema>;
@@ -144,8 +152,11 @@ export async function saveCheckoutLead(
       },
       { onConflict: "store_id,session_id" },
     );
-  } catch {
-    // Capturar el lead nunca puede estorbar una compra en curso.
+  } catch (e) {
+    // Capturar el lead nunca puede estorbar una compra en curso, pero que
+    // quede registrado: si esto falla siempre, el comerciante pierde una
+    // función entera y hoy nadie se enteraría.
+    reportError("saveCheckoutLead", e, { storeId: input.store_id });
   }
 }
 
@@ -211,6 +222,18 @@ async function buildOrderDraft(
     .maybeSingle();
   if (!store || !store.active) {
     return { ok: false, error: "La tienda no está disponible" };
+  }
+
+  // El comprobante tiene que vivir en la carpeta de ESTA tienda. Sin esto, la
+  // ruta la elige el cliente y después el panel se la firma con service role
+  // (que saltea RLS), así que un pedido propio podría usarse para leer el
+  // comprobante bancario de un cliente de otra tienda. Mismo candado que ya
+  // tenía panel/plan/actions.ts para el comprobante del plan.
+  if (
+    data.payment_proof_path &&
+    !data.payment_proof_path.startsWith(`${store.id}/`)
+  ) {
+    return { ok: false, error: "El comprobante no es válido. Súbelo de nuevo." };
   }
 
   if (data.fulfillment_type === "delivery") {
@@ -413,6 +436,23 @@ export async function createOrder(
   const data = parsed.data;
 
   const db = createAdminClient();
+
+  // ¿Este mismo envío ya creó un pedido? Pasa cuando la respuesta se pierde en
+  // el camino (señal que se cae en pleno "Confirmar") y el cliente reintenta:
+  // el pedido ya existe del lado del servidor aunque él nunca lo haya visto.
+  if (data.idempotency_key) {
+    const { data: existing } = await db
+      .from("orders")
+      .select("id")
+      .eq("store_id", data.store_id)
+      .eq("idempotency_key", data.idempotency_key)
+      .maybeSingle();
+    if (existing) {
+      await clearCart(data.store_id);
+      return { ok: true, orderId: existing.id };
+    }
+  }
+
   const result = await buildOrderDraft(db, data);
   if (!result.ok) return { ok: false, error: result.error };
   const {
@@ -491,11 +531,27 @@ export async function createOrder(
       status,
       notes: data.notes || null,
       confirmed_at: status === "confirmed" ? new Date().toISOString() : null,
+      idempotency_key: data.idempotency_key ?? null,
     })
     .select("id, order_number")
     .single();
 
   if (orderErr || !order) {
+    // 23505 sobre idx_orders_idempotency = dos envíos del mismo formulario
+    // llegaron a la vez y el otro ganó. No es un error para el cliente: su
+    // pedido existe, hay que devolverle ese.
+    if (orderErr?.code === "23505" && data.idempotency_key) {
+      const { data: twin } = await db
+        .from("orders")
+        .select("id")
+        .eq("store_id", store.id)
+        .eq("idempotency_key", data.idempotency_key)
+        .maybeSingle();
+      if (twin) {
+        await clearCart(store.id);
+        return { ok: true, orderId: twin.id };
+      }
+    }
     return { ok: false, error: "No se pudo crear el pedido. Intenta de nuevo." };
   }
 
@@ -507,14 +563,19 @@ export async function createOrder(
     return { ok: false, error: "No se pudo crear el pedido. Intenta de nuevo." };
   }
 
-  // Decrement stock now only for immediately-confirmed orders (cash + PayPal).
-  // Atomic + guarded via commit_order_stock() so concurrent checkouts of the
-  // last unit cannot both succeed (fixes overselling race).
-  //  - cash: enforce the guard; if stock ran out, reject cleanly (no payment
-  //    has been taken, so we just void the order we created).
-  //  - paypal: money is already captured, so never reject — floor at 0 and
-  //    reconcile any rare oversell manually.
-  if (status === "confirmed" && stockOps.length > 0) {
+  // El stock se reserva AL TOMAR EL PEDIDO, no al confirmar el pago.
+  //
+  // Antes esto corría solo para los pedidos que nacen confirmados (efectivo y
+  // PayPal), y el flujo más usado en Venezuela —Pago Móvil con comprobante—
+  // se quedaba en pending_confirmation sin reservar nada hasta que el dueño
+  // revisara la foto, horas después. En esa ventana dos clientes compraban la
+  // última unidad, los dos pagaban de verdad, y alguien se quedaba sin nada.
+  //
+  //  - todo lo que no sea PayPal: guardia activa. Si el stock se agotó en la
+  //    carrera, se rechaza limpio — todavía no se cobró nada.
+  //  - paypal: la plata ya está capturada, así que nunca se rechaza. Se piso
+  //    en 0 y un sobreventa raro se concilia a mano.
+  if (stockOps.length > 0) {
     const enforce = method.type !== "paypal";
     const { error: stockErr } = await db.rpc("commit_order_stock", {
       p_items: stockOps,
@@ -528,6 +589,14 @@ export async function createOrder(
         ok: false,
         error: "Uno de los productos se agotó mientras comprabas. Revisa tu carrito.",
       };
+    }
+    // La marca que hace segura la cancelación: dice que ESTE pedido ya movió
+    // inventario, así que devolverlo tiene sentido y devolverlo dos veces no.
+    if (!stockErr) {
+      await db
+        .from("orders")
+        .update({ stock_committed: true })
+        .eq("id", order.id);
     }
   }
 
@@ -566,8 +635,9 @@ export async function createOrder(
     // concatenarlo en un filtro de PostgREST deja inyectar sintaxis de filtros.
     await pending().eq("session_id", getOrCreateSessionId());
     await pending().eq("customer_phone", data.customer_phone);
-  } catch {
+  } catch (e) {
     // No es crítico: como mucho el comerciante ve un carrito de más.
+    reportError("createOrder:recoverCart", e, { orderId: order.id });
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -622,8 +692,9 @@ export async function createOrder(
       });
       await sendEmail({ to: recipients, subject, html });
     }
-  } catch {
+  } catch (e) {
     // Never fail the order because of a notification problem.
+    reportError("createOrder:notifyOwner", e, { orderId: order.id });
   }
 
   // Recibo al cliente apenas compra.
@@ -632,8 +703,9 @@ export async function createOrder(
       pendingProof: status === "pending_confirmation",
     });
     await sendEmail({ to: data.customer_email, subject, html });
-  } catch {
+  } catch (e) {
     // Idem: el recibo nunca puede tumbar un pedido ya cobrado.
+    reportError("createOrder:customerReceipt", e, { orderId: order.id });
   }
 
   await recordEvent(store.id, "purchase");

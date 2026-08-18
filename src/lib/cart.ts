@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { usdToBs } from "@/lib/format";
 import type { Product, Store } from "@/types/database";
 
@@ -106,7 +106,10 @@ export async function getEnrichedCart(
     };
   }
 
-  const supabase = createClient();
+  // Service role: desde la migración 0021 el rol anónimo no lee `products`
+  // (la policy pública se eliminó para que `cost` dejara de ser público). El
+  // aislamiento acá lo dan los filtros explícitos de store_id.
+  const supabase = createAdminClient();
   const ids = cart.items.map((i) => i.id);
   const variantIds = cart.items
     .map((i) => i.variantId)
@@ -123,6 +126,7 @@ export async function getEnrichedCart(
       ? supabase
           .from("product_variants")
           .select("id, product_id, name, price, stock, active")
+          .eq("store_id", store.id)
           .in("id", variantIds)
       : Promise.resolve({ data: [] as never[] }),
   ]);

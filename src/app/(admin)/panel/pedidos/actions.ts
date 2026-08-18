@@ -67,10 +67,75 @@ async function notifyCustomerEmail(orderId: string, status: OrderStatus, store: 
   }
 }
 
+type Db = ReturnType<typeof createAdminClient>;
+
+/** Índice de string para que encaje en el `Json` que esperan las RPC. */
+interface StockOp {
+  [key: string]: string | number | null;
+  product_id: string;
+  variant_id: string | null;
+  qty: number;
+}
+
 /**
- * Confirm payment for an order awaiting verification: move
- * pending_confirmation → confirmed and decrement stock definitively
- * (tracked products only). Mirrors the cash-order decrement in createOrder.
+ * Movimientos de inventario que corresponden a un pedido, respetando
+ * `track_stock` (un producto con stock libre no mueve nada).
+ *
+ * Sirve para los dos sentidos: descontar y devolver.
+ */
+async function stockOpsForOrder(
+  db: Db,
+  storeId: string,
+  orderId: string,
+): Promise<StockOp[]> {
+  const { data: items } = await db
+    .from("order_items")
+    .select("product_id, variant_id, quantity")
+    .eq("order_id", orderId);
+
+  const lines = (items ?? []).filter(
+    (i): i is { product_id: string; variant_id: string | null; quantity: number } =>
+      Boolean(i.product_id),
+  );
+  if (lines.length === 0) return [];
+
+  const { data: products } = await db
+    .from("products")
+    .select("id, track_stock")
+    .in("id", [...new Set(lines.map((i) => i.product_id))])
+    .eq("store_id", storeId);
+  const trackedById = new Map((products ?? []).map((p) => [p.id, p.track_stock]));
+
+  const ops: StockOp[] = [];
+  for (const line of lines) {
+    // El producto tiene que seguir existiendo y ser de esta tienda.
+    if (!trackedById.has(line.product_id)) continue;
+    // Una línea con variante siempre mueve stock; una simple, solo si el
+    // producto lo lleva. Es el mismo criterio que usa buildOrderDraft().
+    if (!line.variant_id && !trackedById.get(line.product_id)) continue;
+    ops.push({
+      product_id: line.product_id,
+      variant_id: line.variant_id,
+      qty: line.quantity,
+    });
+  }
+  return ops;
+}
+
+/**
+ * Confirmar el pago de un pedido que esperaba verificación:
+ * pending_confirmation → confirmed.
+ *
+ * Ya NO descuenta stock en el caso normal: desde la migración 0021 el
+ * inventario se reserva al crear el pedido. Lo único que queda acá es el
+ * rescate de los pedidos viejos que quedaron sin reservar
+ * (`stock_committed = false`).
+ *
+ * El candado de idempotencia es el UPDATE condicional por `status`: si el
+ * dueño toca "Confirmar" dos veces con mala señal, las dos ejecuciones
+ * compiten por la misma fila y solo una se la lleva. Antes esto era un
+ * check-then-act con la lectura y la escritura separadas por todo el bloque de
+ * stock, así que los dos taps descontaban.
  */
 export async function confirmPayment(orderId: string): Promise<ActionResult> {
   let store: Store;
@@ -83,89 +148,49 @@ export async function confirmPayment(orderId: string): Promise<ActionResult> {
 
   const db = createAdminClient();
 
-  const { data: order } = await db
-    .from("orders")
-    .select("id, status")
-    .eq("id", orderId)
-    .eq("store_id", storeId)
-    .maybeSingle();
-  if (!order) return { ok: false, error: "Pedido no encontrado" };
-  if (order.status !== "pending_confirmation") {
-    return { ok: false, error: "Este pedido ya fue procesado" };
-  }
-
-  const { data: items } = await db
-    .from("order_items")
-    .select("product_id, variant_id, quantity")
-    .eq("order_id", orderId);
-
-  const lines = (items ?? []).filter(
-    (i): i is { product_id: string; variant_id: string | null; quantity: number } =>
-      Boolean(i.product_id),
-  );
-
-  // Per-variant stock.
-  const variantLines = lines.filter((i) => i.variant_id) as {
-    product_id: string;
-    variant_id: string;
-    quantity: number;
-  }[];
-  if (variantLines.length > 0) {
-    const { data: vars } = await db
-      .from("product_variants")
-      .select("id, stock")
-      .in("id", variantLines.map((i) => i.variant_id))
-      .eq("store_id", storeId);
-    const vById = new Map((vars ?? []).map((v) => [v.id, v]));
-    await Promise.all(
-      variantLines.map((i) => {
-        const v = vById.get(i.variant_id);
-        if (!v) return Promise.resolve();
-        return db
-          .from("product_variants")
-          .update({ stock: Math.max(0, v.stock - i.quantity) })
-          .eq("id", i.variant_id)
-          .eq("store_id", storeId);
-      }),
-    );
-  }
-
-  // Product stock (direct for tracked simple products, mirrored for variant lines).
-  const productIds = [...new Set(lines.map((i) => i.product_id))];
-  if (productIds.length > 0) {
-    const { data: products } = await db
-      .from("products")
-      .select("id, stock, track_stock")
-      .in("id", productIds)
-      .eq("store_id", storeId);
-    const pById = new Map((products ?? []).map((p) => [p.id, p]));
-
-    const decrement = new Map<string, number>();
-    for (const i of lines) {
-      const p = pById.get(i.product_id);
-      if (!p) continue;
-      if (i.variant_id || p.track_stock) {
-        decrement.set(i.product_id, (decrement.get(i.product_id) ?? 0) + i.quantity);
-      }
-    }
-    await Promise.all(
-      [...decrement.entries()].map(([pid, dec]) => {
-        const base = pById.get(pid)?.stock ?? 0;
-        return db
-          .from("products")
-          .update({ stock: Math.max(0, base - dec) })
-          .eq("id", pid)
-          .eq("store_id", storeId);
-      }),
-    );
-  }
-
-  const { error } = await db
+  const { data: claimed, error: claimErr } = await db
     .from("orders")
     .update({ status: "confirmed", confirmed_at: new Date().toISOString() })
     .eq("id", orderId)
-    .eq("store_id", storeId);
-  if (error) return { ok: false, error: "No se pudo confirmar el pago" };
+    .eq("store_id", storeId)
+    .eq("status", "pending_confirmation")
+    .select("id, stock_committed")
+    .maybeSingle();
+
+  if (claimErr) return { ok: false, error: "No se pudo confirmar el pago" };
+  if (!claimed) {
+    // O no existe, o alguien más lo confirmó primero. Distinguirlo hace que el
+    // mensaje sirva de algo.
+    const { data: exists } = await db
+      .from("orders")
+      .select("id")
+      .eq("id", orderId)
+      .eq("store_id", storeId)
+      .maybeSingle();
+    return exists
+      ? { ok: false, error: "Este pedido ya fue procesado" }
+      : { ok: false, error: "Pedido no encontrado" };
+  }
+
+  // Pedidos anteriores a la migración 0021: nacieron sin reservar inventario.
+  // Se descuenta acá, sin guardia — el cliente ya pagó y el dueño ya vio el
+  // comprobante, así que rechazar no es una opción; un faltante puntual se
+  // concilia a mano.
+  if (!claimed.stock_committed) {
+    const ops = await stockOpsForOrder(db, storeId, orderId);
+    if (ops.length > 0) {
+      const { error: stockErr } = await db.rpc("commit_order_stock", {
+        p_items: ops,
+        p_enforce: false,
+      });
+      if (!stockErr) {
+        await db
+          .from("orders")
+          .update({ stock_committed: true })
+          .eq("id", orderId);
+      }
+    }
+  }
 
   await notifyCustomerEmail(orderId, "confirmed", store);
   // Confirmar una venta es lo que puede activar el referido que trajo a esta
@@ -205,23 +230,47 @@ export async function updateOrderStatus(
   // correo al cliente: dos taps seguidos en "En camino" no son dos avisos.
   const { data: current } = await db
     .from("orders")
-    .select("status")
+    .select("status, stock_committed")
     .eq("id", orderId)
     .eq("store_id", store.id)
     .maybeSingle();
   if (!current) return { ok: false, error: "Pedido no encontrado" };
   if (current.status === status) return { ok: true };
 
-  const { error } = await db
+  // Cancelar devuelve el inventario que este pedido tenía reservado. Es la
+  // contraparte obligatoria de reservar al crear (migración 0021): sin esto,
+  // cada cancelación se comería stock para siempre y el inventario del panel
+  // dejaría de parecerse al del depósito.
+  //
+  // El cambio de estado y el apagado de `stock_committed` van en el MISMO
+  // UPDATE condicional, no en dos. Así el permiso para reponer se gana una
+  // sola vez: si dos taps en "Cancelar" llegan juntos, el segundo no encuentra
+  // `stock_committed = true` y no repone de nuevo. Separarlos dejaba una
+  // ventana donde el stock volvía pero el pedido seguía activo.
+  const mustRestore = status === "cancelled" && current.stock_committed;
+
+  const { data: updated, error } = await db
     .from("orders")
     .update({
       status,
       ...(status === "completed" ? { completed_at: now } : {}),
-      ...(status === "cancelled" ? { cancelled_at: now } : {}),
+      ...(status === "cancelled" ? { cancelled_at: now, stock_committed: false } : {}),
     })
     .eq("id", orderId)
-    .eq("store_id", store.id);
+    .eq("store_id", store.id)
+    .eq("status", current.status)
+    .select("id")
+    .maybeSingle();
   if (error) return { ok: false, error: "No se pudo actualizar el pedido" };
+  // Otra ejecución se adelantó y ya dejó el pedido en otro estado.
+  if (!updated) return { ok: true };
+
+  if (mustRestore) {
+    const ops = await stockOpsForOrder(db, store.id, orderId);
+    if (ops.length > 0) {
+      await db.rpc("restore_order_stock", { p_items: ops });
+    }
+  }
 
   await notifyCustomerEmail(orderId, status, store);
   revalidate(orderId);

@@ -6,8 +6,14 @@ import { toast } from "sonner";
 
 import { createClient } from "@/lib/supabase/client";
 import { PAYMENT_PROOFS_BUCKET, fileExt } from "@/lib/storage";
+import { createProofUploadTicket } from "@/lib/storage-actions";
 
-const MAX_BYTES = 15 * 1024 * 1024;
+/**
+ * Tiene que coincidir con `file_size_limit` del bucket (migración 0021). El
+ * chequeo de acá es solo cortesía para dar un mensaje decente: el límite real
+ * lo aplica Storage, porque un control en el navegador no es un control.
+ */
+const MAX_BYTES = 5 * 1024 * 1024;
 
 interface PaymentProofUploadProps {
   storeId: string;
@@ -44,24 +50,40 @@ export function PaymentProofUpload({
       return;
     }
     if (file.size > MAX_BYTES) {
-      toast.error("La imagen supera 15 MB");
+      toast.error("La imagen supera 5 MB. Sácale una foto más liviana.");
       return;
     }
 
-    const supabase = createClient();
     setUploading(true);
-    const path = `${storeId}/${folder}/${crypto.randomUUID()}.${fileExt(file.name)}`;
-    const { error } = await supabase.storage
-      .from(PAYMENT_PROOFS_BUCKET)
-      .upload(path, file, { upsert: false });
-    setUploading(false);
+    try {
+      // La ruta la decide el servidor, no este componente: así el archivo
+      // nunca puede terminar en la carpeta de otra tienda.
+      const ticket = await createProofUploadTicket(
+        storeId,
+        fileExt(file.name),
+        folder,
+      );
+      if (!ticket.ok || !ticket.path || !ticket.token) {
+        toast.error(ticket.error ?? "No se pudo subir el comprobante");
+        return;
+      }
 
-    if (error) {
-      toast.error("No se pudo subir el comprobante");
-      return;
+      const supabase = createClient();
+      const { error } = await supabase.storage
+        .from(PAYMENT_PROOFS_BUCKET)
+        .uploadToSignedUrl(ticket.path, ticket.token, file);
+
+      if (error) {
+        toast.error("No se pudo subir el comprobante. Intenta de nuevo.");
+        return;
+      }
+      setPreview(URL.createObjectURL(file));
+      onChange(ticket.path);
+    } catch {
+      toast.error("Se cortó la subida. Revisa tu conexión e intenta de nuevo.");
+    } finally {
+      setUploading(false);
     }
-    setPreview(URL.createObjectURL(file));
-    onChange(path);
   }
 
   function clear() {

@@ -1,7 +1,39 @@
 import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Category, Product, ProductVariant, Store } from "@/types/database";
+
+/**
+ * Columnas del catálogo público. Se listan a mano y NO incluyen `cost`: ese es
+ * el margen del comerciante y no tiene por qué viajar al navegador de nadie
+ * (auditoría #4). Nunca cambies esto por `*` — `select("*")` volvería a
+ * arrastrar el costo.
+ */
+// Ojo: tienen que ser literales de una sola pieza. Si los partís con `+`,
+// supabase-js pierde la inferencia de tipos y todo pasa a `GenericStringError`.
+const PUBLIC_PRODUCT_COLUMNS =
+  "id, store_id, category_id, name, slug, description, price, currency, compare_at_price, stock, track_stock, low_stock_threshold, status, featured, images, sku, variant_options, created_at, updated_at";
+
+const PUBLIC_VARIANT_COLUMNS =
+  "id, product_id, store_id, option_values, name, price, stock, sku, active, position, created_at";
+
+/**
+ * Cliente para leer el catálogo público.
+ *
+ * Desde la migración 0021 el rol `anon` no tiene ningún permiso sobre
+ * `products` ni `product_variants`: la policy de lectura pública se eliminó
+ * porque RLS es por fila y no podía esconder la columna `cost`. El catálogo se
+ * sirve entonces desde acá con service role, y el aislamiento entre tiendas lo
+ * garantiza el `.eq("store_id", ...)` de cada consulta más el hecho de que el
+ * store_id sale siempre de `getStoreBySlug()`, que ya exige `active = true`.
+ *
+ * Es el mismo patrón que ya usaba el seguimiento de pedidos. Regla al tocar
+ * este archivo: TODA consulta lleva `store_id` y `status`, sin excepción.
+ */
+function publicDb() {
+  return createAdminClient();
+}
 
 /**
  * Fetch an active store by slug. Cached per request so the layout and page can
@@ -44,10 +76,10 @@ export async function getStoreProducts(
   storeId: string,
   filters: CatalogFilters = {},
 ): Promise<Product[]> {
-  const supabase = createClient();
+  const supabase = publicDb();
   let query = supabase
     .from("products")
-    .select("*")
+    .select(PUBLIC_PRODUCT_COLUMNS)
     .eq("store_id", storeId)
     .eq("status", "active")
     .order("featured", { ascending: false })
@@ -73,10 +105,10 @@ export async function getStoreProducts(
 /** A single active product by slug within a store. */
 export const getStoreProduct = cache(
   async (storeId: string, productSlug: string): Promise<Product | null> => {
-    const supabase = createClient();
+    const supabase = publicDb();
     const { data } = await supabase
       .from("products")
-      .select("*")
+      .select(PUBLIC_PRODUCT_COLUMNS)
       .eq("store_id", storeId)
       .eq("slug", productSlug)
       .eq("status", "active")
@@ -85,13 +117,19 @@ export const getStoreProduct = cache(
   },
 );
 
-/** Active variants of a product, in display order. */
+/**
+ * Active variants of a product, in display order.
+ *
+ * Lleva `storeId` además del `productId`: con service role el filtro de tienda
+ * es responsabilidad de la consulta, no de RLS.
+ */
 export const getStoreProductVariants = cache(
-  async (productId: string): Promise<ProductVariant[]> => {
-    const supabase = createClient();
+  async (storeId: string, productId: string): Promise<ProductVariant[]> => {
+    const supabase = publicDb();
     const { data } = await supabase
       .from("product_variants")
-      .select("*")
+      .select(PUBLIC_VARIANT_COLUMNS)
+      .eq("store_id", storeId)
       .eq("product_id", productId)
       .order("position");
     return data ?? [];
@@ -107,14 +145,14 @@ export async function getRelatedProducts(
   current: Pick<Product, "id" | "category_id">,
   limit = 8,
 ): Promise<Product[]> {
-  const supabase = createClient();
+  const supabase = publicDb();
   const results: Product[] = [];
   const seen = new Set<string>([current.id]);
 
   if (current.category_id) {
     const { data } = await supabase
       .from("products")
-      .select("*")
+      .select(PUBLIC_PRODUCT_COLUMNS)
       .eq("store_id", storeId)
       .eq("status", "active")
       .eq("category_id", current.category_id)
@@ -131,7 +169,7 @@ export async function getRelatedProducts(
   if (results.length < limit) {
     const { data } = await supabase
       .from("products")
-      .select("*")
+      .select(PUBLIC_PRODUCT_COLUMNS)
       .eq("store_id", storeId)
       .eq("status", "active")
       .neq("id", current.id)

@@ -206,7 +206,14 @@ export interface Database {
           slug: string;
           description: string | null;
           price: number;
-          cost: number | null;
+          /**
+           * Costo de compra. OPCIONAL a nivel de tipo a propósito: desde la
+           * migración 0021 el catálogo público se lee con una lista de
+           * columnas que NO lo incluye (es el margen del comerciante). Si el
+           * compilador te obliga a chequear que existe, esa es la señal de
+           * que estás en un camino público y no deberías necesitarlo.
+           */
+          cost?: number | null;
           currency: string;
           compare_at_price: number | null;
           stock: number;
@@ -304,6 +311,14 @@ export interface Database {
           payout_reference: string | null;
           status: OrderStatus;
           notes: string | null;
+          /**
+           * ¿Este pedido ya movió inventario? Se prende al reservar el stock
+           * (al crear el pedido, migración 0021) y se apaga al devolverlo en
+           * una cancelación. Es lo que evita descontar o reponer dos veces.
+           */
+          stock_committed: boolean;
+          /** Clave del intento de compra; ver migración 0021. */
+          idempotency_key: string | null;
           confirmed_at: string | null;
           completed_at: string | null;
           cancelled_at: string | null;
@@ -338,6 +353,8 @@ export interface Database {
           payout_reference?: string | null;
           status?: OrderStatus;
           notes?: string | null;
+          stock_committed?: boolean;
+          idempotency_key?: string | null;
           confirmed_at?: string | null;
           completed_at?: string | null;
           cancelled_at?: string | null;
@@ -437,7 +454,8 @@ export interface Database {
           option_values: string[];
           name: string;
           price: number | null;
-          cost: number | null;
+          /** Ver products.cost: fuera del catálogo público (migración 0021). */
+          cost?: number | null;
           stock: number;
           sku: string | null;
           active: boolean;
@@ -712,6 +730,10 @@ export interface Database {
       };
       commit_order_stock: {
         Args: { p_items: Json; p_enforce: boolean };
+        Returns: undefined;
+      };
+      restore_order_stock: {
+        Args: { p_items: Json };
         Returns: undefined;
       };
     };

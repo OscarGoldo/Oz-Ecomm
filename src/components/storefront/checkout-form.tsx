@@ -96,6 +96,18 @@ export function CheckoutForm({
   const [step, setStep] = useState<1 | 2>(1);
   const [submitting, setSubmitting] = useState(false);
   const [proofPath, setProofPath] = useState<string | null>(null);
+  /**
+   * Una clave por intento de compra, generada al montar el formulario y
+   * reenviada en cada envío. Si la conexión se cae después de que el servidor
+   * creó el pedido pero antes de que llegue la respuesta, el reintento trae la
+   * misma clave y el servidor devuelve el pedido que ya existe en vez de
+   * crear otro. Es el caso de todos los días en datos móviles.
+   */
+  const [idempotencyKey] = useState(() =>
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
   const [couponCode, setCouponCode] = useState("");
   const [checkingCoupon, setCheckingCoupon] = useState(false);
   const [coupon, setCoupon] = useState<{
@@ -147,19 +159,24 @@ export function CheckoutForm({
   async function applyCoupon() {
     if (!couponCode.trim()) return;
     setCheckingCoupon(true);
-    const res = await previewCoupon(store.id, couponCode, subtotal);
-    setCheckingCoupon(false);
-    if (!res.ok) {
-      setCoupon(null);
-      toast.error(res.error ?? "Cupón no válido");
-      return;
+    try {
+      const res = await previewCoupon(store.id, couponCode, subtotal);
+      if (!res.ok) {
+        setCoupon(null);
+        toast.error(res.error ?? "Cupón no válido");
+        return;
+      }
+      setCoupon({
+        code: res.code ?? couponCode.toUpperCase(),
+        discount: res.discount ?? 0,
+        freeShipping: Boolean(res.freeShipping),
+      });
+      toast.success("Cupón aplicado");
+    } catch {
+      toast.error("No pudimos validar el cupón. Revisa tu conexión.");
+    } finally {
+      setCheckingCoupon(false);
     }
-    setCoupon({
-      code: res.code ?? couponCode.toUpperCase(),
-      discount: res.discount ?? 0,
-      freeShipping: Boolean(res.freeShipping),
-    });
-    toast.success("Cupón aplicado");
   }
 
   async function copy(text: string) {
@@ -256,6 +273,7 @@ export function CheckoutForm({
       payment_proof_path: proofPath || undefined,
       coupon_code: coupon?.code || undefined,
       notes: values.notes || undefined,
+      idempotency_key: idempotencyKey,
     };
   }
 
@@ -272,14 +290,26 @@ export function CheckoutForm({
     if (!input) return;
 
     setSubmitting(true);
-    const res = await createOrder(input);
-    setSubmitting(false);
-
-    if (!res.ok || !res.orderId) {
-      toast.error(res.error ?? "No se pudo crear el pedido");
-      return;
+    try {
+      const res = await createOrder(input);
+      if (!res.ok || !res.orderId) {
+        toast.error(res.error ?? "No se pudo crear el pedido");
+        return;
+      }
+      router.push(`/${store.slug}/pedido/${res.orderId}`);
+    } catch {
+      // Se cortó la conexión en pleno envío. El pedido PUEDE haberse creado —
+      // por eso el mensaje no dice "falló" y por eso reintentar es seguro: la
+      // clave de idempotencia hace que el segundo intento devuelva el mismo
+      // pedido en lugar de duplicarlo.
+      toast.error(
+        "Se perdió la conexión. Revisa tu correo antes de reintentar: si el pedido entró, te llegó el recibo.",
+      );
+    } finally {
+      // En el `finally` a propósito: antes esto vivía después del await, así
+      // que una promesa rechazada dejaba el botón girando para siempre.
+      setSubmitting(false);
     }
-    router.push(`/${store.slug}/pedido/${res.orderId}`);
   }
 
   const details =
