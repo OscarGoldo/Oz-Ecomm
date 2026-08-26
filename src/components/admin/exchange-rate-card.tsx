@@ -103,21 +103,26 @@ export function ExchangeRateCard({
             </span>
           )}
         </p>
-        <p
-          className={cn(
-            "truncate text-xs",
-            stale ? "font-medium text-warning-foreground" : "text-muted-foreground",
-          )}
-        >
-          {stale && <TriangleAlert className="mr-1 inline size-3.5 align-[-2px]" />}
-          {auto
-            ? `Tasa del BCV · ${ageLabel(days)}`
-            : stale
+        {/* Con el automático encendido no se dice de dónde salió el número: el
+            flag sólo promete que el cron lo va a pisar mañana, no que este
+            valor venga del BCV. Entre que se activa y que corre el cron, la
+            tienda sigue con la tasa que tenía, y afirmar "tasa del BCV" ahí
+            sería mentira. La pastilla "automática" ya dice lo único cierto. */}
+        {!auto && (
+          <p
+            className={cn(
+              "truncate text-xs",
+              stale ? "font-medium text-warning-foreground" : "text-muted-foreground",
+            )}
+          >
+            {stale && <TriangleAlert className="mr-1 inline size-3.5 align-[-2px]" />}
+            {stale
               ? `La pusiste ${ageLabel(days)}. Conviene revisarla.`
               : aging
                 ? `Tasa que pusiste ${ageLabel(days)}`
                 : `Tasa actualizada ${ageLabel(days)}`}
-        </p>
+          </p>
+        )}
       </div>
 
       <Link
