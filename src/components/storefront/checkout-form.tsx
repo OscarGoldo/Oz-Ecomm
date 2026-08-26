@@ -162,6 +162,12 @@ export function CheckoutForm({
    * Solo datos de contacto y entrega: nunca el comprobante ni nada de pago.  */
   const draftKey = `oz_checkout_draft:${store.id}`;
   const restored = useRef(false);
+  /**
+   * Teléfono que venía en el borrador. Va aparte del form porque PhoneInput
+   * guarda su propio estado: sin esto el cliente vuelve, ve el nombre y la
+   * dirección puestos y el teléfono vacío, y cree que se perdió todo.
+   */
+  const [restoredPhone, setRestoredPhone] = useState("");
 
   useEffect(() => {
     if (restored.current) return;
@@ -182,6 +188,9 @@ export function CheckoutForm({
       for (const k of keys) {
         const v = d[k];
         if (typeof v === "string" && v) setValue(k, v as never);
+      }
+      if (typeof d.customer_phone === "string" && d.customer_phone) {
+        setRestoredPhone(d.customer_phone);
       }
       // El método guardado puede haberse desactivado desde entonces.
       if (d.payment_method_id && paymentMethods.some((m) => m.id === d.payment_method_id)) {
@@ -496,15 +505,27 @@ export function CheckoutForm({
                   id="customer_name"
                   {...register("customer_name", { required: "Ingresa tu nombre" })}
                   placeholder="Ej. María Pérez"
+                  aria-invalid={Boolean(errors.customer_name)}
+                  aria-describedby={
+                    errors.customer_name ? "customer_name_error" : undefined
+                  }
                 />
                 {errors.customer_name && (
-                  <p className="text-xs text-destructive">{errors.customer_name.message}</p>
+                  <p id="customer_name_error" className="text-xs text-destructive">
+                    {errors.customer_name.message}
+                  </p>
                 )}
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2" ref={phoneRef}>
                   <Label>Teléfono / WhatsApp *</Label>
                   <PhoneInput
+                    key={restoredPhone ? "restored" : "fresh"}
+                    defaultValue={restoredPhone}
+                    invalid={Boolean(errors.customer_phone)}
+                    describedBy={
+                      errors.customer_phone ? "customer_phone_error" : undefined
+                    }
                     onChange={(v) => {
                       setValue("customer_phone", v);
                       if (v.trim().length >= 6) clearErrors("customer_phone");
@@ -512,7 +533,7 @@ export function CheckoutForm({
                     placeholder="424 1234567"
                   />
                   {errors.customer_phone && (
-                    <p className="text-xs text-destructive">
+                    <p id="customer_phone_error" className="text-xs text-destructive">
                       {errors.customer_phone.message}
                     </p>
                   )}
@@ -528,13 +549,15 @@ export function CheckoutForm({
                       pattern: { value: EMAIL_RE, message: "Email inválido" },
                     })}
                     placeholder="tu@correo.com"
+                    aria-invalid={Boolean(errors.customer_email)}
+                    aria-describedby="customer_email_hint"
                   />
                   {errors.customer_email ? (
-                    <p className="text-xs text-destructive">
+                    <p id="customer_email_hint" className="text-xs text-destructive">
                       {errors.customer_email.message}
                     </p>
                   ) : (
-                    <p className="text-xs text-muted-foreground">
+                    <p id="customer_email_hint" className="text-xs text-muted-foreground">
                       Ahí te llega el recibo de tu pedido.
                     </p>
                   )}

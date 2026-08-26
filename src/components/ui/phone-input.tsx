@@ -101,15 +101,41 @@ interface PhoneInputProps {
   onChange: (value: string) => void;
   defaultCode?: string;
   placeholder?: string;
+  /**
+   * Número internacional ya guardado ("584241234567"), para reponer el campo.
+   * Lo usa el borrador del checkout: si el cliente vuelve y ve el nombre y la
+   * dirección puestos pero el teléfono vacío, cree que se perdió todo.
+   */
+  defaultValue?: string;
+  /** Marca el campo como inválido para lectores de pantalla. */
+  invalid?: boolean;
+  /** Id del párrafo con el mensaje de error. */
+  describedBy?: string;
+}
+
+/** Parte un número internacional en (código de país, número nacional). */
+function splitInternational(value: string | undefined): {
+  code: string;
+  national: string;
+} | null {
+  const digits = (value ?? "").replace(/D/g, "");
+  if (digits.length < 7) return null;
+  const country = BY_CODE_LENGTH.find((c) => digits.startsWith(c.code));
+  if (!country) return null;
+  return { code: country.code, national: digits.slice(country.code.length) };
 }
 
 export function PhoneInput({
   onChange,
   defaultCode = "58",
   placeholder = "Número",
+  defaultValue,
+  invalid,
+  describedBy,
 }: PhoneInputProps) {
-  const [code, setCode] = useState(defaultCode);
-  const [number, setNumber] = useState("");
+  const initial = splitInternational(defaultValue);
+  const [code, setCode] = useState(initial?.code ?? defaultCode);
+  const [number, setNumber] = useState(initial?.national ?? "");
 
   const country = COUNTRIES.find((c) => c.code === code) ?? COUNTRIES[0]!;
   const num = national(number);
@@ -162,6 +188,8 @@ export function PhoneInput({
           onChange={(e) => onType(e.target.value)}
           placeholder={placeholder}
           className="flex-1"
+          aria-invalid={invalid}
+          aria-describedby={describedBy}
         />
       </div>
 
