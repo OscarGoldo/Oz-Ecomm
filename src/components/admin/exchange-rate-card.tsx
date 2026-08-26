@@ -2,7 +2,7 @@ import Link from "next/link";
 import { differenceInCalendarDays } from "date-fns";
 import { ArrowRight, RefreshCw, TriangleAlert } from "lucide-react";
 
-import { formatBs, formatUSD, usdToBs } from "@/lib/format";
+import { formatBs } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
@@ -15,17 +15,14 @@ import { cn } from "@/lib/utils";
  * por debajo, o el cliente transfiere un monto que no cuadra y le rechazan el
  * pago.
  *
- * Por eso muestra las tres cosas juntas: cuánto vale el dólar hoy en su tienda,
- * de cuándo es ese número, y un ejemplo concreto de cómo lo ve el comprador.
+ * Por eso muestra las dos cosas juntas: cuánto vale el dólar hoy en su tienda
+ * y de cuándo es ese número.
  */
 
 /** Días a partir de los cuales la tasa se marca como vieja. */
 const STALE_DAYS = 7;
 /** Días a partir de los cuales conviene mencionar la antigüedad, sin alarmar. */
 const AGING_DAYS = 3;
-
-/** Producto de ejemplo para mostrar cómo queda un precio a esta tasa. */
-const SAMPLE_USD = 10;
 
 interface ExchangeRateCardProps {
   rate: number | null;
@@ -90,8 +87,6 @@ export function ExchangeRateCard({
     );
   }
 
-  const sampleBs = usdToBs(SAMPLE_USD, rate);
-
   return (
     <section
       className={cn(
@@ -134,27 +129,9 @@ export function ExchangeRateCard({
                   ? `La pusiste ${ageLabel(days)}`
                   : `Actualizada ${ageLabel(days)}`}
           </p>
-
-          {/* En celular el ejemplo va acá, en su propia línea: es la parte que
-              más le explica la tasa a alguien no técnico y esconderla justo en
-              la pantalla donde el dueño trabaja no tenía sentido. */}
-          {sampleBs !== null && (
-            <p className="mt-1.5 text-sm text-muted-foreground sm:hidden">
-              Un producto de {formatUSD(SAMPLE_USD)} se ve como{" "}
-              <span className="font-semibold text-foreground">
-                {formatBs(sampleBs)}
-              </span>
-            </p>
-          )}
         </div>
 
         <div className="flex items-center gap-4">
-          {sampleBs !== null && (
-            <div className="hidden text-right sm:block">
-              <p className="text-xs text-muted-foreground">Un producto de {formatUSD(SAMPLE_USD)}</p>
-              <p className="font-semibold tabular-nums">se ve como {formatBs(sampleBs)}</p>
-            </div>
-          )}
           <Link
             href="/panel/configuracion"
             className={cn(
