@@ -11,6 +11,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 
+import { ExchangeRateCard } from "@/components/admin/exchange-rate-card";
 import { OrderStatusBadge } from "@/components/admin/status-badge";
 import {
   WelcomeChecklist,
@@ -98,6 +99,13 @@ export default async function DashboardPage() {
           />
         </Link>
       </div>
+
+      <ExchangeRateCard
+        rate={store.exchange_rate}
+        updatedAt={store.exchange_rate_updated_at}
+        auto={store.auto_exchange_rate}
+        showBs={store.show_bs_prices}
+      />
 
       {/* Recent orders */}
       <section className="rounded-xl border bg-card">
