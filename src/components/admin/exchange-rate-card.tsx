@@ -64,25 +64,24 @@ export function ExchangeRateCard({
 
   if (missing) {
     return (
-      <section className="rounded-xl border-2 border-warning/50 bg-warning/[0.06] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-start gap-2.5">
-            <TriangleAlert className="mt-0.5 size-5 shrink-0 text-warning-foreground" />
-            <div>
-              <p className="font-semibold">Todavía no pusiste la tasa del día</p>
-              <p className="text-sm text-muted-foreground">
-                Tu tienda muestra precios en bolívares, pero sin tasa no puede
-                calcularlos.
-              </p>
-            </div>
+      <section className="flex items-center justify-between gap-3 rounded-xl border border-warning/50 bg-warning/[0.06] px-3.5 py-2.5">
+        <div className="flex min-w-0 items-start gap-2">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning-foreground" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold leading-tight">
+              Todavía no pusiste la tasa del día
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Tu tienda muestra precios en Bs y sin tasa no puede calcularlos.
+            </p>
           </div>
-          <Link
-            href="/panel/configuracion"
-            className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-          >
-            Poner la tasa <ArrowRight className="size-4" />
-          </Link>
         </div>
+        <Link
+          href="/panel/configuracion"
+          className="inline-flex h-11 shrink-0 items-center gap-1 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+        >
+          Poner tasa <ArrowRight className="size-4" />
+        </Link>
       </section>
     );
   }
@@ -90,62 +89,51 @@ export function ExchangeRateCard({
   return (
     <section
       className={cn(
-        "rounded-xl border bg-card p-4",
-        stale && "border-2 border-warning/50 bg-warning/[0.06]",
+        "flex items-center justify-between gap-3 rounded-xl border bg-card px-3.5 py-2.5",
+        stale && "border-warning/50 bg-warning/[0.06]",
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              Tasa que estás usando
+      <div className="min-w-0">
+        <p className="flex flex-wrap items-baseline gap-x-1.5 leading-tight">
+          <span className="text-base font-bold tabular-nums">{formatBs(rate)}</span>
+          <span className="text-xs text-muted-foreground">por dólar</span>
+          {auto && (
+            <span className="inline-flex items-center gap-1 text-2xs font-medium text-primary">
+              <RefreshCw className="size-3" /> automática
             </span>
-            {auto && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-2xs font-semibold text-primary">
-                <RefreshCw className="size-3" /> Automática
-              </span>
-            )}
-          </div>
-
-          <p className="mt-0.5 text-2xl font-bold tracking-tight tabular-nums">
-            {formatBs(rate)}
-            <span className="ml-1.5 text-sm font-normal text-muted-foreground">
-              por dólar
-            </span>
-          </p>
-
-          <p
-            className={cn(
-              "mt-1 text-sm",
-              stale ? "font-medium text-warning-foreground" : "text-muted-foreground",
-            )}
-          >
-            {stale && <TriangleAlert className="mr-1 inline size-4 align-[-3px]" />}
-            {auto
-              ? `Se actualiza sola con el BCV · ${ageLabel(days)}`
-              : stale
-                ? `La pusiste ${ageLabel(days)}. Conviene revisarla.`
-                : aging
-                  ? `La pusiste ${ageLabel(days)}`
-                  : `Actualizada ${ageLabel(days)}`}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <Link
-            href="/panel/configuracion"
-            className={cn(
-              "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-4 text-sm font-semibold",
-              stale
-                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "border hover:bg-muted",
-            )}
-          >
-            {stale ? "Revisar tasa" : "Cambiar"}
-            <ArrowRight className="size-4" />
-          </Link>
-        </div>
+          )}
+        </p>
+        <p
+          className={cn(
+            "truncate text-xs",
+            stale ? "font-medium text-warning-foreground" : "text-muted-foreground",
+          )}
+        >
+          {stale && <TriangleAlert className="mr-1 inline size-3.5 align-[-2px]" />}
+          {auto
+            ? `Tasa del BCV · ${ageLabel(days)}`
+            : stale
+              ? `La pusiste ${ageLabel(days)}. Conviene revisarla.`
+              : aging
+                ? `Tasa que pusiste ${ageLabel(days)}`
+                : `Tasa actualizada ${ageLabel(days)}`}
+        </p>
       </div>
+
+      <Link
+        href="/panel/configuracion"
+        className={cn(
+          // 44 px de alto aunque la tarjeta sea chica: es el mínimo táctil del
+          // panel y el dueño lo toca desde el celular.
+          "inline-flex h-11 shrink-0 items-center gap-1 rounded-lg px-3.5 text-sm font-semibold",
+          stale
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "border hover:bg-muted",
+        )}
+      >
+        {stale ? "Revisar" : "Cambiar"}
+        <ArrowRight className="size-4" />
+      </Link>
     </section>
   );
 }
