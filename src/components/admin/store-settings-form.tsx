@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Loader2, Save } from "lucide-react";
+import { Info, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -78,6 +78,32 @@ export function StoreSettingsForm({
   const color = watch("primary_color");
   const showBs = watch("show_bs_prices");
   const autoRate = watch("auto_exchange_rate");
+  /**
+   * El comerciante escribió su propia tasa y por eso apagamos el automático.
+   * Sin esto la tasa que escribe se la pisa el cron del BCV a la mañana
+   * siguiente y no hay nada que se lo explique: ve su número, guarda, y al otro
+   * día está el del BCV.
+   */
+  const [autoOffPorEdicion, setAutoOffPorEdicion] = useState(false);
+
+  /** Campo de la tasa: hay que envolver el onChange de react-hook-form. */
+  const { onChange: onRateChange, ...rateField } = register("exchange_rate");
+
+  /** Poner una tasa a mano y dejar el automático encendido se contradicen. */
+  function handleRateTyped(e: React.ChangeEvent<HTMLInputElement>) {
+    onRateChange(e);
+    if (autoRate) {
+      setValue("auto_exchange_rate", false);
+      setAutoOffPorEdicion(true);
+    }
+  }
+
+  /** Elegir la tasa del BCV sí es coherente con el automático: no lo toca. */
+  function aplicarTasaBcv(value: number) {
+    // Dos decimales: es lo que muestra el botón y lo que el comerciante espera
+    // ver en el campo. El valor crudo del BCV trae cuatro.
+    setValue("exchange_rate", value.toFixed(2));
+  }
 
   async function onSubmit(values: FormValues) {
     setSubmitting(true);
@@ -255,12 +281,21 @@ export function StoreSettingsForm({
               step="0.01"
               min="0"
               inputMode="decimal"
-              {...register("exchange_rate")}
+              {...rateField}
+              onChange={handleRateTyped}
               placeholder="Ej. 95.00"
             />
-            <p className="text-xs text-muted-foreground">
-              Se usa para calcular los Bs en tu tienda.
-            </p>
+            {autoOffPorEdicion ? (
+              <p className="flex items-start gap-1.5 text-xs text-warning-foreground">
+                <Info className="mt-0.5 size-3.5 shrink-0" />
+                Pusiste tu propia tasa, así que apagamos la actualización
+                automática. Si no, mañana se te pondría la del BCV.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Se usa para calcular los Bs en tu tienda.
+              </p>
+            )}
           </div>
 
           {/* BCV rates */}
@@ -278,7 +313,7 @@ export function StoreSettingsForm({
                 <button
                   type="button"
                   disabled={!bcvRates.usd}
-                  onClick={() => bcvRates.usd && setValue("exchange_rate", String(bcvRates.usd))}
+                  onClick={() => bcvRates.usd && aplicarTasaBcv(bcvRates.usd)}
                   className="rounded-lg border bg-background p-2.5 text-left transition-colors hover:border-primary disabled:opacity-50"
                 >
                   <p className="text-xs text-muted-foreground">Dólar 🇺🇸</p>
@@ -288,7 +323,7 @@ export function StoreSettingsForm({
                 <button
                   type="button"
                   disabled={!bcvRates.eur}
-                  onClick={() => bcvRates.eur && setValue("exchange_rate", String(bcvRates.eur))}
+                  onClick={() => bcvRates.eur && aplicarTasaBcv(bcvRates.eur)}
                   className="rounded-lg border bg-background p-2.5 text-left transition-colors hover:border-primary disabled:opacity-50"
                 >
                   <p className="text-xs text-muted-foreground">Euro 🇪🇺</p>
@@ -312,7 +347,10 @@ export function StoreSettingsForm({
             </div>
             <Switch
               checked={autoRate}
-              onCheckedChange={(v) => setValue("auto_exchange_rate", v)}
+              onCheckedChange={(v) => {
+                setValue("auto_exchange_rate", v);
+                if (v) setAutoOffPorEdicion(false);
+              }}
             />
           </div>
         </CardContent>
