@@ -135,47 +135,121 @@ export default async function PedidosPage({
           </p>
         </div>
       ) : (
-        <ul className="space-y-2.5">
-          {filtered.map((order) => {
-            const isNew = order.status === "pending_confirmation";
-            const payment = order.payment_method_type
-              ? (PAYMENT_METHOD_META[order.payment_method_type as PaymentMethodType]
-                  ?.label ?? order.payment_method_type)
-              : "—";
-            return (
-              <li
-                key={order.id}
-                className="flex items-center gap-3 rounded-2xl border bg-card p-3.5 shadow-sm transition-colors hover:border-primary/50"
-              >
-                {isNew && (
-                  <span className="size-2 shrink-0 rounded-full bg-warning" />
-                )}
-                <Link href={`/panel/pedidos/${order.id}`} className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">
-                    #{order.order_number} · {order.customer_name}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {payment} ·{" "}
-                    {format(new Date(order.created_at), "d 'de' MMM, HH:mm", {
-                      locale: es,
-                    })}
-                  </p>
-                </Link>
-                <span className="shrink-0 font-semibold">
-                  {formatUSD(order.total)}
-                </span>
-                <OrderQuickStatus
-                  orderId={order.id}
-                  orderNumber={order.order_number}
-                  status={order.status}
-                  customerName={order.customer_name}
-                  customerPhone={order.customer_phone}
-                  storeName={store.name}
-                />
-              </li>
-            );
-          })}
-        </ul>
+        <>
+          {/* Móvil: tarjetas apiladas, cómodas para el pulgar. */}
+          <ul className="space-y-2.5 md:hidden">
+            {filtered.map((order) => {
+              const isNew = order.status === "pending_confirmation";
+              const payment = order.payment_method_type
+                ? (PAYMENT_METHOD_META[order.payment_method_type as PaymentMethodType]
+                    ?.label ?? order.payment_method_type)
+                : "—";
+              return (
+                <li
+                  key={order.id}
+                  className="flex items-center gap-3 rounded-2xl border bg-card p-3.5 shadow-sm transition-colors hover:border-primary/50"
+                >
+                  {isNew && (
+                    <span className="size-2 shrink-0 rounded-full bg-warning" />
+                  )}
+                  <Link href={`/panel/pedidos/${order.id}`} className="min-w-0 flex-1">
+                    <p className="truncate font-semibold">
+                      #{order.order_number} · {order.customer_name}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {payment} ·{" "}
+                      {format(new Date(order.created_at), "d 'de' MMM, HH:mm", {
+                        locale: es,
+                      })}
+                    </p>
+                  </Link>
+                  <span className="shrink-0 font-semibold">
+                    {formatUSD(order.total)}
+                  </span>
+                  <OrderQuickStatus
+                    orderId={order.id}
+                    orderNumber={order.order_number}
+                    status={order.status}
+                    customerName={order.customer_name}
+                    customerPhone={order.customer_phone}
+                    storeName={store.name}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Escritorio: tabla. Mismos datos, mismos componentes de acción
+              (OrderQuickStatus), solo se acomodan distinto. */}
+          <div className="hidden overflow-hidden rounded-2xl border bg-card shadow-sm md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <th className="px-5 py-3 text-left">Pedido</th>
+                  <th className="px-5 py-3 text-left">Fecha</th>
+                  <th className="px-5 py-3 text-left">Método de pago</th>
+                  <th className="px-5 py-3 text-left">Estado</th>
+                  <th className="px-5 py-3 text-right">Total</th>
+                  <th className="px-5 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {filtered.map((order) => {
+                  const isNew = order.status === "pending_confirmation";
+                  const payment = order.payment_method_type
+                    ? (PAYMENT_METHOD_META[order.payment_method_type as PaymentMethodType]
+                        ?.label ?? order.payment_method_type)
+                    : "—";
+                  return (
+                    <tr key={order.id} className="hover:bg-muted/40">
+                      <td className="px-5 py-3.5">
+                        <Link
+                          href={`/panel/pedidos/${order.id}`}
+                          className="flex items-center gap-2 font-semibold"
+                        >
+                          {isNew && (
+                            <span className="size-2 shrink-0 rounded-full bg-warning" />
+                          )}
+                          <span className="truncate">
+                            #{order.order_number} · {order.customer_name}
+                          </span>
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-3.5 text-muted-foreground">
+                        {format(new Date(order.created_at), "d 'de' MMM, HH:mm", {
+                          locale: es,
+                        })}
+                      </td>
+                      <td className="px-5 py-3.5 text-muted-foreground">{payment}</td>
+                      <td className="px-5 py-3.5">
+                        <OrderQuickStatus
+                          orderId={order.id}
+                          orderNumber={order.order_number}
+                          status={order.status}
+                          customerName={order.customer_name}
+                          customerPhone={order.customer_phone}
+                          storeName={store.name}
+                        />
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-3.5 text-right font-semibold">
+                        {formatUSD(order.total)}
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <Link
+                          href={`/panel/pedidos/${order.id}`}
+                          className="text-muted-foreground hover:text-foreground"
+                          aria-label={`Ver pedido #${order.order_number}`}
+                        >
+                          <ChevronRight className="size-4" />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {hasMore && (

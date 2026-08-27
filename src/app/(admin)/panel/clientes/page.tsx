@@ -31,50 +31,113 @@ export default async function ClientesPage() {
           </p>
         </div>
       ) : (
-        <ul className="space-y-2">
-          {customers.map((c) => {
-            const wa = whatsappUrl(
-              c.phone,
-              `Hola ${c.name}! 👋 Te escribo de ${store.name}.`,
-            );
-            return (
-              <li
-                key={c.phone}
-                className="flex items-center gap-3 rounded-2xl border bg-card shadow-sm p-3"
-              >
-                <Link
-                  href={`/panel/clientes/${encodeURIComponent(c.phone)}`}
-                  className="flex min-w-0 flex-1 items-center gap-3"
+        <>
+          {/* Móvil: tarjetas apiladas. */}
+          <ul className="space-y-2 md:hidden">
+            {customers.map((c) => {
+              const wa = whatsappUrl(
+                c.phone,
+                `Hola ${c.name}! 👋 Te escribo de ${store.name}.`,
+              );
+              return (
+                <li
+                  key={c.phone}
+                  className="flex items-center gap-3 rounded-2xl border bg-card shadow-sm p-3"
                 >
-                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                    {c.name.charAt(0).toUpperCase()}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{c.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {c.phone} · {c.ordersCount}{" "}
-                      {c.ordersCount === 1 ? "pedido" : "pedidos"}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-right text-sm font-semibold">
-                    {formatUSD(c.totalSpentUsd)}
-                  </span>
-                </Link>
-                {wa && (
-                  <a
-                    href={wa}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90"
-                    aria-label="WhatsApp"
+                  <Link
+                    href={`/panel/clientes/${encodeURIComponent(c.phone)}`}
+                    className="flex min-w-0 flex-1 items-center gap-3"
                   >
-                    <MessageCircle className="size-5" />
-                  </a>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                      {c.name.charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{c.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {c.phone} · {c.ordersCount}{" "}
+                        {c.ordersCount === 1 ? "pedido" : "pedidos"}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-right text-sm font-semibold">
+                      {formatUSD(c.totalSpentUsd)}
+                    </span>
+                  </Link>
+                  {wa && (
+                    <a
+                      href={wa}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90"
+                      aria-label="WhatsApp"
+                    >
+                      <MessageCircle className="size-5" />
+                    </a>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Escritorio: tabla. */}
+          <div className="hidden overflow-hidden rounded-2xl border bg-card shadow-sm md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <th className="px-5 py-3 text-left">Cliente</th>
+                  <th className="px-5 py-3 text-left">Teléfono</th>
+                  <th className="px-5 py-3 text-right">Pedidos</th>
+                  <th className="px-5 py-3 text-right">Total gastado</th>
+                  <th className="px-5 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {customers.map((c) => {
+                  const wa = whatsappUrl(
+                    c.phone,
+                    `Hola ${c.name}! 👋 Te escribo de ${store.name}.`,
+                  );
+                  return (
+                    <tr key={c.phone} className="hover:bg-muted/40">
+                      <td className="px-5 py-3">
+                        <Link
+                          href={`/panel/clientes/${encodeURIComponent(c.phone)}`}
+                          className="flex items-center gap-3"
+                        >
+                          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                            {c.name.charAt(0).toUpperCase()}
+                          </span>
+                          <span className="truncate font-medium">{c.name}</span>
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-3 text-muted-foreground">
+                        {c.phone}
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-3 text-right text-muted-foreground">
+                        {c.ordersCount}
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-3 text-right font-semibold">
+                        {formatUSD(c.totalSpentUsd)}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        {wa && (
+                          <a
+                            href={wa}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90"
+                            aria-label="WhatsApp"
+                          >
+                            <MessageCircle className="size-4" />
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
