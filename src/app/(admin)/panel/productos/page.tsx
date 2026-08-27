@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ImageOff, Package, Plus, Sparkles, Star } from "lucide-react";
+import { ChevronRight, ImageOff, Package, Plus, Sparkles, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -131,70 +131,160 @@ export default async function ProductosPage({
           )}
         </div>
       ) : (
-        <ul className="space-y-2">
-          {list.map((p) => {
-            const cover = getImageUrl(p.images[0]);
-            const category = p.category_id ? catName.get(p.category_id) : null;
-            return (
-              <li key={p.id}>
-                <Link
-                  href={`/panel/productos/${p.id}`}
-                  className="flex items-center gap-3 rounded-2xl border bg-card shadow-sm p-3 transition-colors hover:border-primary/50"
-                >
-                  <span className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
-                    {cover ? (
-                      <Image
-                        src={cover}
-                        alt={p.name}
-                        fill
-                        sizes="56px"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <span className="grid h-full place-items-center text-muted-foreground">
-                        <ImageOff className="size-5" />
-                      </span>
-                    )}
-                  </span>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      {p.featured && (
-                        <Star className="size-3.5 shrink-0 fill-primary text-primary" />
+        <>
+          {/* Móvil: tarjetas apiladas. */}
+          <ul className="space-y-2 md:hidden">
+            {list.map((p) => {
+              const cover = getImageUrl(p.images[0]);
+              const category = p.category_id ? catName.get(p.category_id) : null;
+              return (
+                <li key={p.id}>
+                  <Link
+                    href={`/panel/productos/${p.id}`}
+                    className="flex items-center gap-3 rounded-2xl border bg-card shadow-sm p-3 transition-colors hover:border-primary/50"
+                  >
+                    <span className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
+                      {cover ? (
+                        <Image
+                          src={cover}
+                          alt={p.name}
+                          fill
+                          sizes="56px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <span className="grid h-full place-items-center text-muted-foreground">
+                          <ImageOff className="size-5" />
+                        </span>
                       )}
-                      <p className="truncate font-medium">{p.name}</p>
-                    </div>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {category ?? "Sin categoría"}
-                    </p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <ProductStatusBadge status={p.status} />
-                      <StockBadge product={p} />
-                    </div>
-                  </div>
+                    </span>
 
-                  <div className="flex shrink-0 items-center gap-3">
-                    <div className="text-right">
-                      <p className="font-semibold">{formatUSD(p.price)}</p>
-                      {p.compare_at_price != null && (
-                        <p className="text-xs text-muted-foreground line-through">
-                          {formatUSD(p.compare_at_price)}
-                        </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        {p.featured && (
+                          <Star className="size-3.5 shrink-0 fill-primary text-primary" />
+                        )}
+                        <p className="truncate font-medium">{p.name}</p>
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {category ?? "Sin categoría"}
+                      </p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <ProductStatusBadge status={p.status} />
+                        <StockBadge product={p} />
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-3">
+                      <div className="text-right">
+                        <p className="font-semibold">{formatUSD(p.price)}</p>
+                        {p.compare_at_price != null && (
+                          <p className="text-xs text-muted-foreground line-through">
+                            {formatUSD(p.compare_at_price)}
+                          </p>
+                        )}
+                      </div>
+                      {p.track_stock && (
+                        <StockQuickEdit
+                          productId={p.id}
+                          stock={p.stock}
+                          lowThreshold={p.low_stock_threshold}
+                        />
                       )}
                     </div>
-                    {p.track_stock && (
-                      <StockQuickEdit
-                        productId={p.id}
-                        stock={p.stock}
-                        lowThreshold={p.low_stock_threshold}
-                      />
-                    )}
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Escritorio: tabla. */}
+          <div className="hidden overflow-hidden rounded-2xl border bg-card shadow-sm md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <th className="px-5 py-3 text-left">Producto</th>
+                  <th className="px-5 py-3 text-right">Precio</th>
+                  <th className="px-5 py-3 text-left">Estado</th>
+                  <th className="px-5 py-3 text-right">Stock</th>
+                  <th className="px-5 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {list.map((p) => {
+                  const cover = getImageUrl(p.images[0]);
+                  const category = p.category_id ? catName.get(p.category_id) : null;
+                  return (
+                    <tr key={p.id} className="hover:bg-muted/40">
+                      <td className="px-5 py-3">
+                        <Link href={`/panel/productos/${p.id}`} className="flex items-center gap-3">
+                          <span className="relative size-11 shrink-0 overflow-hidden rounded-lg bg-muted">
+                            {cover ? (
+                              <Image
+                                src={cover}
+                                alt={p.name}
+                                fill
+                                sizes="44px"
+                                className="object-cover"
+                              />
+                            ) : (
+                              <span className="grid h-full place-items-center text-muted-foreground">
+                                <ImageOff className="size-4" />
+                              </span>
+                            )}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              {p.featured && (
+                                <Star className="size-3.5 shrink-0 fill-primary text-primary" />
+                              )}
+                              <p className="truncate font-medium">{p.name}</p>
+                            </div>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {category ?? "Sin categoría"}
+                            </p>
+                          </div>
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-3 text-right">
+                        <p className="font-semibold">{formatUSD(p.price)}</p>
+                        {p.compare_at_price != null && (
+                          <p className="text-xs text-muted-foreground line-through">
+                            {formatUSD(p.compare_at_price)}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-5 py-3">
+                        <ProductStatusBadge status={p.status} />
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <StockBadge product={p} />
+                          {p.track_stock && (
+                            <StockQuickEdit
+                              productId={p.id}
+                              stock={p.stock}
+                              lowThreshold={p.low_stock_threshold}
+                            />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <Link
+                          href={`/panel/productos/${p.id}`}
+                          className="text-muted-foreground hover:text-foreground"
+                          aria-label={`Editar ${p.name}`}
+                        >
+                          <ChevronRight className="size-4" />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
