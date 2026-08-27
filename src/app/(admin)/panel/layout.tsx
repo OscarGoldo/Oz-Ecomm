@@ -54,7 +54,7 @@ export default async function PanelLayout({
   // de la plataforma. Antes se pisaba acá con un estilo inline por tienda.
 
   return (
-    <div className="min-h-dvh bg-muted/40">
+    <div className="min-h-dvh bg-muted">
       {/* Top bar */}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background px-4 print:hidden">
         <div className="flex items-center gap-2.5">
