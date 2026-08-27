@@ -108,7 +108,7 @@ export default async function PedidosPage({
       {unattended > 0 && (
         <Link
           href="/panel/pedidos?status=pending_confirmation"
-          className="flex items-center gap-3 rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm"
+          className="flex items-center gap-3 rounded-2xl border border-warning/40 bg-warning/10 p-3.5 text-sm"
         >
           <BellRing className="size-5 text-warning-foreground" />
           <span className="flex-1 font-medium">
@@ -123,7 +123,7 @@ export default async function PedidosPage({
       <OrdersFilters counts={counts} />
 
       {filtered.length === 0 ? (
-        <div className="grid place-items-center rounded-xl border border-dashed bg-card p-12 text-center">
+        <div className="grid place-items-center rounded-2xl border border-dashed bg-card p-12 text-center">
           <Inbox className="mb-3 size-9 text-muted-foreground" />
           <p className="font-medium">
             {q ? "Sin resultados" : "No hay pedidos"}
@@ -135,7 +135,7 @@ export default async function PedidosPage({
           </p>
         </div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {filtered.map((order) => {
             const isNew = order.status === "pending_confirmation";
             const payment = order.payment_method_type
@@ -145,7 +145,7 @@ export default async function PedidosPage({
             return (
               <li
                 key={order.id}
-                className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:border-primary/50"
+                className="flex items-center gap-3 rounded-2xl border bg-card p-3.5 shadow-sm transition-colors hover:border-primary/50"
               >
                 {isNew && (
                   <span className="size-2 shrink-0 rounded-full bg-warning" />
