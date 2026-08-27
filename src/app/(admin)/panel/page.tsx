@@ -4,7 +4,9 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   AlertTriangle,
+  ArrowDown,
   ArrowRight,
+  ArrowUp,
   Banknote,
   Bitcoin,
   Building2,
@@ -18,7 +20,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import type { DashboardMetrics } from "@/lib/metrics";
+import type { DashboardMetrics, Delta } from "@/lib/metrics";
 
 import { ExchangeRateCard } from "@/components/admin/exchange-rate-card";
 import { OrderStatusBadge } from "@/components/admin/status-badge";
@@ -84,29 +86,33 @@ export default async function DashboardPage() {
           icon={<ShoppingBag className="size-4" />}
           label="Pedidos de hoy"
           value={String(m.todayOrders)}
+          delta={m.todayOrdersDelta}
         />
-        <Link href="/panel/pedidos?status=pending_confirmation">
-          <StatCard
-            icon={<ClipboardList className="size-4" />}
-            label="Por confirmar"
-            value={String(m.pendingConfirmation)}
-            highlight={m.pendingConfirmation > 0}
-          />
-        </Link>
+        <StatCard
+          icon={<ClipboardList className="size-4" />}
+          label="Por confirmar"
+          value={String(m.pendingConfirmation)}
+          highlight={m.pendingConfirmation > 0}
+          href="/panel/pedidos?status=pending_confirmation"
+          hint={
+            m.pendingConfirmation > 0 ? "Revisar comprobantes" : "Nada pendiente"
+          }
+        />
         <StatCard
           icon={<DollarSign className="size-4" />}
           label="Ventas del mes"
           value={formatUSD(m.monthSalesUsd)}
           sub={store.show_bs_prices && m.monthSalesBs ? formatBs(m.monthSalesBs) : undefined}
+          delta={m.monthSalesDelta}
         />
-        <Link href="/panel/productos">
-          <StatCard
-            icon={<AlertTriangle className="size-4" />}
-            label="Bajo stock"
-            value={String(m.lowStock.length)}
-            highlight={m.lowStock.length > 0}
-          />
-        </Link>
+        <StatCard
+          icon={<AlertTriangle className="size-4" />}
+          label="Bajo stock"
+          value={String(m.lowStock.length)}
+          highlight={m.lowStock.length > 0}
+          href="/panel/productos"
+          hint={m.lowStock.length > 0 ? "Reponer inventario" : "Todo con stock"}
+        />
       </div>
 
       {/* Sales trend + orders by weekday: solo si ya hubo alguna venta este
@@ -230,32 +236,92 @@ export default async function DashboardPage() {
   );
 }
 
+/**
+ * Chip de variación contra el período anterior: verde si subió, rojo si bajó.
+ * Sin chip cuando no hay porcentaje calculable (el período anterior fue cero).
+ */
+function DeltaChip({ pct }: { pct: number }) {
+  const up = pct >= 0;
+  const Icon = up ? ArrowUp : ArrowDown;
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-2xs font-semibold ${
+        up ? "bg-success/15 text-success" : "bg-destructive/10 text-destructive"
+      }`}
+    >
+      <Icon className="size-3" />
+      {Math.abs(pct).toFixed(1).replace(".", ",")}%
+    </span>
+  );
+}
+
 function StatCard({
   icon,
   label,
   value,
   sub,
   highlight,
+  delta,
+  hint,
+  href,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   sub?: string;
   highlight?: boolean;
+  /** Comparación con el período anterior, para las métricas que la tienen. */
+  delta?: Delta;
+  /**
+   * Para los contadores de estado (por confirmar, bajo stock): no son una
+   * tendencia, así que en vez de un chip de variación que no significa nada
+   * llevan la acción que hay que hacer con ese número.
+   */
+  hint?: string;
+  href?: string;
 }) {
-  return (
+  const body = (
     <div
-      className={`rounded-2xl border bg-card p-4 shadow-sm ${
+      className={`h-full rounded-2xl border bg-card p-4 shadow-sm transition-colors ${
         highlight ? "border-warning/50 bg-warning/5" : ""
-      }`}
+      } ${href ? "hover:border-primary/50" : ""}`}
     >
       <div className="mb-3 flex items-start justify-between gap-2">
         <span className="text-xs font-medium text-muted-foreground">{label}</span>
         <span className="text-muted-foreground/70">{icon}</span>
       </div>
-      <p className="text-2xl font-extrabold leading-none tracking-tight">{value}</p>
+
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <p className="text-2xl font-extrabold leading-none tracking-tight">{value}</p>
+        {delta?.pct != null && <DeltaChip pct={delta.pct} />}
+      </div>
+
       {sub && <p className="mt-1.5 text-xs text-muted-foreground">{sub}</p>}
+
+      {delta && (
+        <p className="mt-1.5 truncate text-2xs text-muted-foreground">
+          vs. {delta.previousLabel} {delta.periodLabel}
+        </p>
+      )}
+
+      {hint && (
+        <p
+          className={`mt-1.5 truncate text-2xs font-medium ${
+            highlight ? "text-warning-foreground" : "text-muted-foreground"
+          }`}
+        >
+          {hint}
+        </p>
+      )}
     </div>
+  );
+
+  return href ? (
+    <Link href={href} className="block h-full">
+      {body}
+    </Link>
+  ) : (
+    body
   );
 }
 
