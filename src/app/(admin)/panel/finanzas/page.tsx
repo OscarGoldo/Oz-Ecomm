@@ -8,12 +8,14 @@ import {
   FileText,
   Package,
   Receipt,
-  TrendingDown,
   TrendingUp,
   Wallet,
 } from "lucide-react";
 
 import { ExpensesManager } from "@/components/admin/expenses-manager";
+// Misma tarjeta de métrica que Resumen y Analítica: antes cada página tenía
+// su propia copia, con distinto tamaño de número y otra posición del ícono.
+import { StatCard as Stat } from "@/components/admin/stat-card";
 import { PayrollManager } from "@/components/admin/payroll-manager";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -153,30 +155,25 @@ export default async function FinanzasPage() {
 
       {/* This month */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Este mes</h2>
-          {f.momGrowthPct !== null && (
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                f.momGrowthPct >= 0
-                  ? "bg-success/15 text-success"
-                  : "bg-destructive/10 text-destructive"
-              }`}
-            >
-              {f.momGrowthPct >= 0 ? (
-                <TrendingUp className="size-3.5" />
-              ) : (
-                <TrendingDown className="size-3.5" />
-              )}
-              {Math.abs(Math.round(f.momGrowthPct))}% vs mes anterior
-            </span>
-          )}
-        </div>
+        {/* La variación contra el mes anterior ya no vive suelta al lado del
+            título: va en la tarjeta de Ventas, que es el número al que se
+            refiere, con el mismo chip que usa el resto del panel. */}
+        <h2 className="text-sm font-semibold">Este mes</h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat icon={<DollarSign className="size-4" />} label="Ventas" value={formatUSD(f.monthUsd)} sub={`${f.monthCount} pedidos`} />
+          <Stat
+            icon={<DollarSign className="size-4" />}
+            label="Ventas"
+            value={formatUSD(f.monthUsd)}
+            sub={`${f.monthCount} pedidos`}
+            delta={{
+              previousLabel: formatUSD(f.prevMonthUsd),
+              periodLabel: "mes anterior",
+              pct: f.momGrowthPct,
+            }}
+          />
           <Stat icon={<TrendingUp className="size-4" />} label="Ganancia bruta" value={formatUSD(f.monthGrossUsd)} />
           <Stat icon={<Receipt className="size-4" />} label="Gastos" value={formatUSD(f.monthExpensesUsd)} />
-          <Stat icon={<Wallet className="size-4" />} label="Ganancia neta" value={formatUSD(f.monthNetUsd)} highlight />
+          <Stat icon={<Wallet className="size-4" />} label="Ganancia neta" value={formatUSD(f.monthNetUsd)} highlight tone="primary" />
         </div>
       </section>
 
@@ -199,7 +196,7 @@ export default async function FinanzasPage() {
           />
           <Stat icon={<TrendingUp className="size-4" />} label="Margen" value={`${Math.round(f.marginPct)}%`} sub={`bruta ${formatUSD(f.grossProfitUsd)}`} />
           <Stat icon={<Package className="size-4" />} label="Unidades vendidas" value={String(f.unitsSold)} sub={`ticket prom. ${formatUSD(f.avgTicketUsd)}`} />
-          <Stat icon={<Clock className="size-4" />} label="Por cobrar" value={formatUSD(f.pendingUsd)} sub={`${f.pendingCount} por confirmar`} highlight={f.pendingCount > 0} />
+          <Stat icon={<Clock className="size-4" />} label="Por cobrar" value={formatUSD(f.pendingUsd)} sub={`${f.pendingCount} por confirmar`} highlight={f.pendingCount > 0} tone="primary" />
         </div>
         {noCosts && (
           <p className="rounded-lg bg-warning/10 p-3 text-xs text-warning-foreground">
@@ -318,31 +315,6 @@ export default async function FinanzasPage() {
           </ul>
         )}
       </section>
-    </div>
-  );
-}
-
-function Stat({
-  icon,
-  label,
-  value,
-  sub,
-  highlight,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub?: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div className={`rounded-2xl border bg-card shadow-sm p-4 ${highlight ? "border-primary/40 bg-primary/5" : ""}`}>
-      <div className="mb-2 flex items-center gap-1.5 text-muted-foreground">
-        {icon}
-        <span className="text-xs font-medium">{label}</span>
-      </div>
-      <p className="text-lg font-bold tracking-tight">{value}</p>
-      {sub && <p className="truncate text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { ProLockedPreview } from "@/components/admin/pro-lock";
+import { StatCard as Stat } from "@/components/admin/stat-card";
 import { requireStoreUser } from "@/lib/auth";
 import { getStoreAnalytics, sampleAnalytics } from "@/lib/analytics";
 import { formatUSD } from "@/lib/format";
@@ -75,6 +76,7 @@ export default async function AnaliticaPage({
           value={`${a.conversionPct.toFixed(1)}%`}
           sub="visitantes que compraron"
           highlight
+          tone="primary"
         />
         <Stat
           icon={<ShoppingCart className="size-4" />}
@@ -281,31 +283,6 @@ export default async function AnaliticaPage({
       ) : (
         panels
       )}
-    </div>
-  );
-}
-
-function Stat({
-  icon,
-  label,
-  value,
-  sub,
-  highlight,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub?: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div className={`rounded-2xl border bg-card shadow-sm p-4 ${highlight ? "border-primary/40 bg-primary/5" : ""}`}>
-      <div className="mb-3 flex items-start justify-between gap-2">
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
-        <span className="text-muted-foreground/70">{icon}</span>
-      </div>
-      <p className="text-2xl font-extrabold leading-none tracking-tight">{value}</p>
-      {sub && <p className="mt-1.5 truncate text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
 }
