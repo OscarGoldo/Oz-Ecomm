@@ -1,9 +1,26 @@
-import { addMonths, format, startOfDay, startOfMonth, subMonths } from "date-fns";
+import {
+  addMonths,
+  eachDayOfInterval,
+  format,
+  getDay,
+  startOfDay,
+  startOfMonth,
+  subMonths,
+} from "date-fns";
 import { es } from "date-fns/locale";
 
 import { createClient } from "@/lib/supabase/server";
 import { phoneKey } from "@/lib/customer-identity";
-import type { Order, OrderStatus, Product } from "@/types/database";
+import { PAYMENT_METHOD_META } from "@/lib/constants";
+import type {
+  Order,
+  OrderStatus,
+  PaymentMethodType,
+  Product,
+} from "@/types/database";
+
+/** Lunes a domingo, en ese orden (getDay() de date-fns arranca en domingo). */
+const WEEKDAY_LABELS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"];
 
 type SupabaseServer = ReturnType<typeof createClient>;
 
@@ -23,6 +40,12 @@ export interface DashboardMetrics {
   monthSalesBs: number;
   monthOrders: number;
   recentOrders: Order[];
+  /** Ventas del mes en curso, un punto por día (para el gráfico de Resumen). */
+  salesByDay: { key: string; label: string; usd: number }[];
+  /** Cuántos pedidos entraron cada día de la semana, en lo que va del mes. */
+  ordersByWeekday: { label: string; count: number }[];
+  /** Con qué método pagó cada venta del mes, de mayor a menor monto. */
+  salesByMethod: { type: string; label: string; usd: number; count: number }[];
 }
 
 export async function getDashboardMetrics(
@@ -57,7 +80,7 @@ export async function getDashboardMetrics(
       .eq("track_stock", true),
     supabase
       .from("orders")
-      .select("total, total_bs")
+      .select("total, total_bs, created_at, payment_method_type")
       .eq("store_id", storeId)
       .in("status", SALES_STATUSES)
       .gte("created_at", monthStart),
@@ -73,11 +96,56 @@ export async function getDashboardMetrics(
     .filter((p) => p.stock <= p.low_stock_threshold)
     .sort((a, b) => a.stock - b.stock);
 
-  const monthSalesUsd = (monthSales ?? []).reduce((s, o) => s + Number(o.total), 0);
-  const monthSalesBs = (monthSales ?? []).reduce(
-    (s, o) => s + Number(o.total_bs ?? 0),
-    0,
-  );
+  const sales = monthSales ?? [];
+  const monthSalesUsd = sales.reduce((s, o) => s + Number(o.total), 0);
+  const monthSalesBs = sales.reduce((s, o) => s + Number(o.total_bs ?? 0), 0);
+
+  // Un punto por día del mes en curso, para que el gráfico de ventas no tenga
+  // huecos donde no hubo ventas ese día. La label se arma acá, de una vez,
+  // para no tener que volver a parsear "yyyy-MM-dd" como fecha más abajo:
+  // eso lo interpreta como UTC y en Venezuela (UTC-4) corre el día mostrado.
+  const dayBuckets = new Map<string, number>();
+  const dayLabels = new Map<string, string>();
+  for (const d of eachDayOfInterval({ start: new Date(monthStart), end: new Date() })) {
+    const key = format(d, "yyyy-MM-dd");
+    dayBuckets.set(key, 0);
+    dayLabels.set(key, format(d, "d MMM", { locale: es }));
+  }
+  const weekdayCounts = [0, 0, 0, 0, 0, 0, 0]; // lunes..domingo
+  const methodBuckets = new Map<string, { usd: number; count: number }>();
+  for (const o of sales) {
+    const created = new Date(o.created_at);
+    const dayKey = format(created, "yyyy-MM-dd");
+    dayBuckets.set(dayKey, (dayBuckets.get(dayKey) ?? 0) + Number(o.total));
+    // getDay(): 0 = domingo..6 = sábado. Se corre para que la semana arranque
+    // en lunes, como en el resto del panel.
+    weekdayCounts[(getDay(created) + 6) % 7] += 1;
+    const methodKey = o.payment_method_type ?? "other";
+    const cur = methodBuckets.get(methodKey) ?? { usd: 0, count: 0 };
+    cur.usd += Number(o.total);
+    cur.count += 1;
+    methodBuckets.set(methodKey, cur);
+  }
+
+  const salesByDay = [...dayBuckets.entries()].map(([key, usd]) => ({
+    key,
+    label: dayLabels.get(key) ?? key,
+    usd,
+  }));
+  const ordersByWeekday = WEEKDAY_LABELS.map((label, i) => ({
+    label,
+    count: weekdayCounts[i],
+  }));
+  const salesByMethod = [...methodBuckets.entries()]
+    .map(([type, v]) => ({
+      type,
+      label:
+        PAYMENT_METHOD_META[type as PaymentMethodType]?.label ??
+        (type === "other" ? "Otro" : type),
+      usd: v.usd,
+      count: v.count,
+    }))
+    .sort((a, b) => b.usd - a.usd);
 
   return {
     todayOrders: todayOrders ?? 0,
@@ -85,8 +153,11 @@ export async function getDashboardMetrics(
     lowStock,
     monthSalesUsd,
     monthSalesBs,
-    monthOrders: (monthSales ?? []).length,
+    monthOrders: sales.length,
     recentOrders: (recentOrders ?? []) as Order[],
+    salesByDay,
+    ordersByWeekday,
+    salesByMethod,
   };
 }
 
