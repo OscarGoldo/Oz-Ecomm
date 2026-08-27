@@ -74,9 +74,9 @@ export function PanelSidebarNav({ badges = {}, pro = false }: NavProps) {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
               active
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
@@ -86,7 +86,7 @@ export function PanelSidebarNav({ badges = {}, pro = false }: NavProps) {
               <Lock
                 className={cn(
                   "size-3",
-                  active ? "text-primary-foreground/70" : "text-muted-foreground/60",
+                  active ? "text-primary/70" : "text-muted-foreground/60",
                 )}
               />
             )}
@@ -95,7 +95,7 @@ export function PanelSidebarNav({ badges = {}, pro = false }: NavProps) {
                 className={cn(
                   "ml-auto grid min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold leading-5",
                   active
-                    ? "bg-primary-foreground text-primary"
+                    ? "bg-primary text-primary-foreground"
                     : "bg-warning text-warning-foreground",
                 )}
               >
@@ -231,6 +231,13 @@ export function PanelBottomNav({ badges = {}, pro = false }: NavProps) {
                 ) : null}
               </span>
               {item.label}
+              <span
+                className={cn(
+                  "absolute bottom-0 h-0.5 w-6 rounded-full bg-primary transition-opacity",
+                  active ? "opacity-100" : "opacity-0",
+                )}
+                aria-hidden="true"
+              />
             </Link>
           );
         })}

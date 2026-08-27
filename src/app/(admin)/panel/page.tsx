@@ -61,7 +61,7 @@ export default async function DashboardPage() {
           href={`/${store.slug}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-muted"
+          className="inline-flex items-center gap-2 rounded-xl border bg-background px-3.5 py-2 text-sm font-medium shadow-sm hover:bg-muted"
         >
           Ver tienda <ExternalLink className="size-4" />
         </Link>
@@ -108,12 +108,12 @@ export default async function DashboardPage() {
       />
 
       {/* Recent orders */}
-      <section className="rounded-xl border bg-card">
+      <section className="rounded-2xl border bg-card shadow-sm">
         <div className="flex items-center justify-between border-b p-4">
           <h2 className="text-sm font-semibold">Últimos pedidos</h2>
           <Link
             href="/panel/pedidos"
-            className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
           >
             Ver todos <ArrowRight className="size-3.5" />
           </Link>
@@ -150,7 +150,7 @@ export default async function DashboardPage() {
 
       {/* Low stock */}
       {m.lowStock.length > 0 && (
-        <section className="rounded-xl border bg-card">
+        <section className="rounded-2xl border bg-card shadow-sm">
           <div className="flex items-center gap-2 border-b p-4">
             <AlertTriangle className="size-4 text-warning-foreground" />
             <h2 className="text-sm font-semibold">Productos con bajo stock</h2>
@@ -197,16 +197,16 @@ function StatCard({
 }) {
   return (
     <div
-      className={`rounded-xl border bg-card p-4 ${
+      className={`rounded-2xl border bg-card p-4 shadow-sm ${
         highlight ? "border-warning/50 bg-warning/5" : ""
       }`}
     >
-      <div className="mb-2 flex items-center gap-1.5 text-muted-foreground">
-        {icon}
-        <span className="text-xs font-medium">{label}</span>
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <span className="text-muted-foreground/70">{icon}</span>
       </div>
-      <p className="text-xl font-bold tracking-tight">{value}</p>
-      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+      <p className="text-2xl font-extrabold leading-none tracking-tight">{value}</p>
+      {sub && <p className="mt-1.5 text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
 }

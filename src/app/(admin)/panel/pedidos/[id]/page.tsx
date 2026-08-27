@@ -107,7 +107,7 @@ export default async function OrderDetailPage({
           captura con el monto había que bajar, memorizar una cifra y volver a
           subir. Es la tarea más repetida del día del comerciante. */}
       {order.status === "pending_confirmation" && (
-        <section className="rounded-xl border-2 border-warning/50 bg-warning/[0.06] p-4">
+        <section className="rounded-2xl border-2 border-warning/50 bg-warning/[0.06] p-4">
           <h2 className="text-base font-bold tracking-tight">Verifica el pago</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Compara el monto del comprobante con el total del pedido.
@@ -147,7 +147,7 @@ export default async function OrderDetailPage({
       )}
 
       {/* Actions */}
-      <div className="rounded-xl border bg-card p-4">
+      <div className="rounded-2xl border bg-card p-4 shadow-sm">
         <OrderActions
           orderId={order.id}
           status={order.status}
@@ -160,7 +160,7 @@ export default async function OrderDetailPage({
       </div>
 
       {/* Customer */}
-      <section className="rounded-xl border bg-card p-4">
+      <section className="rounded-2xl border bg-card p-4 shadow-sm">
         <h2 className="mb-2 text-sm font-semibold">Cliente</h2>
         <p className="font-medium">{order.customer_name}</p>
         <div className="mt-1 space-y-1 text-sm text-muted-foreground">
@@ -176,7 +176,7 @@ export default async function OrderDetailPage({
       </section>
 
       {/* Fulfillment */}
-      <section className="rounded-xl border bg-card p-4">
+      <section className="rounded-2xl border bg-card p-4 shadow-sm">
         <h2 className="mb-2 text-sm font-semibold">Entrega</h2>
         {order.fulfillment_type === "delivery" ? (
           <div className="space-y-1 text-sm">
@@ -199,7 +199,7 @@ export default async function OrderDetailPage({
       </section>
 
       {/* Items */}
-      <section className="rounded-xl border bg-card">
+      <section className="rounded-2xl border bg-card shadow-sm">
         <h2 className="border-b p-4 text-sm font-semibold">Productos</h2>
         <ul className="divide-y">
           {items.map((item) => (
@@ -249,7 +249,7 @@ export default async function OrderDetailPage({
       </section>
 
       {/* Payment */}
-      <section className="rounded-xl border bg-card p-4">
+      <section className="rounded-2xl border bg-card p-4 shadow-sm">
         <h2 className="mb-2 text-sm font-semibold">Pago</h2>
         <p className="text-sm">
           <span className="text-muted-foreground">Método: </span>
@@ -281,7 +281,7 @@ export default async function OrderDetailPage({
 
       {/* Notes */}
       {order.notes && (
-        <section className="rounded-xl border bg-card p-4">
+        <section className="rounded-2xl border bg-card p-4 shadow-sm">
           <h2 className="mb-1 text-sm font-semibold">Nota del cliente</h2>
           <p className="text-sm text-muted-foreground">{order.notes}</p>
         </section>

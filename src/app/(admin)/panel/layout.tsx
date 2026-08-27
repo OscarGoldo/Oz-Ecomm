@@ -7,10 +7,8 @@ import { UserMenu } from "@/components/admin/user-menu";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { abandonedCartCutoff } from "@/lib/constants";
-import { hexToHslTriplet, isDarkColor } from "@/lib/color";
 import { daysUntilExpiry, isPro } from "@/lib/plans";
 import { getImageUrl } from "@/lib/storage";
-import type { CSSProperties } from "react";
 
 export default async function PanelLayout({
   children,
@@ -51,22 +49,12 @@ export default async function PanelLayout({
     .eq("store_id", store.id)
     .eq("status", "pending");
 
-  // Apply the store's brand color to the panel theme.
-  const primaryHsl = hexToHslTriplet(store.primary_color);
-  const brandStyle = primaryHsl
-    ? ({
-        "--primary": primaryHsl,
-        "--ring": primaryHsl,
-        // Igual que en la tienda: el texto sobre el color de marca se decide
-        // por la luminosidad, no se asume blanco.
-        "--primary-foreground": isDarkColor(store.primary_color)
-          ? "0 0% 100%"
-          : "222 47% 11%",
-      } as CSSProperties)
-    : undefined;
+  // El panel usa el azul de Tiendify (definido en globals.css), no el
+  // primary_color de la tienda: ese es el color de la tienda pública, no el
+  // de la plataforma. Antes se pisaba acá con un estilo inline por tienda.
 
   return (
-    <div style={brandStyle} className="min-h-dvh bg-muted/30">
+    <div className="min-h-dvh bg-muted/40">
       {/* Top bar */}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background px-4 print:hidden">
         <div className="flex items-center gap-2.5">
@@ -95,14 +83,16 @@ export default async function PanelLayout({
         />
       </header>
 
-      <div className="mx-auto flex w-full max-w-6xl">
-        {/* Desktop sidebar */}
-        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 border-r bg-background md:block print:hidden">
-          <PanelSidebarNav badges={navBadges} pro={pro} />
+      <div className="mx-auto flex w-full max-w-6xl gap-4 md:gap-6 md:px-6 md:py-4">
+        {/* Desktop sidebar: tarjeta blanca separada del fondo gris. */}
+        <aside className="sticky top-[4.5rem] hidden h-[calc(100dvh-5.5rem)] w-64 shrink-0 self-start md:block print:hidden">
+          <div className="h-full overflow-y-auto rounded-2xl border bg-background shadow-sm">
+            <PanelSidebarNav badges={navBadges} pro={pro} />
+          </div>
         </aside>
 
         {/* Content */}
-        <main className="min-w-0 flex-1 px-4 pb-24 pt-6 md:px-8 md:pb-10">
+        <main className="min-w-0 flex-1 px-4 pb-24 pt-6 md:px-0 md:pb-10 md:pt-0">
           <PlanBanner
             pro={pro}
             daysLeft={daysUntilExpiry(store)}
