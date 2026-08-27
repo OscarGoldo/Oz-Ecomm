@@ -222,7 +222,7 @@ export function ProductForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pb-24 md:pb-0">
       {/* Las fotos van primero: es lo primero que quiere hacer alguien que tiene
           el producto en la mano. Antes eran la cuarta tarjeta. */}
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Fotos</CardTitle>
         </CardHeader>
@@ -241,7 +241,7 @@ export function ProductForm({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Información</CardTitle>
         </CardHeader>
@@ -274,7 +274,7 @@ export function ProductForm({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Precio y stock</CardTitle>
         </CardHeader>
@@ -387,7 +387,7 @@ export function ProductForm({
       </button>
 
       <div className={cn("space-y-6", showAdvanced ? "block" : "hidden")}>
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Organización y costo</CardTitle>
         </CardHeader>
@@ -446,7 +446,7 @@ export function ProductForm({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Variantes</CardTitle>
         </CardHeader>
@@ -460,7 +460,7 @@ export function ProductForm({
       </Card>
 
 
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Publicación</CardTitle>
         </CardHeader>

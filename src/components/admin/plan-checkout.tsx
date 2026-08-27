@@ -201,7 +201,7 @@ export function PlanCheckout({
   );
 
   return (
-    <Card>
+    <Card className="rounded-2xl shadow-sm">
       <CardHeader>
         <CardTitle className="text-base">Activar Pro</CardTitle>
         <p className="text-xs text-muted-foreground">
