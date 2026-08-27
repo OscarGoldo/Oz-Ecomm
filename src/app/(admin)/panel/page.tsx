@@ -161,77 +161,89 @@ export default async function DashboardPage() {
         showBs={store.show_bs_prices}
       />
 
-      {/* Recent orders */}
-      <section className="rounded-2xl border bg-card shadow-sm">
-        <div className="flex items-center justify-between border-b p-4">
-          <h2 className="text-sm font-semibold">Últimos pedidos</h2>
-          <Link
-            href="/panel/pedidos"
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-          >
-            Ver todos <ArrowRight className="size-3.5" />
-          </Link>
-        </div>
-        {m.recentOrders.length === 0 ? (
-          <p className="p-6 text-center text-sm text-muted-foreground">
-            Todavía no hay pedidos.
-          </p>
-        ) : (
-          <ul className="divide-y">
-            {m.recentOrders.map((o) => (
-              <li key={o.id}>
-                <Link
-                  href={`/panel/pedidos/${o.id}`}
-                  className="flex items-center gap-3 p-4 hover:bg-muted/40"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">#{o.order_number}</span>
-                      <OrderStatusBadge status={o.status} />
-                    </div>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {o.customer_name} ·{" "}
-                      {format(new Date(o.created_at), "d MMM, HH:mm", { locale: es })}
-                    </p>
-                  </div>
-                  <span className="font-semibold">{formatUSD(o.total)}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* Low stock */}
-      {m.lowStock.length > 0 && (
+      {/* Últimos pedidos + bajo stock, lado a lado en escritorio: son las dos
+          listas cortas del resumen y apiladas dejaban la página con scroll
+          de más para nada. */}
+      <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-2xl border bg-card shadow-sm">
-          <div className="flex items-center gap-2 border-b p-4">
-            <AlertTriangle className="size-4 text-warning-foreground" />
-            <h2 className="text-sm font-semibold">Productos con bajo stock</h2>
+          <div className="flex items-center justify-between border-b p-4">
+            <h2 className="text-sm font-semibold">Últimos pedidos</h2>
+            <Link
+              href="/panel/pedidos"
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+            >
+              Ver todos <ArrowRight className="size-3.5" />
+            </Link>
           </div>
-          <ul className="divide-y">
-            {m.lowStock.slice(0, 6).map((p) => (
-              <li key={p.id}>
-                <Link
-                  href={`/panel/productos/${p.id}`}
-                  className="flex items-center justify-between p-4 hover:bg-muted/40"
-                >
-                  <span className="truncate text-sm font-medium">{p.name}</span>
-                  <span
-                    className={
-                      p.stock <= 0
-                        ? "text-sm font-semibold text-destructive"
-                        : "text-sm font-semibold text-warning-foreground"
-                    }
+          {m.recentOrders.length === 0 ? (
+            <p className="p-6 text-center text-sm text-muted-foreground">
+              Todavía no hay pedidos.
+            </p>
+          ) : (
+            <ul className="divide-y">
+              {m.recentOrders.map((o) => (
+                <li key={o.id}>
+                  <Link
+                    href={`/panel/pedidos/${o.id}`}
+                    className="flex items-center gap-3 p-4 hover:bg-muted/40"
                   >
-                    {p.stock <= 0 ? "Agotado" : `Quedan ${p.stock}`}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">#{o.order_number}</span>
+                        <OrderStatusBadge status={o.status} />
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {o.customer_name} ·{" "}
+                        {format(new Date(o.created_at), "d MMM, HH:mm", { locale: es })}
+                      </p>
+                    </div>
+                    <span className="font-semibold">{formatUSD(o.total)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
-      )}
+
+        {/* Low stock */}
+        {m.lowStock.length > 0 && (
+          <section className="rounded-2xl border bg-card shadow-sm">
+            <div className="flex items-center justify-between border-b p-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="size-4 text-warning-foreground" />
+                <h2 className="text-sm font-semibold">Productos con bajo stock</h2>
+              </div>
+              <Link
+                href="/panel/productos"
+                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+              >
+                Ver todos <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+            <ul className="divide-y">
+              {m.lowStock.slice(0, 6).map((p) => (
+                <li key={p.id}>
+                  <Link
+                    href={`/panel/productos/${p.id}`}
+                    className="flex items-center justify-between gap-3 p-4 hover:bg-muted/40"
+                  >
+                    <span className="truncate text-sm font-medium">{p.name}</span>
+                    <span
+                      className={
+                        p.stock <= 0
+                          ? "shrink-0 text-sm font-semibold text-destructive"
+                          : "shrink-0 text-sm font-semibold text-warning-foreground"
+                      }
+                    >
+                      {p.stock <= 0 ? "Agotado" : `Quedan ${p.stock}`}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
     </div>
   );
 }
