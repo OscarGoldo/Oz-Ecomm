@@ -5,11 +5,20 @@ import { es } from "date-fns/locale";
 import {
   AlertTriangle,
   ArrowRight,
+  Banknote,
+  Bitcoin,
+  Building2,
   ClipboardList,
+  CreditCard,
   DollarSign,
   ExternalLink,
+  Landmark,
   ShoppingBag,
+  Smartphone,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+import type { DashboardMetrics } from "@/lib/metrics";
 
 import { ExchangeRateCard } from "@/components/admin/exchange-rate-card";
 import { OrderStatusBadge } from "@/components/admin/status-badge";
@@ -99,6 +108,31 @@ export default async function DashboardPage() {
           />
         </Link>
       </div>
+
+      {/* Sales trend + orders by weekday: solo si ya hubo alguna venta este
+          mes, para no mostrarle al dueño un gráfico vacío el día 1. */}
+      {m.monthOrders > 0 && (
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="rounded-2xl border bg-card p-4 shadow-sm lg:col-span-2">
+            <p className="text-sm font-semibold">Ventas este mes</p>
+            <p className="mt-1 text-2xl font-extrabold tracking-tight">
+              {formatUSD(m.monthSalesUsd)}
+            </p>
+            <SalesTrendChart data={m.salesByDay} />
+          </div>
+          <div className="rounded-2xl border bg-card p-4 shadow-sm">
+            <p className="text-sm font-semibold">Pedidos por día</p>
+            <WeekdayBarChart data={m.ordersByWeekday} />
+          </div>
+        </div>
+      )}
+
+      {m.salesByMethod.length > 0 && (
+        <div className="rounded-2xl border bg-card p-4 shadow-sm">
+          <p className="mb-3 text-sm font-semibold">Métodos de pago</p>
+          <PaymentMethodBreakdown data={m.salesByMethod} />
+        </div>
+      )}
 
       <ExchangeRateCard
         rate={store.exchange_rate}
@@ -207,6 +241,140 @@ function StatCard({
       </div>
       <p className="text-2xl font-extrabold leading-none tracking-tight">{value}</p>
       {sub && <p className="mt-1.5 text-xs text-muted-foreground">{sub}</p>}
+    </div>
+  );
+}
+
+/** Línea + área suave con las ventas de cada día del mes en curso. */
+function SalesTrendChart({ data }: { data: DashboardMetrics["salesByDay"] }) {
+  const width = 600;
+  const height = 140;
+  const max = Math.max(1, ...data.map((d) => d.usd));
+  const n = data.length;
+  const stepX = n > 1 ? width / (n - 1) : 0;
+  const points = data.map((d, i) => ({
+    x: n > 1 ? i * stepX : width / 2,
+    y: height - (d.usd / max) * (height - 12) - 6,
+  }));
+  const line = points
+    .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+    .join(" ");
+  const area = `${line} L${width},${height} L0,${height} Z`;
+  const first = data[0];
+  const last = data[data.length - 1];
+  const mid = data[Math.floor((data.length - 1) / 2)];
+
+  return (
+    <div className="mt-2">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-32 w-full" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="dashSalesFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0.02, 0.26, 0.5, 0.74, 0.98].map((f) => (
+          <line
+            key={f}
+            x1={0}
+            y1={height * f}
+            x2={width}
+            y2={height * f}
+            stroke="hsl(var(--border))"
+            strokeWidth={1}
+          />
+        ))}
+        <path d={area} fill="url(#dashSalesFill)" stroke="none" />
+        <path d={line} fill="none" stroke="hsl(var(--primary))" strokeWidth={2.5} />
+      </svg>
+      {data.length > 1 && (
+        <div className="flex justify-between text-2xs text-muted-foreground">
+          <span>{first.label}</span>
+          {mid !== first && mid !== last && <span>{mid.label}</span>}
+          <span>{last.label}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Barras Lu–Do; se destaca el día con más pedidos. */
+function WeekdayBarChart({ data }: { data: DashboardMetrics["ordersByWeekday"] }) {
+  const max = Math.max(1, ...data.map((d) => d.count));
+  const peakIdx = data.reduce(
+    (best, d, i) => (d.count > data[best].count ? i : best),
+    0,
+  );
+  const hasAny = data.some((d) => d.count > 0);
+  return (
+    <div className="mt-3 flex h-24 items-end justify-between gap-1.5">
+      {data.map((d, i) => (
+        <div key={d.label} className="flex flex-1 flex-col items-center gap-1.5">
+          <div
+            className={`w-full rounded-md ${
+              hasAny && i === peakIdx ? "bg-primary" : "bg-muted"
+            }`}
+            style={{ height: `${Math.max(4, (d.count / max) * 100)}%` }}
+            title={`${d.label}: ${d.count} pedido${d.count === 1 ? "" : "s"}`}
+          />
+          <span
+            className={`text-2xs ${
+              hasAny && i === peakIdx ? "font-semibold text-foreground" : "text-muted-foreground"
+            }`}
+          >
+            {d.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const METHOD_ICONS: Record<string, LucideIcon> = {
+  pago_movil: Smartphone,
+  zelle: Landmark,
+  binance: Bitcoin,
+  cash: Banknote,
+  transfer: Building2,
+  paypal: CreditCard,
+};
+const METHOD_BAR_COLORS = [
+  "bg-primary",
+  "bg-emerald-500",
+  "bg-amber-500",
+  "bg-violet-500",
+  "bg-rose-500",
+  "bg-cyan-500",
+];
+
+/** Un renglón por método de pago, con su participación en las ventas del mes. */
+function PaymentMethodBreakdown({
+  data,
+}: {
+  data: DashboardMetrics["salesByMethod"];
+}) {
+  const total = data.reduce((s, d) => s + d.usd, 0) || 1;
+  return (
+    <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
+      {data.slice(0, 4).map((d, i) => {
+        const Icon = METHOD_ICONS[d.type] ?? CreditCard;
+        const pct = Math.round((d.usd / total) * 100);
+        return (
+          <div key={d.type}>
+            <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
+              <Icon className="size-3.5" />
+              <span className="text-sm font-bold text-foreground">{pct}%</span>
+            </div>
+            <p className="truncate text-2xs text-muted-foreground">{d.label}</p>
+            <div className="mt-1.5 h-1.5 rounded-full bg-muted">
+              <div
+                className={`h-1.5 rounded-full ${METHOD_BAR_COLORS[i % METHOD_BAR_COLORS.length]}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
