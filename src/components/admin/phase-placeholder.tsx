@@ -13,7 +13,7 @@ export function PhasePlaceholder({
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-      <div className="grid place-items-center rounded-xl border border-dashed bg-card p-10 text-center">
+      <div className="grid place-items-center rounded-2xl border border-dashed bg-card p-10 text-center">
         <span className="mb-3 grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
           <Hammer className="size-6" />
         </span>

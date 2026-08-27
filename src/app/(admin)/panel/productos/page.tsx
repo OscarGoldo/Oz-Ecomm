@@ -110,7 +110,7 @@ export default async function ProductosPage({
       <ProductsFilters categories={categories ?? []} />
 
       {list.length === 0 ? (
-        <div className="grid place-items-center rounded-xl border border-dashed bg-card p-12 text-center">
+        <div className="grid place-items-center rounded-2xl border border-dashed bg-card p-12 text-center">
           <span className="mb-3 grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
             <Package className="size-6" />
           </span>
@@ -139,7 +139,7 @@ export default async function ProductosPage({
               <li key={p.id}>
                 <Link
                   href={`/panel/productos/${p.id}`}
-                  className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:border-primary/50"
+                  className="flex items-center gap-3 rounded-2xl border bg-card shadow-sm p-3 transition-colors hover:border-primary/50"
                 >
                   <span className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
                     {cover ? (

@@ -14,7 +14,7 @@ export function WelcomeChecklist({ steps }: { steps: ChecklistStep[] }) {
   const pct = Math.round((doneCount / steps.length) * 100);
 
   return (
-    <section className="rounded-xl border bg-card p-5">
+    <section className="rounded-2xl border bg-card shadow-sm p-5">
       <div className="flex items-center gap-2">
         <span className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">
           <Rocket className="size-4" />

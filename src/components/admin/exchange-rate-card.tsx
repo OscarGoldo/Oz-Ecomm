@@ -64,7 +64,7 @@ export function ExchangeRateCard({
 
   if (missing) {
     return (
-      <section className="flex items-center justify-between gap-3 rounded-xl border border-warning/50 bg-warning/[0.06] px-3.5 py-2.5">
+      <section className="flex items-center justify-between gap-3 rounded-2xl border border-warning/50 bg-warning/[0.06] px-3.5 py-2.5">
         <div className="flex min-w-0 items-start gap-2">
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning-foreground" />
           <div className="min-w-0">
@@ -89,7 +89,7 @@ export function ExchangeRateCard({
   return (
     <section
       className={cn(
-        "flex items-center justify-between gap-3 rounded-xl border bg-card px-3.5 py-2.5",
+        "flex items-center justify-between gap-3 rounded-2xl border bg-card shadow-sm px-3.5 py-2.5",
         stale && "border-warning/50 bg-warning/[0.06]",
       )}
     >

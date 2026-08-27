@@ -74,7 +74,7 @@ export function ExpensesManager({ initial }: { initial: Expense[] }) {
   return (
     <div className="space-y-3">
       {open ? (
-        <div className="space-y-3 rounded-xl border bg-card p-4">
+        <div className="space-y-3 rounded-2xl border bg-card shadow-sm p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="exp-desc" className="text-xs">Descripción</Label>
@@ -135,7 +135,7 @@ export function ExpensesManager({ initial }: { initial: Expense[] }) {
       )}
 
       {initial.length > 0 && (
-        <ul className="divide-y rounded-xl border bg-card">
+        <ul className="divide-y rounded-2xl border bg-card shadow-sm">
           {initial.map((e) => (
             <li key={e.id} className="flex items-center gap-3 p-3">
               <div className="min-w-0 flex-1">

@@ -123,7 +123,7 @@ export default async function FinanzasPage() {
               (neto, ya descontada la comisión del procesador).
             </p>
           </div>
-          <ul className="divide-y rounded-xl border bg-card">
+          <ul className="divide-y rounded-2xl border bg-card shadow-sm">
             {payouts.map((p) => (
               <li key={p.date} className="flex items-center justify-between gap-3 p-4">
                 <div className="min-w-0">
@@ -183,7 +183,7 @@ export default async function FinanzasPage() {
       {/* All-time totals */}
       <section className="space-y-3">
         <h2 className="text-sm font-semibold">Histórico</h2>
-        <div className="rounded-xl border bg-gradient-to-br from-primary/10 to-primary/0 p-5">
+        <div className="rounded-2xl border bg-gradient-to-br from-primary/10 to-primary/0 p-5">
           <p className="text-xs font-medium text-muted-foreground">Ganancia neta total</p>
           <p className="mt-1 text-3xl font-bold tracking-tight">{formatUSD(f.netProfitUsd)}</p>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -211,7 +211,7 @@ export default async function FinanzasPage() {
 
       {/* Top products */}
       {f.topProducts.length > 0 && (
-        <section className="rounded-xl border bg-card p-4">
+        <section className="rounded-2xl border bg-card shadow-sm p-4">
           <h2 className="mb-3 text-sm font-semibold">Productos más vendidos</h2>
           <ul className="space-y-2.5">
             {f.topProducts.map((p) => (
@@ -228,7 +228,7 @@ export default async function FinanzasPage() {
       )}
 
       {/* By payment method */}
-      <section className="rounded-xl border bg-card p-4">
+      <section className="rounded-2xl border bg-card shadow-sm p-4">
         <h2 className="mb-3 text-sm font-semibold">Ventas por método de pago</h2>
         {f.byMethod.length === 0 ? (
           <p className="text-sm text-muted-foreground">Todavía no hay ventas.</p>
@@ -274,7 +274,7 @@ export default async function FinanzasPage() {
           </p>
         </div>
         {hasActivePayroll && (
-          <div className="rounded-xl border bg-card p-4">
+          <div className="rounded-2xl border bg-card shadow-sm p-4">
             <p className="text-xs font-medium text-muted-foreground">
               Nómina mensual estimada
             </p>
@@ -296,7 +296,7 @@ export default async function FinanzasPage() {
       </section>
 
       {/* Recent sales */}
-      <section className="rounded-xl border bg-card">
+      <section className="rounded-2xl border bg-card shadow-sm">
         <h2 className="border-b p-4 text-sm font-semibold">Últimas ventas</h2>
         {f.recentSales.length === 0 ? (
           <p className="p-6 text-center text-sm text-muted-foreground">Sin ventas todavía.</p>
@@ -336,7 +336,7 @@ function Stat({
   highlight?: boolean;
 }) {
   return (
-    <div className={`rounded-xl border bg-card p-4 ${highlight ? "border-primary/40 bg-primary/5" : ""}`}>
+    <div className={`rounded-2xl border bg-card shadow-sm p-4 ${highlight ? "border-primary/40 bg-primary/5" : ""}`}>
       <div className="mb-2 flex items-center gap-1.5 text-muted-foreground">
         {icon}
         <span className="text-xs font-medium">{label}</span>

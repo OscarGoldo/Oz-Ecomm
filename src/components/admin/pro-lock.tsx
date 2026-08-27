@@ -35,7 +35,7 @@ export function ProUpsell({
   return (
     <div
       className={cn(
-        "rounded-xl border border-primary/30 bg-primary/5 p-5 text-center",
+        "rounded-2xl border border-primary/30 bg-primary/5 p-5 text-center",
         className,
       )}
     >

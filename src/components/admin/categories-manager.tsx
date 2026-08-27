@@ -131,7 +131,7 @@ export function CategoriesManager({ initial }: { initial: CategoryItem[] }) {
       </div>
 
       {items.length === 0 ? (
-        <div className="grid place-items-center rounded-xl border border-dashed bg-card p-10 text-center">
+        <div className="grid place-items-center rounded-2xl border border-dashed bg-card p-10 text-center">
           <span className="mb-3 grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
             <Tags className="size-6" />
           </span>
@@ -141,7 +141,7 @@ export function CategoriesManager({ initial }: { initial: CategoryItem[] }) {
           </p>
         </div>
       ) : (
-        <ul className="divide-y rounded-xl border bg-card">
+        <ul className="divide-y rounded-2xl border bg-card shadow-sm">
           {items.map((c, i) => (
             <li key={c.id} className="flex items-center gap-2 p-3">
               <div className="flex flex-col">

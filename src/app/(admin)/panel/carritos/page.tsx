@@ -45,7 +45,7 @@ export default async function CarritosPage() {
       </div>
 
       {carts.length === 0 ? (
-        <div className="grid place-items-center rounded-xl border border-dashed bg-card p-12 text-center">
+        <div className="grid place-items-center rounded-2xl border border-dashed bg-card p-12 text-center">
           <ShoppingCart className="mb-3 size-9 text-muted-foreground" />
           <p className="font-medium">No hay carritos pendientes</p>
           <p className="mt-1 text-sm text-muted-foreground">

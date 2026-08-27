@@ -23,7 +23,7 @@ export default async function ClientesPage() {
       </div>
 
       {customers.length === 0 ? (
-        <div className="grid place-items-center rounded-xl border border-dashed bg-card p-12 text-center">
+        <div className="grid place-items-center rounded-2xl border border-dashed bg-card p-12 text-center">
           <Users className="mb-3 size-9 text-muted-foreground" />
           <p className="font-medium">Todavía no hay clientes</p>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -40,7 +40,7 @@ export default async function ClientesPage() {
             return (
               <li
                 key={c.phone}
-                className="flex items-center gap-3 rounded-xl border bg-card p-3"
+                className="flex items-center gap-3 rounded-2xl border bg-card shadow-sm p-3"
               >
                 <Link
                   href={`/panel/clientes/${encodeURIComponent(c.phone)}`}
