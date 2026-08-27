@@ -60,51 +60,67 @@ interface NavProps {
   pro?: boolean;
 }
 
+/**
+ * Ajustes vive abajo, separado del resto: es configuración, no una sección
+ * del día a día, y perdido en el medio de trece ítems no se encontraba.
+ * En móvil sigue apareciendo dentro de "Más" como cualquier otro.
+ */
+const FOOTER_HREFS = ["/panel/configuracion"];
+
 /** Desktop sidebar navigation (md and up). */
 export function PanelSidebarNav({ badges = {}, pro = false }: NavProps) {
   const pathname = usePathname();
-  return (
-    <nav className="flex flex-col gap-1 p-3">
-      {NAV_ITEMS.map((item) => {
-        const active = isActive(pathname, item.href);
-        const badge = badges[item.href];
-        const locked = Boolean(item.pro) && !pro;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
+
+  const renderItem = (item: NavItem) => {
+    const active = isActive(pathname, item.href);
+    const badge = badges[item.href];
+    const locked = Boolean(item.pro) && !pro;
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        className={cn(
+          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+          active
+            ? "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        )}
+      >
+        <item.icon className="size-4 shrink-0" />
+        <span className="truncate">{item.label}</span>
+        {locked && (
+          <Lock
             className={cn(
-              "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors",
+              "size-3 shrink-0",
+              active ? "text-primary/70" : "text-muted-foreground/60",
+            )}
+          />
+        )}
+        {badge ? (
+          <span
+            className={cn(
+              "ml-auto grid min-w-5 shrink-0 place-items-center rounded-full px-1 text-2xs font-bold leading-5",
               active
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                ? "bg-primary text-primary-foreground"
+                : "bg-warning text-warning-foreground",
             )}
           >
-            <item.icon className="size-4" />
-            {item.label}
-            {locked && (
-              <Lock
-                className={cn(
-                  "size-3",
-                  active ? "text-primary/70" : "text-muted-foreground/60",
-                )}
-              />
-            )}
-            {badge ? (
-              <span
-                className={cn(
-                  "ml-auto grid min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold leading-5",
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-warning text-warning-foreground",
-                )}
-              >
-                {badge > 99 ? "99+" : badge}
-              </span>
-            ) : null}
-          </Link>
-        );
-      })}
+            {badge > 99 ? "99+" : badge}
+          </span>
+        ) : null}
+      </Link>
+    );
+  };
+
+  const main = NAV_ITEMS.filter((i) => !FOOTER_HREFS.includes(i.href));
+  const footer = NAV_ITEMS.filter((i) => FOOTER_HREFS.includes(i.href));
+
+  return (
+    <nav className="flex h-full flex-col gap-1 p-3">
+      {main.map(renderItem)}
+      <div className="mt-auto flex flex-col gap-1 border-t pt-2">
+        {footer.map(renderItem)}
+      </div>
     </nav>
   );
 }

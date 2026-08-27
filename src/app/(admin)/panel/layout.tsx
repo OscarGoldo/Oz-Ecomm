@@ -56,8 +56,10 @@ export default async function PanelLayout({
   return (
     <div className="min-h-dvh bg-muted">
       {/* Top bar */}
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background px-4 print:hidden">
-        <div className="flex items-center gap-2.5">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background px-4 print:hidden">
+        {/* En escritorio la identidad de la tienda vive arriba del sidebar;
+            acá solo hace falta en móvil, donde no hay sidebar. */}
+        <div className="flex items-center gap-2.5 md:hidden">
           <span className="grid size-9 place-items-center overflow-hidden rounded-lg bg-primary/10">
             {logo ? (
               <Image
@@ -71,23 +73,47 @@ export default async function PanelLayout({
               <StoreIcon className="size-5 text-primary" />
             )}
           </span>
-          <div className="leading-tight">
-            <p className="text-sm font-semibold">{store.name}</p>
+          <div className="min-w-0 leading-tight">
+            <p className="truncate text-sm font-semibold">{store.name}</p>
             <p className="text-xs text-muted-foreground">Panel de gestión</p>
           </div>
         </div>
-        <UserMenu
-          fullName={user.full_name}
-          email={user.email}
-          storeSlug={store.slug}
-        />
+        <div className="ml-auto">
+          <UserMenu
+            fullName={user.full_name}
+            email={user.email}
+            storeSlug={store.slug}
+          />
+        </div>
       </header>
 
       <div className="mx-auto flex w-full max-w-6xl gap-4 md:gap-6 md:px-6 md:py-4">
         {/* Desktop sidebar: tarjeta blanca separada del fondo gris. */}
         <aside className="sticky top-[4.5rem] hidden h-[calc(100dvh-5.5rem)] w-64 shrink-0 self-start md:block print:hidden">
-          <div className="h-full overflow-y-auto rounded-2xl border bg-background shadow-sm">
-            <PanelSidebarNav badges={navBadges} pro={pro} />
+          <div className="flex h-full flex-col overflow-hidden rounded-2xl border bg-background shadow-sm">
+            {/* Cabecera de la tarjeta: de qué tienda es este panel. */}
+            <div className="flex items-center gap-2.5 border-b p-3">
+              <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-primary/10">
+                {logo ? (
+                  <Image
+                    src={logo}
+                    alt={store.name}
+                    width={36}
+                    height={36}
+                    className="size-9 object-cover"
+                  />
+                ) : (
+                  <StoreIcon className="size-5 text-primary" />
+                )}
+              </span>
+              <div className="min-w-0 leading-tight">
+                <p className="truncate text-sm font-semibold">{store.name}</p>
+                <p className="text-2xs text-muted-foreground">Panel de gestión</p>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <PanelSidebarNav badges={navBadges} pro={pro} />
+            </div>
           </div>
         </aside>
 

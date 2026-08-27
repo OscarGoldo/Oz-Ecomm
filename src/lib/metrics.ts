@@ -5,6 +5,7 @@ import {
   getDay,
   startOfDay,
   startOfMonth,
+  subDays,
   subMonths,
 } from "date-fns";
 import { es } from "date-fns/locale";
@@ -12,6 +13,7 @@ import { es } from "date-fns/locale";
 import { createClient } from "@/lib/supabase/server";
 import { phoneKey } from "@/lib/customer-identity";
 import { PAYMENT_METHOD_META } from "@/lib/constants";
+import { formatUSD } from "@/lib/format";
 import type {
   Order,
   OrderStatus,
@@ -21,6 +23,16 @@ import type {
 
 /** Lunes a domingo, en ese orden (getDay() de date-fns arranca en domingo). */
 const WEEKDAY_LABELS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"];
+
+/**
+ * Variación porcentual entre dos períodos. Devuelve null cuando el anterior
+ * fue cero: no existe "subió un X%" desde cero, y mostrar "+100%" o "+∞"
+ * ahí es peor que no mostrar nada.
+ */
+function pctChange(current: number, previous: number): number | null {
+  if (previous <= 0) return null;
+  return ((current - previous) / previous) * 100;
+}
 
 type SupabaseServer = ReturnType<typeof createClient>;
 
@@ -32,6 +44,20 @@ export const SALES_STATUSES: OrderStatus[] = [
   "completed",
 ];
 
+/**
+ * Un número con su comparación contra el período anterior. `pct` es null
+ * cuando el período anterior fue cero: ahí no hay porcentaje que calcular
+ * (dividir por cero) y la tarjeta muestra solo el valor previo.
+ */
+export interface Delta {
+  /** Valor del período anterior, ya formateado para mostrar. */
+  previousLabel: string;
+  /** Cómo se llama ese período anterior ("ayer", "mes anterior"). */
+  periodLabel: string;
+  /** Variación porcentual, o null si no se puede calcular. */
+  pct: number | null;
+}
+
 export interface DashboardMetrics {
   todayOrders: number;
   pendingConfirmation: number;
@@ -40,6 +66,10 @@ export interface DashboardMetrics {
   monthSalesBs: number;
   monthOrders: number;
   recentOrders: Order[];
+  /** Pedidos de hoy contra los de ayer a esta misma altura del día. */
+  todayOrdersDelta: Delta;
+  /** Ventas del mes contra el mes anterior completo. */
+  monthSalesDelta: Delta;
   /** Ventas del mes en curso, un punto por día (para el gráfico de Resumen). */
   salesByDay: { key: string; label: string; usd: number }[];
   /** Cuántos pedidos entraron cada día de la semana, en lo que va del mes. */
@@ -58,8 +88,13 @@ export async function getDashboardMetrics(
   storeId: string,
 ): Promise<DashboardMetrics> {
   const supabase = createClient();
-  const dayStart = startOfDay(new Date()).toISOString();
-  const monthStart = startOfMonth(new Date()).toISOString();
+  const now = new Date();
+  const dayStart = startOfDay(now).toISOString();
+  const monthStart = startOfMonth(now).toISOString();
+  // Se compara contra el mes anterior completo, así que las ventas se piden
+  // desde ahí y se parten en memoria: un viaje en vez de dos.
+  const prevMonthStart = startOfMonth(subMonths(now, 1)).toISOString();
+  const yesterdayStart = startOfDay(subDays(now, 1)).toISOString();
 
   const [
     { count: todayOrders },
@@ -69,6 +104,7 @@ export async function getDashboardMetrics(
     { data: recentOrders },
     { count: completedThisMonth },
     { count: cancelledThisMonth },
+    { count: yesterdayOrders },
   ] = await Promise.all([
     supabase
       .from("orders")
@@ -91,7 +127,7 @@ export async function getDashboardMetrics(
       .select("total, total_bs, created_at, payment_method_type")
       .eq("store_id", storeId)
       .in("status", SALES_STATUSES)
-      .gte("created_at", monthStart),
+      .gte("created_at", prevMonthStart),
     supabase
       .from("orders")
       .select("*")
@@ -114,15 +150,27 @@ export async function getDashboardMetrics(
       .eq("store_id", storeId)
       .eq("status", "cancelled")
       .gte("created_at", monthStart),
+    // Ayer completo, para comparar contra los pedidos de hoy.
+    supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId)
+      .gte("created_at", yesterdayStart)
+      .lt("created_at", dayStart),
   ]);
 
   const lowStock = (lowStockRaw ?? [])
     .filter((p) => p.stock <= p.low_stock_threshold)
     .sort((a, b) => a.stock - b.stock);
 
-  const sales = monthSales ?? [];
+  // La consulta trae dos meses; los gráficos y los totales del mes usan solo
+  // el actual, y el anterior queda para las comparaciones.
+  const allSales = monthSales ?? [];
+  const sales = allSales.filter((o) => o.created_at >= monthStart);
+  const prevSales = allSales.filter((o) => o.created_at < monthStart);
   const monthSalesUsd = sales.reduce((s, o) => s + Number(o.total), 0);
   const monthSalesBs = sales.reduce((s, o) => s + Number(o.total_bs ?? 0), 0);
+  const prevMonthSalesUsd = prevSales.reduce((s, o) => s + Number(o.total), 0);
 
   // Un punto por día del mes en curso, para que el gráfico de ventas no tenga
   // huecos donde no hubo ventas ese día. La label se arma acá, de una vez,
@@ -175,6 +223,17 @@ export async function getDashboardMetrics(
   const deliveryRatePct =
     resolved > 0 ? ((completedThisMonth ?? 0) / resolved) * 100 : null;
 
+  const todayOrdersDelta: Delta = {
+    previousLabel: String(yesterdayOrders ?? 0),
+    periodLabel: "ayer",
+    pct: pctChange(todayOrders ?? 0, yesterdayOrders ?? 0),
+  };
+  const monthSalesDelta: Delta = {
+    previousLabel: formatUSD(prevMonthSalesUsd),
+    periodLabel: "mes anterior",
+    pct: pctChange(monthSalesUsd, prevMonthSalesUsd),
+  };
+
   return {
     todayOrders: todayOrders ?? 0,
     pendingConfirmation: pendingConfirmation ?? 0,
@@ -187,6 +246,8 @@ export async function getDashboardMetrics(
     ordersByWeekday,
     salesByMethod,
     deliveryRatePct,
+    todayOrdersDelta,
+    monthSalesDelta,
   };
 }
 
