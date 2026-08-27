@@ -127,10 +127,24 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {m.salesByMethod.length > 0 && (
-        <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="mb-3 text-sm font-semibold">Métodos de pago</p>
-          <PaymentMethodBreakdown data={m.salesByMethod} />
+      {(m.deliveryRatePct !== null || m.salesByMethod.length > 0) && (
+        <div className="grid gap-4 lg:grid-cols-3">
+          {m.deliveryRatePct !== null && (
+            <div className="rounded-2xl border bg-card p-4 shadow-sm">
+              <p className="text-sm font-semibold">Tasa de entrega</p>
+              <DeliveryGauge pct={m.deliveryRatePct} />
+            </div>
+          )}
+          {m.salesByMethod.length > 0 && (
+            <div
+              className={`rounded-2xl border bg-card p-4 shadow-sm ${
+                m.deliveryRatePct !== null ? "lg:col-span-2" : "lg:col-span-3"
+              }`}
+            >
+              <p className="mb-3 text-sm font-semibold">Métodos de pago</p>
+              <PaymentMethodBreakdown data={m.salesByMethod} />
+            </div>
+          )}
         </div>
       )}
 
@@ -348,6 +362,34 @@ const METHOD_BAR_COLORS = [
 ];
 
 /** Un renglón por método de pago, con su participación en las ventas del mes. */
+/** Medidor semicircular: % de pedidos entregados entre los que ya cerraron. */
+function DeliveryGauge({ pct }: { pct: number }) {
+  const clamped = Math.max(0, Math.min(100, pct));
+  return (
+    <div className="mt-1 flex flex-col items-center">
+      <div className="relative h-[100px] w-[200px] overflow-hidden">
+        <div
+          className="absolute inset-x-0 top-0 h-[200px] w-[200px] rounded-full"
+          style={{
+            background: `conic-gradient(from 180deg, hsl(var(--primary)) 0deg, hsl(var(--primary)) ${
+              clamped * 1.8
+            }deg, hsl(var(--muted)) ${clamped * 1.8}deg, hsl(var(--muted)) 180deg, transparent 180deg)`,
+            WebkitMask:
+              "radial-gradient(closest-side, transparent 0 68%, black 69% 100%)",
+            mask: "radial-gradient(closest-side, transparent 0 68%, black 69% 100%)",
+          }}
+        />
+      </div>
+      <p className="-mt-14 text-3xl font-extrabold tracking-tight">
+        {Math.round(clamped)}%
+      </p>
+      <p className="mt-7 text-center text-xs text-muted-foreground">
+        Pedidos entregados vs. cancelados este mes
+      </p>
+    </div>
+  );
+}
+
 function PaymentMethodBreakdown({
   data,
 }: {

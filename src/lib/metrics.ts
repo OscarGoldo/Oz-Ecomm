@@ -46,6 +46,12 @@ export interface DashboardMetrics {
   ordersByWeekday: { label: string; count: number }[];
   /** Con qué método pagó cada venta del mes, de mayor a menor monto. */
   salesByMethod: { type: string; label: string; usd: number; count: number }[];
+  /**
+   * % de pedidos de este mes, entre los que ya llegaron a un estado final,
+   * que terminaron entregados (vs. cancelados). `null` si todavía ninguno
+   * llegó a un estado final.
+   */
+  deliveryRatePct: number | null;
 }
 
 export async function getDashboardMetrics(
@@ -61,6 +67,8 @@ export async function getDashboardMetrics(
     { data: lowStockRaw },
     { data: monthSales },
     { data: recentOrders },
+    { count: completedThisMonth },
+    { count: cancelledThisMonth },
   ] = await Promise.all([
     supabase
       .from("orders")
@@ -90,6 +98,22 @@ export async function getDashboardMetrics(
       .eq("store_id", storeId)
       .order("created_at", { ascending: false })
       .limit(5),
+    // Tasa de entrega: de los pedidos de este mes que ya llegaron a un
+    // estado final (entregado o cancelado), cuántos se entregaron. Los que
+    // todavía están en curso (pendientes, confirmados, en camino) no cuentan
+    // ni a favor ni en contra porque su desenlace no se conoce todavía.
+    supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId)
+      .eq("status", "completed")
+      .gte("created_at", monthStart),
+    supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId)
+      .eq("status", "cancelled")
+      .gte("created_at", monthStart),
   ]);
 
   const lowStock = (lowStockRaw ?? [])
@@ -147,6 +171,10 @@ export async function getDashboardMetrics(
     }))
     .sort((a, b) => b.usd - a.usd);
 
+  const resolved = (completedThisMonth ?? 0) + (cancelledThisMonth ?? 0);
+  const deliveryRatePct =
+    resolved > 0 ? ((completedThisMonth ?? 0) / resolved) * 100 : null;
+
   return {
     todayOrders: todayOrders ?? 0,
     pendingConfirmation: pendingConfirmation ?? 0,
@@ -158,6 +186,7 @@ export async function getDashboardMetrics(
     salesByDay,
     ordersByWeekday,
     salesByMethod,
+    deliveryRatePct,
   };
 }
 
