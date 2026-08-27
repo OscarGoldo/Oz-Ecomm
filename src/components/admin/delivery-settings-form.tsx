@@ -63,7 +63,7 @@ export function DeliverySettingsForm({ store }: { store: Store }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         <CardContent className="space-y-4 pt-6">
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div className="flex items-center gap-3">
@@ -125,7 +125,7 @@ export function DeliverySettingsForm({ store }: { store: Store }) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         <CardContent className="space-y-4 pt-6">
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div className="flex items-center gap-3">

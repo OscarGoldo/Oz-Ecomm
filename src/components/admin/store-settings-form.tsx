@@ -134,7 +134,7 @@ export function StoreSettingsForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Identidad</CardTitle>
         </CardHeader>
@@ -198,7 +198,7 @@ export function StoreSettingsForm({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Banner</CardTitle>
         </CardHeader>
@@ -213,7 +213,7 @@ export function StoreSettingsForm({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Contacto y redes</CardTitle>
         </CardHeader>
@@ -256,7 +256,7 @@ export function StoreSettingsForm({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Moneda y tasa</CardTitle>
         </CardHeader>

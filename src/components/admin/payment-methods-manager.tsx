@@ -237,7 +237,7 @@ export function PaymentMethodsManager({
           <Plus /> Agregar método de pago
         </Button>
       ) : (
-        <Card>
+        <Card className="rounded-2xl shadow-sm">
           <CardContent className="space-y-4 pt-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">

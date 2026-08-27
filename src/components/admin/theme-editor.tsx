@@ -305,7 +305,7 @@ export function ThemeEditor({
       {/* Controls */}
       <div className="order-2 space-y-5 lg:order-1">
         {/* Presets: pick a category, then a template within it */}
-        <Card>
+        <Card className="rounded-2xl shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Plantillas</CardTitle>
             <p className="text-xs text-muted-foreground">
@@ -386,7 +386,7 @@ export function ThemeEditor({
         </Card>
 
         {/* Colors + typography */}
-        <Card>
+        <Card className="rounded-2xl shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Colores y estilo</CardTitle>
           </CardHeader>
@@ -429,7 +429,7 @@ export function ThemeEditor({
         </Card>
 
         {/* Announcement + hero texts */}
-        <Card>
+        <Card className="rounded-2xl shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Textos</CardTitle>
           </CardHeader>
@@ -480,7 +480,7 @@ export function ThemeEditor({
 
         {/* Sections */}
         {blockDefs ? (
-          <Card>
+          <Card className="rounded-2xl shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">Secciones del diseño</CardTitle>
               <p className="text-xs text-muted-foreground">
@@ -587,7 +587,7 @@ export function ThemeEditor({
             </CardContent>
           </Card>
         ) : (
-          <Card>
+          <Card className="rounded-2xl shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">Secciones de la home</CardTitle>
             </CardHeader>
@@ -638,7 +638,7 @@ export function ThemeEditor({
 
         {/* Images */}
         {mediaDefs && (
-          <Card>
+          <Card className="rounded-2xl shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">Imágenes del diseño</CardTitle>
               <p className="text-xs text-muted-foreground">
@@ -681,7 +681,7 @@ export function ThemeEditor({
 
         {/* Testimonials */}
         {showTestimonials && (
-          <Card>
+          <Card className="rounded-2xl shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">Historias reales</CardTitle>
               <p className="text-xs text-muted-foreground">
@@ -733,7 +733,7 @@ export function ThemeEditor({
 
         {/* Locations */}
         {showLocations && (
-          <Card>
+          <Card className="rounded-2xl shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">Nuestras tiendas</CardTitle>
               <p className="text-xs text-muted-foreground">
