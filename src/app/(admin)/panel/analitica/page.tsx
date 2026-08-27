@@ -91,7 +91,7 @@ export default async function AnaliticaPage({
       </div>
 
       {/* Funnel */}
-      <section className="rounded-xl border bg-card p-4">
+      <section className="rounded-2xl border bg-card shadow-sm p-4">
         <h2 className="mb-1 text-sm font-semibold">Embudo de compra</h2>
         <p className="mb-4 text-xs text-muted-foreground">
           Cuántos visitantes distintos llegaron a cada paso (últimos {days} días).
@@ -131,7 +131,7 @@ export default async function AnaliticaPage({
       </section>
 
       {/* Sales by day */}
-      <section className="rounded-xl border bg-card p-4">
+      <section className="rounded-2xl border bg-card shadow-sm p-4">
         <div className="mb-3 flex items-center gap-2">
           <BarChart3 className="size-4 text-muted-foreground" />
           <h2 className="text-sm font-semibold">Ventas por día</h2>
@@ -163,7 +163,7 @@ export default async function AnaliticaPage({
       </section>
 
       {/* Sales by hour */}
-      <section className="rounded-xl border bg-card p-4">
+      <section className="rounded-2xl border bg-card shadow-sm p-4">
         <div className="mb-3 flex items-center gap-2">
           <Clock className="size-4 text-muted-foreground" />
           <h2 className="text-sm font-semibold">¿A qué hora te compran?</h2>
@@ -203,7 +203,7 @@ export default async function AnaliticaPage({
       </section>
 
       {/* Most viewed products */}
-      <section className="rounded-xl border bg-card p-4">
+      <section className="rounded-2xl border bg-card shadow-sm p-4">
         <div className="mb-3 flex items-center gap-2">
           <Eye className="size-4 text-muted-foreground" />
           <h2 className="text-sm font-semibold">Productos más vistos</h2>
@@ -299,13 +299,13 @@ function Stat({
   highlight?: boolean;
 }) {
   return (
-    <div className={`rounded-xl border bg-card p-4 ${highlight ? "border-primary/40 bg-primary/5" : ""}`}>
-      <div className="mb-2 flex items-center gap-1.5 text-muted-foreground">
-        {icon}
-        <span className="text-xs font-medium">{label}</span>
+    <div className={`rounded-2xl border bg-card shadow-sm p-4 ${highlight ? "border-primary/40 bg-primary/5" : ""}`}>
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <span className="text-muted-foreground/70">{icon}</span>
       </div>
-      <p className="text-lg font-bold tracking-tight">{value}</p>
-      {sub && <p className="truncate text-xs text-muted-foreground">{sub}</p>}
+      <p className="text-2xl font-extrabold leading-none tracking-tight">{value}</p>
+      {sub && <p className="mt-1.5 truncate text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
 }

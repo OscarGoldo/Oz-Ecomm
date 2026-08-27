@@ -74,7 +74,7 @@ export function PanelSidebarNav({ badges = {}, pro = false }: NavProps) {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors",
               active
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -177,7 +177,7 @@ export function PanelBottomNav({ badges = {}, pro = false }: NavProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-xl p-2 text-xs font-medium transition-colors",
+                  "flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-2xl p-2 text-xs font-medium transition-colors",
                   active
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-muted",

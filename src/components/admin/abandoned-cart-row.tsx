@@ -66,7 +66,7 @@ export function AbandonedCartRow({
   if (dismissed) return null;
 
   return (
-    <li className="rounded-xl border bg-card p-4">
+    <li className="rounded-2xl border bg-card shadow-sm p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate font-medium">{customerName}</p>

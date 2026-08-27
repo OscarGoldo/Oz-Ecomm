@@ -78,7 +78,7 @@ export default async function ReportesPage({
       </div>
 
       {empty ? (
-        <div className="rounded-xl border border-dashed bg-card p-10 text-center">
+        <div className="rounded-2xl border border-dashed bg-card p-10 text-center">
           <p className="font-medium">Sin movimientos este mes</p>
           <p className="mt-1 text-sm text-muted-foreground">
             No hubo ventas ni gastos registrados en {r.label}.
@@ -89,7 +89,7 @@ export default async function ReportesPage({
           {/* Balance / P&L */}
           <section className="space-y-3">
             <h3 className="text-sm font-semibold">Estado de resultados</h3>
-            <div className="overflow-hidden rounded-xl border bg-card">
+            <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
               <Row label="Ingresos por ventas" value={formatUSD(r.incomeUsd)} sub={`${r.salesCount} ventas`} />
               <Row label="− Costo de mercadería" value={`−${formatUSD(r.cogsUsd)}`} muted />
               <Row label="Ganancia bruta" value={formatUSD(r.grossUsd)} sub={`margen ${Math.round(r.marginPct)}%`} strong />
@@ -116,7 +116,7 @@ export default async function ReportesPage({
 
           {/* Expenses by category */}
           {r.expensesByCategory.length > 0 && (
-            <section className="rounded-xl border bg-card p-4">
+            <section className="rounded-2xl border bg-card shadow-sm p-4">
               <h3 className="mb-3 text-sm font-semibold">Gastos por categoría</h3>
               <ul className="space-y-3">
                 {r.expensesByCategory.map((row) => {
@@ -139,7 +139,7 @@ export default async function ReportesPage({
 
           {/* Top products */}
           {r.topProducts.length > 0 && (
-            <section className="rounded-xl border bg-card p-4">
+            <section className="rounded-2xl border bg-card shadow-sm p-4">
               <h3 className="mb-3 text-sm font-semibold">Productos más vendidos</h3>
               <ul className="space-y-2.5">
                 {r.topProducts.map((p) => (
@@ -156,7 +156,7 @@ export default async function ReportesPage({
 
           {/* By payment method */}
           {r.byMethod.length > 0 && (
-            <section className="rounded-xl border bg-card p-4">
+            <section className="rounded-2xl border bg-card shadow-sm p-4">
               <h3 className="mb-3 text-sm font-semibold">Ventas por método de pago</h3>
               <ul className="space-y-3">
                 {r.byMethod.map((row) => {
@@ -219,7 +219,7 @@ function Row({
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="rounded-2xl border bg-card shadow-sm p-4">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className="mt-1 text-lg font-bold tracking-tight">{value}</p>
       {sub && <p className="truncate text-xs text-muted-foreground">{sub}</p>}

@@ -79,7 +79,7 @@ export default async function PlanPage() {
 
       {/* Estado actual */}
       <div
-        className={`rounded-xl border p-4 ${
+        className={`rounded-2xl border p-4 ${
           pro ? "border-primary/40 bg-primary/5" : "bg-card"
         }`}
       >
@@ -124,7 +124,7 @@ export default async function PlanPage() {
       )}
 
       {/* Comparativa */}
-      <div className="overflow-hidden rounded-xl border bg-card">
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 border-b bg-muted/40 px-4 py-2.5 text-xs font-medium">
           <span />
           <span className="w-20 text-center text-muted-foreground">Gratis</span>
@@ -183,7 +183,7 @@ export default async function PlanPage() {
 
       {/* Historial */}
       {payments_.length > 0 && (
-        <div className="rounded-xl border bg-card p-4">
+        <div className="rounded-2xl border bg-card shadow-sm p-4">
           <h2 className="mb-3 text-sm font-semibold">Tus pagos</h2>
           <ul className="space-y-2">
             {payments_.map((p) => (

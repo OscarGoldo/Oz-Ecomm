@@ -35,7 +35,7 @@ export default async function ReferidosPage() {
   // ventana donde la columna todavía no existe. Mejor un cartel que un 500.
   if (!store.referral_code) {
     return (
-      <div className="grid place-items-center rounded-xl border border-dashed bg-card p-12 text-center">
+      <div className="grid place-items-center rounded-2xl border border-dashed bg-card p-12 text-center">
         <Gift className="mb-3 size-9 text-muted-foreground" />
         <p className="font-medium">Estamos activando los referidos</p>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -79,7 +79,7 @@ export default async function ReferidosPage() {
         </p>
       </div>
 
-      <div className="rounded-xl border bg-card p-5">
+      <div className="rounded-2xl border bg-card shadow-sm p-5">
         <h2 className="mb-1 font-semibold">Tu link para invitar</h2>
         <p className="mb-4 text-sm text-muted-foreground">
           Mandáselo a quien tenga algo para vender. Si se registra desde tu link,
@@ -92,13 +92,13 @@ export default async function ReferidosPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border bg-card p-4">
+        <div className="rounded-2xl border bg-card shadow-sm p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Tiendas que trajiste
           </p>
           <p className="mt-1 text-2xl font-bold">{activos}</p>
         </div>
-        <div className="rounded-xl border bg-card p-4">
+        <div className="rounded-2xl border bg-card shadow-sm p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Meses de Pro ganados
           </p>
@@ -106,7 +106,7 @@ export default async function ReferidosPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
+      <div className="rounded-2xl border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
         <p className="mb-1 flex items-center gap-2 font-medium text-foreground">
           <Gift className="size-4" /> Cómo se gana el mes
         </p>
@@ -121,7 +121,7 @@ export default async function ReferidosPage() {
       </div>
 
       {referrals.length === 0 ? (
-        <div className="grid place-items-center rounded-xl border border-dashed bg-card p-12 text-center">
+        <div className="grid place-items-center rounded-2xl border border-dashed bg-card p-12 text-center">
           <Users className="mb-3 size-9 text-muted-foreground" />
           <p className="font-medium">Todavía no invitaste a nadie</p>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -135,7 +135,7 @@ export default async function ReferidosPage() {
             return (
               <li
                 key={r.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card shadow-sm p-4"
               >
                 <div className="min-w-0">
                   <p className="truncate font-medium">

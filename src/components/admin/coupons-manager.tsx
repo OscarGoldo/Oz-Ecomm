@@ -142,7 +142,7 @@ export function CouponsManager({ initial }: { initial: Coupon[] }) {
   return (
     <div className="space-y-4">
       {initial.length === 0 && editingId === null ? (
-        <div className="grid place-items-center rounded-xl border border-dashed bg-card p-10 text-center">
+        <div className="grid place-items-center rounded-2xl border border-dashed bg-card p-10 text-center">
           <span className="mb-3 grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
             <Ticket className="size-6" />
           </span>
@@ -154,7 +154,7 @@ export function CouponsManager({ initial }: { initial: Coupon[] }) {
       ) : (
         <ul className="space-y-2">
           {initial.map((c) => (
-            <li key={c.id} className="flex items-center gap-3 rounded-xl border bg-card p-3">
+            <li key={c.id} className="flex items-center gap-3 rounded-2xl border bg-card shadow-sm p-3">
               <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
                 <Ticket className="size-5" />
               </span>

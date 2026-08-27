@@ -48,7 +48,7 @@ export function SubscriptionStatus({
 
   if (status === "suspended") {
     return (
-      <div className="rounded-xl border border-warning/40 bg-warning/10 p-4">
+      <div className="rounded-2xl border border-warning/40 bg-warning/10 p-4">
         <p className="flex items-center gap-2 font-medium">
           <AlertTriangle className="size-4" /> No pudimos cobrar tu renovación
         </p>
@@ -63,7 +63,7 @@ export function SubscriptionStatus({
 
   if (status === "cancelled" || status === "expired") {
     return (
-      <div className="rounded-xl border bg-card p-4">
+      <div className="rounded-2xl border bg-card shadow-sm p-4">
         <p className="font-medium">Renovación automática cancelada</p>
         <p className="mt-1 text-sm text-muted-foreground">
           {until
@@ -76,7 +76,7 @@ export function SubscriptionStatus({
   }
 
   return (
-    <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+    <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
       <p className="flex items-center gap-2 font-medium">
         <RefreshCw className="size-4 text-primary" /> Renovación automática
         activa

@@ -343,7 +343,7 @@ export function ThemeEditor({
                     type="button"
                     onClick={() => applyPreset(p.id)}
                     className={cn(
-                      "overflow-hidden rounded-xl border text-left transition-colors",
+                      "overflow-hidden rounded-2xl border text-left transition-colors",
                       active ? "border-primary ring-1 ring-primary" : "hover:border-primary/40",
                       locked && "opacity-70 hover:opacity-100",
                     )}

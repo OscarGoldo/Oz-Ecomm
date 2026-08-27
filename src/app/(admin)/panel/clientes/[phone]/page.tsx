@@ -40,7 +40,7 @@ export default async function CustomerDetailPage({
         <ArrowLeft className="size-4" /> Clientes
       </Link>
 
-      <div className="rounded-xl border bg-card p-5">
+      <div className="rounded-2xl border bg-card shadow-sm p-5">
         <div className="flex items-center gap-3">
           <span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
             {name.charAt(0).toUpperCase()}
@@ -75,7 +75,7 @@ export default async function CustomerDetailPage({
         )}
       </div>
 
-      <section className="rounded-xl border bg-card">
+      <section className="rounded-2xl border bg-card shadow-sm">
         <h2 className="border-b p-4 text-sm font-semibold">Pedidos</h2>
         <ul className="divide-y">
           {orders.map((o) => (

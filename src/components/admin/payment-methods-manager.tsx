@@ -166,7 +166,7 @@ export function PaymentMethodsManager({
     <div className="space-y-4">
       {/* List */}
       {initial.length === 0 && editingId === null ? (
-        <div className="grid place-items-center rounded-xl border border-dashed bg-card p-10 text-center">
+        <div className="grid place-items-center rounded-2xl border border-dashed bg-card p-10 text-center">
           <span className="mb-3 grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
             <CreditCard className="size-6" />
           </span>
@@ -180,7 +180,7 @@ export function PaymentMethodsManager({
           {initial.map((m) => (
             <li
               key={m.id}
-              className="flex items-center gap-3 rounded-xl border bg-card p-3"
+              className="flex items-center gap-3 rounded-2xl border bg-card shadow-sm p-3"
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{m.label}</p>

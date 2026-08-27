@@ -60,7 +60,7 @@ export function BrandingImageUpload({
     <div>
       <div
         className={cn(
-          "relative overflow-hidden rounded-xl border bg-muted",
+          "relative overflow-hidden rounded-2xl border bg-muted",
           aspect === "square" ? "size-28" : "aspect-[16/6] w-full",
         )}
       >

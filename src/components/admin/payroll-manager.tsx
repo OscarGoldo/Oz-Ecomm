@@ -96,7 +96,7 @@ export function PayrollManager({
   return (
     <div className="space-y-3">
       {open ? (
-        <div className="space-y-3 rounded-xl border bg-card p-4">
+        <div className="space-y-3 rounded-2xl border bg-card shadow-sm p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="emp-name" className="text-xs">Nombre</Label>
@@ -162,14 +162,14 @@ export function PayrollManager({
       )}
 
       {initial.length === 0 ? (
-        <div className="grid place-items-center rounded-xl border border-dashed bg-card p-8 text-center">
+        <div className="grid place-items-center rounded-2xl border border-dashed bg-card p-8 text-center">
           <Users className="mb-2 size-7 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
             Sin empleados. Agrega tu nómina si tienes personal.
           </p>
         </div>
       ) : (
-        <ul className="divide-y rounded-xl border bg-card">
+        <ul className="divide-y rounded-2xl border bg-card shadow-sm">
           {initial.map((e) => {
             const conv = converted(Number(e.amount), e.currency, exchangeRate);
             return (

@@ -125,7 +125,7 @@ export function PlanCheckout({
       </div>
 
       {selected && (
-        <div className="space-y-2 rounded-xl border p-3">
+        <div className="space-y-2 rounded-2xl border p-3">
           <p className="text-xs font-medium text-muted-foreground">
             Paga a estos datos:
           </p>
@@ -235,7 +235,7 @@ export function PlanCheckout({
                   type="button"
                   onClick={() => setMonths(m)}
                   className={cn(
-                    "rounded-xl border p-2.5 text-left transition-colors",
+                    "rounded-2xl border p-2.5 text-left transition-colors",
                     months === m
                       ? "border-primary ring-1 ring-primary"
                       : "hover:border-primary/40",
@@ -264,7 +264,7 @@ export function PlanCheckout({
         </div>
 
         {/* 2. Monto a pagar */}
-        <div className="rounded-xl border bg-muted/40 p-4">
+        <div className="rounded-2xl border bg-muted/40 p-4">
           <p className="text-xs text-muted-foreground">Total a pagar</p>
           <p className="text-2xl font-bold tracking-tight">{formatUSD(amount)}</p>
           {amountBs !== null && (
@@ -323,7 +323,7 @@ function ViaTab({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-xl border p-3 text-left transition-colors",
+        "rounded-2xl border p-3 text-left transition-colors",
         active ? "border-primary ring-1 ring-primary" : "hover:border-primary/40",
       )}
     >
