@@ -4,6 +4,9 @@ import { StorefrontHeader } from "@/components/storefront/storefront-header";
 import { StorefrontFooter } from "@/components/storefront/storefront-footer";
 import { WhatsappFloat } from "@/components/storefront/whatsapp-float";
 import { getStoreBySlug } from "@/lib/storefront";
+import { getImageUrl } from "@/lib/storage";
+import { JsonLd } from "@/components/storefront/json-ld";
+import { storeJsonLd } from "@/lib/structured-data";
 import { getCartCount } from "@/lib/cart";
 import { resolveTheme, themeStyle } from "@/lib/theme";
 
@@ -49,6 +52,7 @@ export default async function StoreLayout({
             {theme.announcement.text}
           </div>
         ))}
+      <JsonLd data={storeJsonLd(store, getImageUrl(store.logo_url))} />
       <StorefrontHeader store={store} cartCount={cartCount} layout={theme.layout} />
       <div className="flex-1">{children}</div>
       <StorefrontFooter store={store} layout={theme.layout} />

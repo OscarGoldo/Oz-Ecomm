@@ -11,7 +11,6 @@ import {
 import { es } from "date-fns/locale";
 
 import { createClient } from "@/lib/supabase/server";
-import { phoneKey } from "@/lib/customer-identity";
 import { PAYMENT_METHOD_META } from "@/lib/constants";
 import { formatUSD } from "@/lib/format";
 import type {
@@ -35,6 +34,19 @@ function pctChange(current: number, previous: number): number | null {
 }
 
 type SupabaseServer = ReturnType<typeof createClient>;
+
+/**
+ * Los agregados vienen de Postgres como jsonb: numeric llega como string o
+ * number según el driver, así que todo pasa por acá antes de sumarse.
+ */
+function num(v: unknown): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function list(v: unknown): Record<string, unknown>[] {
+  return Array.isArray(v) ? (v as Record<string, unknown>[]) : [];
+}
 
 /** Statuses that count as a real sale (revenue). */
 export const SALES_STATUSES: OrderStatus[] = [
@@ -280,130 +292,76 @@ export interface FinanceSummary {
   recentSales: Order[];
 }
 
+/**
+ * Resumen de Finanzas. Los totales los calcula Postgres (`finance_summary`).
+ *
+ * Antes esto traía todos los pedidos históricos y todos sus ítems a memoria
+ * para sumarlos acá. Pasado el pedido 1.000 el corte silencioso de PostgREST
+ * hacía que el ingreso total dejara de crecer: el panel mostraba números que
+ * no eran los de la tienda.
+ */
 export async function getFinanceSummary(
   storeId: string,
 ): Promise<FinanceSummary> {
   const supabase = createClient();
-  const now = new Date();
-  const monthStart = startOfMonth(now).toISOString();
-  const prevMonthStart = startOfMonth(subMonths(now, 1)).toISOString();
-  const monthStartDate = monthStart.slice(0, 10);
 
-  const [{ data: sales }, { data: pending }, { data: recentSales }, { data: expenses }] =
-    await Promise.all([
-      supabase
-        .from("orders")
-        .select("id, total, total_bs, payment_method_type, created_at")
-        .eq("store_id", storeId)
-        .in("status", SALES_STATUSES),
-      supabase
-        .from("orders")
-        .select("total")
-        .eq("store_id", storeId)
-        .eq("status", "pending_confirmation"),
-      supabase
-        .from("orders")
-        .select("*")
-        .eq("store_id", storeId)
-        .in("status", SALES_STATUSES)
-        .order("created_at", { ascending: false })
-        .limit(8),
-      supabase
-        .from("expenses")
-        .select("amount, spent_at")
-        .eq("store_id", storeId),
-    ]);
+  const [{ data: agg }, { data: recentSales }] = await Promise.all([
+    supabase.rpc("finance_summary", { p_store_id: storeId }),
+    // Las últimas ventas siguen siendo una consulta normal: ya venía acotada.
+    supabase
+      .from("orders")
+      .select("*")
+      .eq("store_id", storeId)
+      .in("status", SALES_STATUSES)
+      .order("created_at", { ascending: false })
+      .limit(8),
+  ]);
 
-  const list = sales ?? [];
-  const saleIds = list.map((o) => o.id);
+  const r = (agg ?? {}) as Record<string, unknown>;
 
-  // Order items for COGS + top products + units.
-  let items: {
-    order_id: string;
-    product_name: string;
-    quantity: number;
-    subtotal: number;
-    unit_cost: number;
-  }[] = [];
-  if (saleIds.length > 0) {
-    const { data } = await supabase
-      .from("order_items")
-      .select("order_id, product_name, quantity, subtotal, unit_cost")
-      .in("order_id", saleIds);
-    items = (data ?? []) as typeof items;
-  }
-
-  const cogsByOrder = new Map<string, number>();
-  const productMap = new Map<string, { qty: number; revenue: number; profit: number }>();
-  let unitsSold = 0;
-  for (const it of items) {
-    const cost = Number(it.unit_cost) * it.quantity;
-    cogsByOrder.set(it.order_id, (cogsByOrder.get(it.order_id) ?? 0) + cost);
-    unitsSold += it.quantity;
-    const p = productMap.get(it.product_name) ?? { qty: 0, revenue: 0, profit: 0 };
-    p.qty += it.quantity;
-    p.revenue += Number(it.subtotal);
-    p.profit += Number(it.subtotal) - cost;
-    productMap.set(it.product_name, p);
-  }
-
-  const totalUsd = list.reduce((s, o) => s + Number(o.total), 0);
-  const totalBs = list.reduce((s, o) => s + Number(o.total_bs ?? 0), 0);
-  const cogsUsd = [...cogsByOrder.values()].reduce((s, v) => s + v, 0);
+  const totalUsd = num(r.total_usd);
+  const cogsUsd = num(r.cogs_usd);
   const grossProfitUsd = totalUsd - cogsUsd;
-  const expensesTotalUsd = (expenses ?? []).reduce((s, e) => s + Number(e.amount), 0);
+  const expensesTotalUsd = num(r.expenses_total_usd);
+  const salesCount = num(r.sales_count);
 
-  const monthOrders = list.filter((o) => o.created_at >= monthStart);
-  const monthUsd = monthOrders.reduce((s, o) => s + Number(o.total), 0);
-  const monthCogs = monthOrders.reduce((s, o) => s + (cogsByOrder.get(o.id) ?? 0), 0);
-  const monthExpensesUsd = (expenses ?? [])
-    .filter((e) => e.spent_at >= monthStartDate)
-    .reduce((s, e) => s + Number(e.amount), 0);
-  const prevMonthUsd = list
-    .filter((o) => o.created_at >= prevMonthStart && o.created_at < monthStart)
-    .reduce((s, o) => s + Number(o.total), 0);
-
-  const methodMap = new Map<string, { count: number; usd: number }>();
-  for (const o of list) {
-    const key = o.payment_method_type ?? "other";
-    const cur = methodMap.get(key) ?? { count: 0, usd: 0 };
-    cur.count += 1;
-    cur.usd += Number(o.total);
-    methodMap.set(key, cur);
-  }
-
-  const topProducts = [...productMap.entries()]
-    .map(([name, v]) => ({ name, ...v }))
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 5);
-
-  const pendingUsd = (pending ?? []).reduce((s, o) => s + Number(o.total), 0);
+  const monthUsd = num(r.month_usd);
+  const monthCogs = num(r.month_cogs_usd);
+  const monthExpensesUsd = num(r.month_expenses_usd);
+  const prevMonthUsd = num(r.prev_month_usd);
 
   return {
     totalUsd,
-    totalBs,
-    salesCount: list.length,
-    unitsSold,
-    avgTicketUsd: list.length ? totalUsd / list.length : 0,
+    totalBs: num(r.total_bs),
+    salesCount,
+    unitsSold: num(r.units_sold),
+    avgTicketUsd: salesCount ? totalUsd / salesCount : 0,
     cogsUsd,
     grossProfitUsd,
     marginPct: totalUsd > 0 ? (grossProfitUsd / totalUsd) * 100 : 0,
     expensesTotalUsd,
     netProfitUsd: grossProfitUsd - expensesTotalUsd,
     monthUsd,
-    monthCount: monthOrders.length,
+    monthCount: num(r.month_count),
     monthGrossUsd: monthUsd - monthCogs,
     monthExpensesUsd,
     monthNetUsd: monthUsd - monthCogs - monthExpensesUsd,
     prevMonthUsd,
     momGrowthPct:
       prevMonthUsd > 0 ? ((monthUsd - prevMonthUsd) / prevMonthUsd) * 100 : null,
-    pendingUsd,
-    pendingCount: (pending ?? []).length,
-    byMethod: [...methodMap.entries()]
-      .map(([type, v]) => ({ type, ...v }))
-      .sort((a, b) => b.usd - a.usd),
-    topProducts,
+    pendingUsd: num(r.pending_usd),
+    pendingCount: num(r.pending_count),
+    byMethod: list(r.by_method).map((m) => ({
+      type: String(m.type ?? "other"),
+      count: num(m.count),
+      usd: num(m.usd),
+    })),
+    topProducts: list(r.top_products).map((t) => ({
+      name: String(t.name ?? ""),
+      qty: num(t.qty),
+      revenue: num(t.revenue),
+      profit: num(t.profit),
+    })),
     recentSales: (recentSales ?? []) as Order[],
   };
 }
@@ -422,106 +380,49 @@ interface RangeAgg {
   topProducts: { name: string; qty: number; revenue: number; profit: number }[];
 }
 
+/**
+ * Agregados de un rango. Los calcula Postgres (`finance_range`), no Node.
+ *
+ * Antes esto traía todos los pedidos del mes y todos sus ítems para sumarlos
+ * en memoria; con el techo de 1.000 filas de PostgREST, un mes bueno se
+ * reportaba incompleto.
+ */
 async function computeRange(
   supabase: SupabaseServer,
   storeId: string,
   startISO: string,
   endISO: string,
-  startDate: string,
-  endDate: string,
 ): Promise<RangeAgg> {
-  const [{ data: orders }, { data: exp }] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("id, total, total_bs, payment_method_type, customer_phone")
-      .eq("store_id", storeId)
-      .in("status", SALES_STATUSES)
-      .gte("created_at", startISO)
-      .lt("created_at", endISO),
-    supabase
-      .from("expenses")
-      .select("amount, category, spent_at")
-      .eq("store_id", storeId)
-      .gte("spent_at", startDate)
-      .lt("spent_at", endDate),
-  ]);
-
-  const list = orders ?? [];
-  const ids = list.map((o) => o.id);
-  let items: {
-    order_id: string;
-    product_name: string;
-    quantity: number;
-    subtotal: number;
-    unit_cost: number;
-  }[] = [];
-  if (ids.length > 0) {
-    const { data } = await supabase
-      .from("order_items")
-      .select("order_id, product_name, quantity, subtotal, unit_cost")
-      .in("order_id", ids);
-    items = (data ?? []) as typeof items;
-  }
-
-  const productMap = new Map<string, { qty: number; revenue: number; profit: number }>();
-  let cogsUsd = 0;
-  let unitsSold = 0;
-  for (const it of items) {
-    const cost = Number(it.unit_cost) * it.quantity;
-    cogsUsd += cost;
-    unitsSold += it.quantity;
-    const p = productMap.get(it.product_name) ?? { qty: 0, revenue: 0, profit: 0 };
-    p.qty += it.quantity;
-    p.revenue += Number(it.subtotal);
-    p.profit += Number(it.subtotal) - cost;
-    productMap.set(it.product_name, p);
-  }
-
-  const methodMap = new Map<string, { count: number; usd: number }>();
-  // Por identidad, no por el texto del teléfono: el mismo cliente escrito de
-  // dos formas contaba como dos clientes distintos.
-  const phones = new Set<string>();
-  let incomeUsd = 0;
-  let incomeBs = 0;
-  for (const o of list) {
-    incomeUsd += Number(o.total);
-    incomeBs += Number(o.total_bs ?? 0);
-    const pk = phoneKey(o.customer_phone);
-    if (pk) phones.add(pk);
-    const key = o.payment_method_type ?? "other";
-    const cur = methodMap.get(key) ?? { count: 0, usd: 0 };
-    cur.count += 1;
-    cur.usd += Number(o.total);
-    methodMap.set(key, cur);
-  }
-
-  const catMap = new Map<string, number>();
-  let expensesUsd = 0;
-  for (const e of exp ?? []) {
-    const amt = Number(e.amount);
-    expensesUsd += amt;
-    const key = e.category || "Otros";
-    catMap.set(key, (catMap.get(key) ?? 0) + amt);
-  }
+  const { data } = await supabase.rpc("finance_range", {
+    p_store_id: storeId,
+    p_from: startISO,
+    p_to: endISO,
+  });
+  const r = (data ?? {}) as Record<string, unknown>;
 
   return {
-    incomeUsd,
-    incomeBs,
-    cogsUsd,
-    expensesUsd,
-    salesCount: list.length,
-    unitsSold,
-    customers: phones.size,
-    expensesByCategory: [...catMap.entries()]
-      .map(([category, usd]) => ({ category, usd }))
-      .sort((a, b) => b.usd - a.usd),
-    byMethod: [...methodMap.entries()]
-      .map(([type, v]) => ({ type, ...v }))
-      .sort((a, b) => b.usd - a.usd),
-    topProducts: [...productMap.entries()]
-      .map(([name, v]) => ({ name, ...v }))
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5),
+    incomeUsd: num(r.income_usd),
+    incomeBs: num(r.income_bs),
+    cogsUsd: num(r.cogs_usd),
+    expensesUsd: num(r.expenses_usd),
+    salesCount: num(r.sales_count),
+    unitsSold: num(r.units_sold),
+    customers: num(r.customers),
+    expensesByCategory: list(r.expenses_by_category).map((e) => ({
+      category: String(e.category ?? "Otros"),
+      usd: num(e.usd),
+    })),
+    byMethod: list(r.by_method).map((m) => ({
+      type: String(m.type ?? "other"),
+      count: num(m.count),
+      usd: num(m.usd),
+    })),
+    topProducts: list(r.top_products).map((t) => ({
+      name: String(t.name ?? ""),
+      qty: num(t.qty),
+      revenue: num(t.revenue),
+      profit: num(t.profit),
+    })),
   };
 }
 
@@ -568,7 +469,6 @@ export async function getMonthlyReport(
   const nextStart = addMonths(monthStart, 1);
   const prevStart = subMonths(monthStart, 1);
 
-  const fmtDate = (d: Date) => format(d, "yyyy-MM-dd");
 
   const [cur, prev] = await Promise.all([
     computeRange(
@@ -576,16 +476,12 @@ export async function getMonthlyReport(
       storeId,
       monthStart.toISOString(),
       nextStart.toISOString(),
-      fmtDate(monthStart),
-      fmtDate(nextStart),
     ),
     computeRange(
       supabase,
       storeId,
       prevStart.toISOString(),
       monthStart.toISOString(),
-      fmtDate(prevStart),
-      fmtDate(monthStart),
     ),
   ]);
 

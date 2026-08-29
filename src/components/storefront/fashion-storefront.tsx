@@ -4,19 +4,7 @@ import { PackageSearch } from "lucide-react";
 import { CategoryChips } from "@/components/storefront/category-chips";
 import { FashionProductCard } from "@/components/storefront/fashion-product-card";
 import { getImageUrl } from "@/lib/storage";
-import type { Category, Product, Store } from "@/types/database";
-import type { StoreTheme } from "@/lib/theme";
-
-interface FashionStorefrontProps {
-  store: Store;
-  theme: StoreTheme;
-  categories: Pick<Category, "id" | "name" | "slug">[];
-  products: Product[];
-  hasFilters: boolean;
-  heading: string;
-  banner: string | null;
-  hero: { headline: string; subtext: string; cta: string };
-}
+import type { StorefrontProps } from "@/components/storefront/storefront-props";
 
 export function FashionStorefront({
   store,
@@ -27,7 +15,7 @@ export function FashionStorefront({
   heading,
   banner,
   hero,
-}: FashionStorefrontProps) {
+}: StorefrontProps) {
   const lookbook = products
     .map((p) => getImageUrl(p.images[0]))
     .filter((u): u is string => Boolean(u))

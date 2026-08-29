@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import Image from "next/image";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { MapPin, PackageSearch, Star } from "lucide-react";
 
@@ -7,20 +7,8 @@ import { CategoryChips } from "@/components/storefront/category-chips";
 import { StreetProductCard } from "@/components/storefront/streetwear-product-card";
 import { HeroSlides } from "@/components/storefront/hero-slides";
 import { getImageUrl } from "@/lib/storage";
-import type { Category, Product, Store } from "@/types/database";
-import { getBlock, type StoreTheme } from "@/lib/theme";
-
-interface StreetStorefrontProps {
-  store: Store;
-  theme: StoreTheme;
-  categories: Pick<Category, "id" | "name" | "slug">[];
-  products: Product[];
-  featured: Product[];
-  hasFilters: boolean;
-  heading: string;
-  banner: string | null;
-  hero: { headline: string; subtext: string; cta: string };
-}
+import { getBlock } from "@/lib/theme";
+import type { StorefrontProps } from "@/components/storefront/storefront-props";
 
 /** Bold uppercase section heading with a magenta accent bar. */
 function SectionHead({ title, subtitle }: { title: string; subtitle?: string }) {
@@ -50,7 +38,7 @@ export function StreetStorefront({
   heading,
   banner,
   hero,
-}: StreetStorefrontProps) {
+}: StorefrontProps) {
   const productsByCategory = !hasFilters
     ? categories
         .map((cat) => ({

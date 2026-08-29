@@ -29,10 +29,16 @@ import {
   updateOrderStatus,
 } from "@/app/(admin)/panel/pedidos/actions";
 import { ORDER_STATUS_META } from "@/lib/constants";
+import { NEXT_STATUSES, isConfirmable } from "@/lib/order-status";
 import { whatsappUrl } from "@/lib/whatsapp";
 import { orderStatusClientMessage, shouldNotifyCustomer } from "@/lib/order-messages";
 import type { OrderStatus } from "@/types/database";
 
+/**
+ * Avances que ofrece el selector. Se cruzan con NEXT_STATUSES para no ofrecer
+ * un cambio que el servidor va a rechazar: "cancelado" tiene su propio botón
+ * con confirmación, y "confirmado" pasa por confirmPayment().
+ */
 const ADVANCE_OPTIONS: OrderStatus[] = ["preparing", "in_delivery", "completed"];
 
 interface OrderActionsProps {
@@ -62,7 +68,10 @@ export function OrderActions({
   const [pending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
 
-  const isPendingConfirmation = status === "pending_confirmation";
+  // Incluye "esperando pago": si el comerciante cobró por fuera, tiene que
+  // poder confirmarlo. Antes solo se ofrecía en pending_confirmation y esos
+  // pedidos quedaban trabados.
+  const isPendingConfirmation = isConfirmable(status);
   const isTerminal = status === "completed" || status === "cancelled";
 
   const waUrl = whatsappUrl(
@@ -134,7 +143,9 @@ export function OrderActions({
               <SelectItem value={status} disabled>
                 {ORDER_STATUS_META[status].label} (actual)
               </SelectItem>
-              {ADVANCE_OPTIONS.filter((s) => s !== status).map((s) => (
+              {ADVANCE_OPTIONS.filter(
+                (s) => s !== status && NEXT_STATUSES[status].includes(s),
+              ).map((s) => (
                 <SelectItem key={s} value={s}>
                   {ORDER_STATUS_META[s].label}
                 </SelectItem>

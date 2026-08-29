@@ -739,6 +739,22 @@ export interface Database {
         Args: { p_items: Json; p_enforce: boolean };
         Returns: undefined;
       };
+      claim_coupon_use: {
+        Args: { p_coupon_id: string };
+        Returns: boolean;
+      };
+      release_coupon_use: {
+        Args: { p_coupon_id: string };
+        Returns: undefined;
+      };
+      finance_summary: {
+        Args: { p_store_id: string };
+        Returns: Json;
+      };
+      finance_range: {
+        Args: { p_store_id: string; p_from: string; p_to: string };
+        Returns: Json;
+      };
       restore_order_stock: {
         Args: { p_items: Json };
         Returns: undefined;

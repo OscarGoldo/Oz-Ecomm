@@ -2,19 +2,7 @@ import { PackageSearch, Sparkles } from "lucide-react";
 
 import { CategoryChips } from "@/components/storefront/category-chips";
 import { BeautyProductCard } from "@/components/storefront/beauty-product-card";
-import type { Category, Product, Store } from "@/types/database";
-import type { StoreTheme } from "@/lib/theme";
-
-interface BeautyStorefrontProps {
-  store: Store;
-  theme: StoreTheme;
-  categories: Pick<Category, "id" | "name" | "slug">[];
-  products: Product[];
-  featured: Product[];
-  hasFilters: boolean;
-  heading: string;
-  hero: { headline: string; subtext: string; cta: string };
-}
+import type { StorefrontProps } from "@/components/storefront/storefront-props";
 
 export function BeautyStorefront({
   store,
@@ -25,7 +13,7 @@ export function BeautyStorefront({
   hasFilters,
   heading,
   hero,
-}: BeautyStorefrontProps) {
+}: StorefrontProps) {
   const routine = (featured.length >= 2 ? featured : products).slice(0, 6);
 
   return (

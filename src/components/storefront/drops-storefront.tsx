@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
+import type { ReactNode } from "react";
+import type { Product, Store } from "@/types/database";
 import { PackageSearch } from "lucide-react";
 
 import { CategoryChips } from "@/components/storefront/category-chips";
@@ -7,20 +8,8 @@ import { DropsProductCard } from "@/components/storefront/drops-product-card";
 import { DropsCountdown } from "@/components/storefront/drops-countdown";
 import { HeroSlides } from "@/components/storefront/hero-slides";
 import { getImageUrl } from "@/lib/storage";
-import type { Category, Product, Store } from "@/types/database";
-import { getBlock, type StoreTheme } from "@/lib/theme";
-
-interface DropsStorefrontProps {
-  store: Store;
-  theme: StoreTheme;
-  categories: Pick<Category, "id" | "name" | "slug">[];
-  products: Product[];
-  featured: Product[];
-  hasFilters: boolean;
-  heading: string;
-  banner: string | null;
-  hero: { headline: string; subtext: string; cta: string };
-}
+import { getBlock } from "@/lib/theme";
+import type { StorefrontProps } from "@/components/storefront/storefront-props";
 
 /** Two-letter "escudo" initials for a category. */
 function initials(name: string): string {
@@ -39,7 +28,7 @@ export function DropsStorefront({
   heading,
   banner,
   hero,
-}: DropsStorefrontProps) {
+}: StorefrontProps) {
   const recent = !hasFilters ? products.slice(0, 8) : [];
   const collections = !hasFilters
     ? categories

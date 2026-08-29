@@ -14,6 +14,7 @@ import {
   sendEmail,
 } from "@/lib/email";
 import { buildOrderMessageData } from "@/lib/order-messages";
+import { notifyOwnerNewOrder } from "@/lib/whatsapp-cloud";
 import { evaluateCoupon, findCouponByCode } from "@/lib/coupons";
 import { maybeQualifyReferral } from "@/lib/referrals-server";
 import {
@@ -178,6 +179,8 @@ interface OrderDraft {
     id: string;
     name: string;
     slug: string;
+    /** Para avisarle al comerciante por WhatsApp cuando entra el pedido. */
+    whatsapp: string | null;
     pickup_address: string | null;
     active: boolean;
     show_bs_prices: boolean;
@@ -510,6 +513,29 @@ export async function createOrder(
     status = "pending_payment";
   }
 
+  // El cupo del cupón se reclama ANTES de crear el pedido, no se cuenta
+  // después. Si el cupón se agotó entre que el cliente lo aplicó y que apretó
+  // "Confirmar", el pedido no llega a existir con un descuento que ya no
+  // correspondía. Si algo falla más abajo, se devuelve (`releaseCoupon`).
+  let couponClaimed = false;
+  if (appliedCoupon) {
+    const { data: claimed } = await db.rpc("claim_coupon_use", {
+      p_coupon_id: appliedCoupon.id,
+    });
+    if (!claimed) {
+      return {
+        ok: false,
+        error: "El cupón acaba de agotarse. Quítalo para continuar con tu compra.",
+      };
+    }
+    couponClaimed = true;
+  }
+  const releaseCoupon = async () => {
+    if (!couponClaimed || !appliedCoupon) return;
+    couponClaimed = false;
+    await db.rpc("release_coupon_use", { p_coupon_id: appliedCoupon.id });
+  };
+
   const { data: order, error: orderErr } = await db
     .from("orders")
     .insert({
@@ -543,6 +569,8 @@ export async function createOrder(
     .single();
 
   if (orderErr || !order) {
+    // El pedido no existe, así que el cupo reclamado tampoco corresponde.
+    await releaseCoupon();
     // 23505 sobre idx_orders_idempotency = dos envíos del mismo formulario
     // llegaron a la vez y el otro ganó. No es un error para el cliente: su
     // pedido existe, hay que devolverle ese.
@@ -566,6 +594,7 @@ export async function createOrder(
     .insert(orderItems.map((i) => ({ ...i, order_id: order.id })));
   if (itemsErr) {
     await db.from("orders").delete().eq("id", order.id);
+    await releaseCoupon();
     return { ok: false, error: "No se pudo crear el pedido. Intenta de nuevo." };
   }
 
@@ -591,6 +620,7 @@ export async function createOrder(
       // Insufficient stock lost the race — undo the order we just created.
       await db.from("order_items").delete().eq("order_id", order.id);
       await db.from("orders").delete().eq("id", order.id);
+      await releaseCoupon();
       return {
         ok: false,
         error: "Uno de los productos se agotó mientras comprabas. Revisa tu carrito.",
@@ -604,15 +634,6 @@ export async function createOrder(
         .update({ stock_committed: true })
         .eq("id", order.id);
     }
-  }
-
-  // Count the coupon use only after the order is committed (a voided
-  // out-of-stock order above must not consume a coupon's usage limit).
-  if (appliedCoupon) {
-    await db
-      .from("coupons")
-      .update({ times_used: appliedCoupon.times_used + 1 })
-      .eq("id", appliedCoupon.id);
   }
 
   // Los pedidos en efectivo y por PayPal nacen confirmados: nunca pasan por
@@ -701,6 +722,23 @@ export async function createOrder(
   } catch (e) {
     // Never fail the order because of a notification problem.
     reportError("createOrder:notifyOwner", e, { orderId: order.id });
+  }
+
+  // Y por WhatsApp, que es donde el comerciante venezolano sí mira.
+  //
+  // Hasta ahora el único aviso inmediato dependía de que el CLIENTE tocara
+  // "Avisar a la tienda" en la confirmación; si no lo tocaba, el pedido se
+  // descubría horas después. Esto sale del servidor y no depende de nadie.
+  // Es no-op mientras no estén las credenciales de la Cloud API.
+  try {
+    await notifyOwnerNewOrder({
+      toPhone: store.whatsapp,
+      storeName: store.name,
+      orderNumber: order.order_number,
+      totalLabel: formatUSD(total),
+    });
+  } catch (e) {
+    reportError("createOrder:notifyOwnerWhatsapp", e, { orderId: order.id });
   }
 
   // Recibo al cliente apenas compra.
