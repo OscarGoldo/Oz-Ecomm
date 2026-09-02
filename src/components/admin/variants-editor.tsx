@@ -193,7 +193,7 @@ export function VariantsEditor({
               <button
                 type="button"
                 onClick={addAxis}
-                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline"
               >
                 <Plus className="size-4" /> Agregar otro tipo (ej. Color)
               </button>

@@ -62,7 +62,7 @@ export function UpdatePasswordForm() {
           <p className="text-sm text-destructive">{state.message}</p>
           <Link
             href="/recuperar"
-            className="inline-block text-sm font-medium text-primary hover:underline"
+            className="inline-block text-sm font-medium text-brand-700 hover:underline"
           >
             Pedir un enlace nuevo
           </Link>

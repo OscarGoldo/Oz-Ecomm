@@ -20,6 +20,8 @@ import type { LucideIcon } from "lucide-react";
 
 import type { DashboardMetrics } from "@/lib/metrics";
 import { StatCard } from "@/components/admin/stat-card";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 import { ExchangeRateCard } from "@/components/admin/exchange-rate-card";
 import { OrderStatusBadge } from "@/components/admin/status-badge";
@@ -62,18 +64,20 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Hola, {firstName} 👋</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Resumen de {store.name}
-          </p>
+          <h1 className="font-display text-display-xs font-semibold">
+            Hola, {firstName}
+          </h1>
+          <p className="mt-1 text-sm text-ink-500">Resumen de {store.name}</p>
         </div>
         <Link
           href={`/${store.slug}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-2xl border bg-background px-3.5 py-2 text-sm font-medium shadow-sm hover:bg-muted"
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+          )}
         >
-          Ver tienda <ExternalLink className="size-4" />
+          Ver tienda <ExternalLink />
         </Link>
       </div>
 
@@ -118,14 +122,14 @@ export default async function DashboardPage() {
           mes, para no mostrarle al dueño un gráfico vacío el día 1. */}
       {m.monthOrders > 0 && (
         <div className="grid gap-4 lg:grid-cols-3">
-          <div className="rounded-2xl border bg-card p-4 shadow-sm lg:col-span-2">
+          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm lg:col-span-2">
             <p className="text-sm font-semibold">Ventas este mes</p>
-            <p className="mt-1 text-2xl font-extrabold tracking-tight">
+            <p className="mt-1 font-display text-[1.75rem] font-semibold leading-none tracking-[-0.03em] tabular-nums">
               {formatUSD(m.monthSalesUsd)}
             </p>
             <SalesTrendChart data={m.salesByDay} />
           </div>
-          <div className="rounded-2xl border bg-card p-4 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <p className="text-sm font-semibold">Pedidos por día</p>
             <WeekdayBarChart data={m.ordersByWeekday} />
           </div>
@@ -135,14 +139,14 @@ export default async function DashboardPage() {
       {(m.deliveryRatePct !== null || m.salesByMethod.length > 0) && (
         <div className="grid gap-4 lg:grid-cols-3">
           {m.deliveryRatePct !== null && (
-            <div className="rounded-2xl border bg-card p-4 shadow-sm">
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
               <p className="text-sm font-semibold">Tasa de entrega</p>
               <DeliveryGauge pct={m.deliveryRatePct} />
             </div>
           )}
           {m.salesByMethod.length > 0 && (
             <div
-              className={`rounded-2xl border bg-card p-4 shadow-sm ${
+              className={`rounded-2xl border border-border bg-card p-4 shadow-sm ${
                 m.deliveryRatePct !== null ? "lg:col-span-2" : "lg:col-span-3"
               }`}
             >
@@ -164,12 +168,12 @@ export default async function DashboardPage() {
           listas cortas del resumen y apiladas dejaban la página con scroll
           de más para nada. */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-2xl border bg-card shadow-sm">
-          <div className="flex items-center justify-between border-b p-4">
+        <section className="rounded-2xl border border-border bg-card shadow-sm">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold">Últimos pedidos</h2>
             <Link
               href="/panel/pedidos"
-              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline"
             >
               Ver todos <ArrowRight className="size-3.5" />
             </Link>
@@ -179,12 +183,12 @@ export default async function DashboardPage() {
               Todavía no hay pedidos.
             </p>
           ) : (
-            <ul className="divide-y">
+            <ul className="divide-y divide-border">
               {m.recentOrders.map((o) => (
                 <li key={o.id}>
                   <Link
                     href={`/panel/pedidos/${o.id}`}
-                    className="flex items-center gap-3 p-4 hover:bg-muted/40"
+                    className="flex items-center gap-3 p-4 transition-colors hover:bg-ink-50"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -196,7 +200,7 @@ export default async function DashboardPage() {
                         {format(new Date(o.created_at), "d MMM, HH:mm", { locale: es })}
                       </p>
                     </div>
-                    <span className="font-semibold">{formatUSD(o.total)}</span>
+                    <span className="font-semibold tabular-nums">{formatUSD(o.total)}</span>
                   </Link>
                 </li>
               ))}
@@ -206,32 +210,32 @@ export default async function DashboardPage() {
 
         {/* Low stock */}
         {m.lowStock.length > 0 && (
-          <section className="rounded-2xl border bg-card shadow-sm">
-            <div className="flex items-center justify-between border-b p-4">
+          <section className="rounded-2xl border border-border bg-card shadow-sm">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="size-4 text-warning-foreground" />
+                <AlertTriangle className="size-4 text-warning" />
                 <h2 className="text-sm font-semibold">Productos con bajo stock</h2>
               </div>
               <Link
                 href="/panel/productos"
-                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline"
               >
                 Ver todos <ArrowRight className="size-3.5" />
               </Link>
             </div>
-            <ul className="divide-y">
+            <ul className="divide-y divide-border">
               {m.lowStock.slice(0, 6).map((p) => (
                 <li key={p.id}>
                   <Link
                     href={`/panel/productos/${p.id}`}
-                    className="flex items-center justify-between gap-3 p-4 hover:bg-muted/40"
+                    className="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-ink-50"
                   >
                     <span className="truncate text-sm font-medium">{p.name}</span>
                     <span
                       className={
                         p.stock <= 0
                           ? "shrink-0 text-sm font-semibold text-destructive"
-                          : "shrink-0 text-sm font-semibold text-warning-foreground"
+                          : "shrink-0 text-sm font-semibold text-warning-text"
                       }
                     >
                       {p.stock <= 0 ? "Agotado" : `Quedan ${p.stock}`}
@@ -271,8 +275,8 @@ function SalesTrendChart({ data }: { data: DashboardMetrics["salesByDay"] }) {
       <svg viewBox={`0 0 ${width} ${height}`} className="h-32 w-full" preserveAspectRatio="none">
         <defs>
           <linearGradient id="dashSalesFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+            <stop offset="0%" stopColor="hsl(var(--brand-500))" stopOpacity="0.16" />
+            <stop offset="100%" stopColor="hsl(var(--brand-500))" stopOpacity="0" />
           </linearGradient>
         </defs>
         {[0.02, 0.26, 0.5, 0.74, 0.98].map((f) => (
@@ -287,7 +291,14 @@ function SalesTrendChart({ data }: { data: DashboardMetrics["salesByDay"] }) {
           />
         ))}
         <path d={area} fill="url(#dashSalesFill)" stroke="none" />
-        <path d={line} fill="none" stroke="hsl(var(--primary))" strokeWidth={2.5} />
+        <path
+          d={line}
+          fill="none"
+          stroke="hsl(var(--brand-500))"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
       {data.length > 1 && (
         <div className="flex justify-between text-2xs text-muted-foreground">
@@ -314,7 +325,7 @@ function WeekdayBarChart({ data }: { data: DashboardMetrics["ordersByWeekday"] }
         <div key={d.label} className="flex flex-1 flex-col items-center gap-1.5">
           <div
             className={`w-full rounded-md ${
-              hasAny && i === peakIdx ? "bg-primary" : "bg-muted"
+              hasAny && i === peakIdx ? "bg-brand-500" : "bg-ink-200"
             }`}
             style={{ height: `${Math.max(4, (d.count / max) * 100)}%` }}
             title={`${d.label}: ${d.count} pedido${d.count === 1 ? "" : "s"}`}
@@ -341,12 +352,12 @@ const METHOD_ICONS: Record<string, LucideIcon> = {
   paypal: CreditCard,
 };
 const METHOD_BAR_COLORS = [
-  "bg-primary",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-violet-500",
-  "bg-rose-500",
-  "bg-cyan-500",
+  "bg-chart-1",
+  "bg-chart-2",
+  "bg-chart-3",
+  "bg-chart-4",
+  "bg-chart-5",
+  "bg-chart-6",
 ];
 
 /** Un renglón por método de pago, con su participación en las ventas del mes. */
@@ -359,16 +370,16 @@ function DeliveryGauge({ pct }: { pct: number }) {
         <div
           className="absolute inset-x-0 top-0 h-[200px] w-[200px] rounded-full"
           style={{
-            background: `conic-gradient(from 180deg, hsl(var(--primary)) 0deg, hsl(var(--primary)) ${
+            background: `conic-gradient(from 180deg, hsl(var(--brand-500)) 0deg, hsl(var(--brand-500)) ${
               clamped * 1.8
-            }deg, hsl(var(--muted)) ${clamped * 1.8}deg, hsl(var(--muted)) 180deg, transparent 180deg)`,
+            }deg, hsl(var(--ink-200)) ${clamped * 1.8}deg, hsl(var(--ink-200)) 180deg, transparent 180deg)`,
             WebkitMask:
               "radial-gradient(closest-side, transparent 0 68%, black 69% 100%)",
             mask: "radial-gradient(closest-side, transparent 0 68%, black 69% 100%)",
           }}
         />
       </div>
-      <p className="-mt-14 text-3xl font-extrabold tracking-tight">
+      <p className="-mt-14 font-display text-3xl font-semibold tracking-[-0.032em] tabular-nums">
         {Math.round(clamped)}%
       </p>
       <p className="mt-7 text-center text-xs text-muted-foreground">
@@ -393,10 +404,10 @@ function PaymentMethodBreakdown({
           <div key={d.type}>
             <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
               <Icon className="size-3.5" />
-              <span className="text-sm font-bold text-foreground">{pct}%</span>
+              <span className="text-sm font-bold tabular-nums text-foreground">{pct}%</span>
             </div>
             <p className="truncate text-2xs text-muted-foreground">{d.label}</p>
-            <div className="mt-1.5 h-1.5 rounded-full bg-muted">
+            <div className="mt-1.5 h-1.5 rounded-full bg-ink-200">
               <div
                 className={`h-1.5 rounded-full ${METHOD_BAR_COLORS[i % METHOD_BAR_COLORS.length]}`}
                 style={{ width: `${pct}%` }}
