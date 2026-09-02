@@ -17,22 +17,13 @@ import {
   updateOrderStatus,
 } from "@/app/(admin)/panel/pedidos/actions";
 import { ORDER_STATUS_META } from "@/lib/constants";
+import { NEXT_STATUSES, isConfirmable } from "@/lib/order-status";
 import { orderStatusClientMessage, shouldNotifyCustomer } from "@/lib/order-messages";
 import { whatsappUrl } from "@/lib/whatsapp";
 import type { OrderStatus } from "@/types/database";
 
-const NEXT: Record<OrderStatus, OrderStatus[]> = {
-  pending_payment: ["confirmed", "cancelled"],
-  pending_confirmation: ["confirmed", "cancelled"],
-  confirmed: ["preparing", "in_delivery", "completed", "cancelled"],
-  preparing: ["in_delivery", "completed", "cancelled"],
-  in_delivery: ["completed", "cancelled"],
-  completed: [],
-  cancelled: [],
-};
-
 function labelFor(from: OrderStatus, to: OrderStatus): string {
-  if (to === "confirmed" && (from === "pending_confirmation" || from === "pending_payment")) {
+  if (to === "confirmed" && isConfirmable(from)) {
     return "Confirmar pago";
   }
   if (to === "cancelled") return "Cancelar pedido";
@@ -56,13 +47,11 @@ export function OrderQuickStatus({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const options = NEXT[status];
+  const options = NEXT_STATUSES[status];
 
   function apply(to: OrderStatus) {
     startTransition(async () => {
-      const isConfirm =
-        to === "confirmed" &&
-        (status === "pending_confirmation" || status === "pending_payment");
+      const isConfirm = to === "confirmed" && isConfirmable(status);
       const res = isConfirm
         ? await confirmPayment(orderId)
         : await updateOrderStatus(orderId, to);

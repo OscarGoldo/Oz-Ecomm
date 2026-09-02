@@ -3,19 +3,7 @@ import { PackageSearch } from "lucide-react";
 
 import { SportsCategoryCarousel } from "@/components/storefront/sports-category-carousel";
 import { SportsProductCard } from "@/components/storefront/sports-product-card";
-import type { Category, Product, Store } from "@/types/database";
-import type { StoreTheme } from "@/lib/theme";
-
-interface SportsStorefrontProps {
-  store: Store;
-  theme: StoreTheme;
-  categories: Pick<Category, "id" | "name" | "slug">[];
-  products: Product[];
-  hasFilters: boolean;
-  heading: string;
-  banner: string | null;
-  hero: { headline: string; subtext: string; cta: string };
-}
+import type { StorefrontProps } from "@/components/storefront/storefront-props";
 
 export function SportsStorefront({
   store,
@@ -26,7 +14,7 @@ export function SportsStorefront({
   heading,
   banner,
   hero,
-}: SportsStorefrontProps) {
+}: StorefrontProps) {
   return (
     <main>
       {/* Energetic hero with a diagonal accent */}

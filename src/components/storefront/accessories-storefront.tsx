@@ -2,18 +2,7 @@ import { PackageSearch } from "lucide-react";
 
 import { CategoryChips } from "@/components/storefront/category-chips";
 import { AccessoriesProductCard } from "@/components/storefront/accessories-product-card";
-import type { Category, Product, Store } from "@/types/database";
-import type { StoreTheme } from "@/lib/theme";
-
-interface AccessoriesStorefrontProps {
-  store: Store;
-  theme: StoreTheme;
-  categories: Pick<Category, "id" | "name" | "slug">[];
-  products: Product[];
-  hasFilters: boolean;
-  heading: string;
-  hero: { headline: string; subtext: string; cta: string };
-}
+import type { StorefrontProps } from "@/components/storefront/storefront-props";
 
 export function AccessoriesStorefront({
   store,
@@ -23,7 +12,7 @@ export function AccessoriesStorefront({
   hasFilters,
   heading,
   hero,
-}: AccessoriesStorefrontProps) {
+}: StorefrontProps) {
   return (
     <main>
       {/* Minimal, airy hero */}

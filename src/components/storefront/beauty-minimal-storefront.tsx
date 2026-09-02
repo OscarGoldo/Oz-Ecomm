@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import Image from "next/image";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { PackageSearch } from "lucide-react";
 
@@ -7,22 +7,10 @@ import { CategoryChips } from "@/components/storefront/category-chips";
 import { BeautyMinimalProductCard } from "@/components/storefront/beauty-minimal-product-card";
 import { HeroSlides } from "@/components/storefront/hero-slides";
 import { getImageUrl } from "@/lib/storage";
-import type { Category, Product, Store } from "@/types/database";
-import { getBlock, type StoreTheme } from "@/lib/theme";
+import { getBlock } from "@/lib/theme";
+import type { StorefrontProps } from "@/components/storefront/storefront-props";
 
 const SERIF = { fontFamily: "var(--font-heading, var(--font-lora))" } as const;
-
-interface BeautyMinimalStorefrontProps {
-  store: Store;
-  theme: StoreTheme;
-  categories: Pick<Category, "id" | "name" | "slug">[];
-  products: Product[];
-  featured: Product[];
-  hasFilters: boolean;
-  heading: string;
-  banner: string | null;
-  hero: { headline: string; subtext: string; cta: string };
-}
 
 export function BeautyMinimalStorefront({
   store,
@@ -34,7 +22,7 @@ export function BeautyMinimalStorefront({
   heading,
   banner,
   hero,
-}: BeautyMinimalStorefrontProps) {
+}: StorefrontProps) {
   const heroImages = theme.media.heroSlides
     .map((p) => getImageUrl(p))
     .filter((u): u is string => Boolean(u));

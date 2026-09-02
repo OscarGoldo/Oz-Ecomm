@@ -18,10 +18,18 @@ export const metadata = { title: "Productos" };
 
 const STATUS_VALUES: ProductStatus[] = ["active", "draft", "archived"];
 
+/**
+ * Mismo criterio que Pedidos: se traen tramos, no la tabla entera. Un catálogo
+ * de 2.000 productos rendía 2.000 filas con su <Image> en cada carga del panel
+ * — y encima PostgREST cortaba en 1.000 sin avisar, así que el comerciante ni
+ * siquiera veía todo.
+ */
+const PRODUCTS_PAGE_SIZE = 40;
+
 export default async function ProductosPage({
   searchParams,
 }: {
-  searchParams: { q?: string; cat?: string; status?: string };
+  searchParams: { q?: string; cat?: string; status?: string; ver?: string };
 }) {
   const { store } = await requireStoreUser();
   const supabase = createClient();
@@ -34,11 +42,18 @@ export default async function ProductosPage({
 
   const catName = new Map((categories ?? []).map((c) => [c.id, c.name]));
 
+  const shown = Math.min(
+    2000,
+    Math.max(PRODUCTS_PAGE_SIZE, Number(searchParams.ver) || PRODUCTS_PAGE_SIZE),
+  );
+
   let query = supabase
     .from("products")
     .select("*")
     .eq("store_id", store.id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    // Uno de más: si vuelve, es que hay otra página.
+    .limit(shown + 1);
 
   const q = searchParams.q?.trim();
   if (q) query = query.ilike("name", `%${q}%`);
@@ -51,7 +66,9 @@ export default async function ProductosPage({
   }
 
   const { data: products } = await query;
-  const list = (products ?? []) as Product[];
+  const fetched = (products ?? []) as Product[];
+  const hasMore = fetched.length > shown;
+  const list = hasMore ? fetched.slice(0, shown) : fetched;
 
   const hasFilters = Boolean(q || searchParams.cat || searchParams.status);
 
@@ -74,7 +91,8 @@ export default async function ProductosPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Productos</h1>
           <p className="text-sm text-muted-foreground">
-            {list.length} {list.length === 1 ? "producto" : "productos"}
+            {list.length}
+            {hasMore ? "+" : ""} {list.length === 1 ? "producto" : "productos"}
             {hasFilters ? " (filtrados)" : " en tu catálogo"}
             {capped && !hasFilters && ` · ${used}/${maxProducts} del plan Gratis`}
           </p>
@@ -285,6 +303,23 @@ export default async function ProductosPage({
             </table>
           </div>
         </>
+      )}
+
+      {hasMore && (
+        <div className="flex justify-center pt-2">
+          <Link
+            href={`/panel/productos?${new URLSearchParams({
+              ...(q ? { q } : {}),
+              ...(searchParams.cat ? { cat: searchParams.cat } : {}),
+              ...(searchParams.status ? { status: searchParams.status } : {}),
+              ver: String(shown + PRODUCTS_PAGE_SIZE),
+            }).toString()}`}
+            prefetch={false}
+            className="inline-flex h-11 items-center rounded-lg border px-5 text-sm font-medium hover:bg-muted"
+          >
+            Ver más productos
+          </Link>
+        </div>
       )}
     </div>
   );

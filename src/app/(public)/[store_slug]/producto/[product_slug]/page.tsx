@@ -20,6 +20,8 @@ import {
 } from "@/lib/storefront";
 import { getImageUrl } from "@/lib/storage";
 import { whatsappUrl } from "@/lib/whatsapp";
+import { JsonLd } from "@/components/storefront/json-ld";
+import { breadcrumbJsonLd, productJsonLd } from "@/lib/structured-data";
 
 export async function generateMetadata({
   params,
@@ -83,8 +85,17 @@ export default async function ProductDetailPage({
     `Hola! Me interesa "${product.name}" de ${store.name}.`,
   );
 
+  // Disponibilidad real: con variantes manda el stock de las variantes activas.
+  const inStock = hasVariants
+    ? variants.some((v) => v.active && v.stock > 0)
+    : available;
+
   return (
     <main className="container py-6">
+      <JsonLd
+        data={productJsonLd({ store, product, variants, images, inStock })}
+      />
+      <JsonLd data={breadcrumbJsonLd(store, product)} />
       <ProductViewTracker storeId={store.id} productId={product.id} />
       <Link
         href={`/${store.slug}`}

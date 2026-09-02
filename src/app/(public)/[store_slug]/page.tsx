@@ -11,16 +11,6 @@ import {
 
 import { CategoryChips } from "@/components/storefront/category-chips";
 import { ProductCard } from "@/components/storefront/product-card";
-import { FashionStorefront } from "@/components/storefront/fashion-storefront";
-import { AthleteEditorialStorefront } from "@/components/storefront/athlete-editorial-storefront";
-import { StreetStorefront } from "@/components/storefront/streetwear-storefront";
-import { TechStorefront } from "@/components/storefront/tech-storefront";
-import { DiscoverStorefront } from "@/components/storefront/discover-storefront";
-import { SportsStorefront } from "@/components/storefront/sports-storefront";
-import { DropsStorefront } from "@/components/storefront/drops-storefront";
-import { AccessoriesStorefront } from "@/components/storefront/accessories-storefront";
-import { BeautyStorefront } from "@/components/storefront/beauty-storefront";
-import { BeautyMinimalStorefront } from "@/components/storefront/beauty-minimal-storefront";
 import {
   getStoreBySlug,
   getStoreCategories,
@@ -28,9 +18,11 @@ import {
   CATALOG_PAGE_SIZE,
 } from "@/lib/storefront";
 import { getImageUrl } from "@/lib/storage";
-import { formatBs } from "@/lib/format";
+import { rateInfo } from "@/lib/exchange-rate";
 import { resolveTheme, type SectionId } from "@/lib/theme";
 import { LoadMore } from "@/components/storefront/load-more";
+import { LAYOUTS } from "@/components/storefront/layouts";
+import type { VerticalLayoutId } from "@/components/storefront/storefront-props";
 
 export async function generateMetadata({
   params,
@@ -121,42 +113,23 @@ export default async function StorefrontHome({
     theme.hero.headline || store.description || `Bienvenido a ${store.name}`;
   const heroSubtext = theme.hero.subtext;
   const heroCta = theme.hero.ctaText || "Ver productos";
+  // Con su fecha real. La tasa completa, para todos los layouts, vive en el
+  // footer (ver storefront-footer.tsx).
+  const heroRate = store.show_bs_prices
+    ? rateInfo(store.exchange_rate, store.exchange_rate_updated_at)
+    : null;
 
-  // Vertical layouts change the whole structure (not just styles).
-  if (theme.layout === "fashion") {
+  /**
+   * Las plantillas verticales arman su propia estructura. Se buscan en el
+   * registro (LAYOUTS) en vez de una cadena de once `if` idénticos: agregar un
+   * prop se hace una vez en StorefrontProps y el compilador marca a la que le
+   * falte. El layout "classic" no está en el registro — es el que sigue más
+   * abajo, armado acá mismo.
+   */
+  const Vertical = LAYOUTS[theme.layout as VerticalLayoutId];
+  if (Vertical) {
     return withMore(
-      <FashionStorefront
-        store={store}
-        theme={theme}
-        categories={categories}
-        products={products}
-        hasFilters={hasFilters}
-        heading={heading}
-        banner={banner}
-        hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
-      />
-    );
-  }
-
-  if (theme.layout === "fashion-athletic") {
-    return withMore(
-      <AthleteEditorialStorefront
-        store={store}
-        theme={theme}
-        categories={categories}
-        products={products}
-        featured={featured}
-        hasFilters={hasFilters}
-        heading={heading}
-        banner={banner}
-        hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
-      />
-    );
-  }
-
-  if (theme.layout === "fashion-streetwear") {
-    return withMore(
-      <StreetStorefront
+      <Vertical
         store={store}
         theme={theme}
         categories={categories}
@@ -166,113 +139,7 @@ export default async function StorefrontHome({
         heading={heading}
         banner={banner}
         hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
-      />
-    );
-  }
-
-  if (theme.layout === "tech-discover") {
-    return withMore(
-      <DiscoverStorefront
-        store={store}
-        theme={theme}
-        categories={categories}
-        products={products}
-        featured={featured}
-        hasFilters={hasFilters}
-        heading={heading}
-        banner={banner}
-        hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
-      />
-    );
-  }
-
-  if (theme.layout === "tech") {
-    return withMore(
-      <TechStorefront
-        store={store}
-        theme={theme}
-        categories={categories}
-        products={products}
-        hasFilters={hasFilters}
-        heading={heading}
-        hero={{ headline: heroHeadline, subtext: heroSubtext }}
-      />
-    );
-  }
-
-  if (theme.layout === "sports") {
-    return withMore(
-      <SportsStorefront
-        store={store}
-        theme={theme}
-        categories={categories}
-        products={products}
-        hasFilters={hasFilters}
-        heading={heading}
-        banner={banner}
-        hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
-      />
-    );
-  }
-
-  if (theme.layout === "sports-drops") {
-    return withMore(
-      <DropsStorefront
-        store={store}
-        theme={theme}
-        categories={categories}
-        products={products}
-        featured={featured}
-        hasFilters={hasFilters}
-        heading={heading}
-        banner={banner}
-        hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
-      />
-    );
-  }
-
-  if (theme.layout === "accessories") {
-    return withMore(
-      <AccessoriesStorefront
-        store={store}
-        theme={theme}
-        categories={categories}
-        products={products}
-        hasFilters={hasFilters}
-        heading={heading}
-        hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
-      />
-    );
-  }
-
-  if (theme.layout === "beauty") {
-    return withMore(
-      <BeautyStorefront
-        store={store}
-        theme={theme}
-        categories={categories}
-        products={products}
-        featured={featured}
-        hasFilters={hasFilters}
-        heading={heading}
-        hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
-      />
-    );
-  }
-
-  if (theme.layout === "beauty-minimal") {
-    return withMore(
-      <BeautyMinimalStorefront
-        store={store}
-        theme={theme}
-        categories={categories}
-        products={products}
-        featured={featured}
-        hasFilters={hasFilters}
-        heading={heading}
-        banner={banner}
-        hero={{ headline: heroHeadline, subtext: heroSubtext, cta: heroCta }}
-      />
+      />,
     );
   }
 
@@ -392,9 +259,9 @@ export default async function StorefrontHome({
                 >
                   {heroCta}
                 </a>
-                {store.show_bs_prices && store.exchange_rate && (
+                {heroRate && (
                   <span className="text-sm text-primary-foreground/90">
-                    Tasa de hoy: {formatBs(store.exchange_rate)} / USD
+                    {heroRate.label}
                   </span>
                 )}
               </div>

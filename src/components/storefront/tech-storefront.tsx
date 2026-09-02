@@ -3,18 +3,7 @@ import { PackageSearch, Truck, Wallet } from "lucide-react";
 import { CategoryChips } from "@/components/storefront/category-chips";
 import { StoreSearch } from "@/components/storefront/store-search";
 import { TechProductCard } from "@/components/storefront/tech-product-card";
-import type { Category, Product, Store } from "@/types/database";
-import type { StoreTheme } from "@/lib/theme";
-
-interface TechStorefrontProps {
-  store: Store;
-  theme: StoreTheme;
-  categories: Pick<Category, "id" | "name" | "slug">[];
-  products: Product[];
-  hasFilters: boolean;
-  heading: string;
-  hero: { headline: string; subtext: string };
-}
+import type { StorefrontProps } from "@/components/storefront/storefront-props";
 
 export function TechStorefront({
   store,
@@ -24,7 +13,7 @@ export function TechStorefront({
   hasFilters,
   heading,
   hero,
-}: TechStorefrontProps) {
+}: StorefrontProps) {
   const catName = new Map(categories.map((c) => [c.id, c.name]));
   const freeShipping =
     store.offers_delivery && Number(store.delivery_fee ?? 0) === 0;

@@ -11,6 +11,7 @@ import {
 } from "@/lib/order-messages";
 import { ORDER_STATUS_META } from "@/lib/constants";
 import { maybeQualifyReferral } from "@/lib/referrals-server";
+import { CONFIRMABLE_FROM, canTransition, isConfirmable } from "@/lib/order-status";
 import type { OrderStatus, Store } from "@/types/database";
 
 export interface ActionResult {
@@ -153,7 +154,11 @@ export async function confirmPayment(orderId: string): Promise<ActionResult> {
     .update({ status: "confirmed", confirmed_at: new Date().toISOString() })
     .eq("id", orderId)
     .eq("store_id", storeId)
-    .eq("status", "pending_confirmation")
+    // Incluye "esperando pago": el pedido que el cliente dejó para pagar por
+    // fuera y del que nunca subió comprobante. Si el comerciante cobró igual,
+    // tiene que poder confirmarlo — el dropdown ya lo ofrecía y la acción lo
+    // rechazaba, así que esos pedidos quedaban trabados.
+    .in("status", CONFIRMABLE_FROM)
     .select("id, stock_committed")
     .maybeSingle();
 
@@ -236,6 +241,23 @@ export async function updateOrderStatus(
     .maybeSingle();
   if (!current) return { ok: false, error: "Pedido no encontrado" };
   if (current.status === status) return { ok: true };
+
+  // La transición tiene que ser legal DESDE donde está el pedido, no solo un
+  // destino de la lista manual. Sin esto se podía marcar "Entregado" un pedido
+  // que todavía esperaba el pago: contaba como venta en Finanzas y el cobro
+  // nunca se confirmaba ni se descontaba nada.
+  if (!canTransition(current.status, status)) {
+    if (isConfirmable(current.status)) {
+      return { ok: false, error: "Primero confirma el pago de este pedido." };
+    }
+    return {
+      ok: false,
+      error:
+        current.status === "completed" || current.status === "cancelled"
+          ? "Este pedido ya está cerrado y no se puede cambiar."
+          : "Ese cambio de estado no es válido.",
+    };
+  }
 
   // Cancelar devuelve el inventario que este pedido tenía reservado. Es la
   // contraparte obligatoria de reservar al crear (migración 0021): sin esto,

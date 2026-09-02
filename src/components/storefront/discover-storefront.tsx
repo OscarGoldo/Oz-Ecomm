@@ -1,25 +1,13 @@
-import type { ReactNode } from "react";
 import Image from "next/image";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, PackageSearch } from "lucide-react";
 
 import { CategoryChips } from "@/components/storefront/category-chips";
 import { DiscoverProductCard } from "@/components/storefront/discover-product-card";
 import { getImageUrl } from "@/lib/storage";
-import type { Category, Product, Store } from "@/types/database";
-import { getBlock, type StoreTheme } from "@/lib/theme";
-
-interface DiscoverStorefrontProps {
-  store: Store;
-  theme: StoreTheme;
-  categories: Pick<Category, "id" | "name" | "slug">[];
-  products: Product[];
-  featured: Product[];
-  hasFilters: boolean;
-  heading: string;
-  banner: string | null;
-  hero: { headline: string; subtext: string; cta: string };
-}
+import { getBlock } from "@/lib/theme";
+import type { StorefrontProps } from "@/components/storefront/storefront-props";
 
 export function DiscoverStorefront({
   store,
@@ -31,7 +19,7 @@ export function DiscoverStorefront({
   heading,
   banner,
   hero,
-}: DiscoverStorefrontProps) {
+}: StorefrontProps) {
   // Product cutout for the promo banner: owner upload → store banner → a product photo.
   const promoImg =
     getImageUrl(theme.media.heroSlides[0]) ??
