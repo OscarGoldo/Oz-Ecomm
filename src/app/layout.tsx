@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import {
   Bebas_Neue,
+  Instrument_Sans,
   Inter,
   Lora,
   Montserrat,
@@ -14,6 +15,16 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+});
+// Display de la plataforma (panel, landing, super-admin). Es la que carga los
+// titulares y las cifras grandes. Va aparte de Inter a propósito: Inter sola
+// en todos los tamaños es exactamente el aspecto de plantilla sin dirección
+// tipográfica. Instrument Sans tiene aperturas más cerradas y aguanta el
+// tracking negativo en tamaños de titular sin abrirse.
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  variable: "--font-display",
   display: "swap",
 });
 const poppins = Poppins({
@@ -79,7 +90,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${poppins.variable} ${montserrat.variable} ${lora.variable} ${bebas.variable} ${playfair.variable} ${spaceGrotesk.variable}`}
+      className={`${inter.variable} ${instrumentSans.variable} ${poppins.variable} ${montserrat.variable} ${lora.variable} ${bebas.variable} ${playfair.variable} ${spaceGrotesk.variable}`}
     >
       <body className="font-sans">
         {children}

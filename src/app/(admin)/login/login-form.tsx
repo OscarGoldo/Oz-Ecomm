@@ -39,7 +39,7 @@ export function LoginForm() {
   }, [state]);
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
       <div className="space-y-2">
         <Label htmlFor="email">Correo</Label>
         <Input
@@ -57,7 +57,7 @@ export function LoginForm() {
           <Label htmlFor="password">Contraseña</Label>
           <Link
             href="/recuperar"
-            className="text-xs font-medium text-primary hover:underline"
+            className="text-xs font-medium text-brand-700 hover:underline"
           >
             ¿La olvidaste?
           </Link>
@@ -72,9 +72,9 @@ export function LoginForm() {
         />
       </div>
       <SubmitButton />
-      <p className="text-center text-xs text-muted-foreground">
+      <p className="pt-1 text-center text-sm text-ink-500">
         ¿No tienes cuenta?{" "}
-        <Link href="/crear-tienda" className="font-medium text-primary hover:underline">
+        <Link href="/crear-tienda" className="font-medium text-brand-700 hover:underline">
           Crea tu tienda
         </Link>
       </p>

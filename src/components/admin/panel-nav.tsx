@@ -32,20 +32,70 @@ interface NavItem {
   pro?: boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { href: "/panel", label: "Resumen", icon: LayoutDashboard },
-  { href: "/panel/pedidos", label: "Pedidos", icon: ShoppingBag },
-  { href: "/panel/carritos", label: "Carritos", icon: ShoppingCart },
-  { href: "/panel/productos", label: "Productos", icon: Package },
-  { href: "/panel/categorias", label: "Categorías", icon: Tags },
-  { href: "/panel/personalizar", label: "Diseño", icon: Palette },
-  { href: "/panel/descuentos", label: "Descuentos", icon: Ticket, pro: true },
-  { href: "/panel/clientes", label: "Clientes", icon: Users },
-  { href: "/panel/analitica", label: "Analítica", icon: BarChart3, pro: true },
-  { href: "/panel/finanzas", label: "Finanzas", icon: Wallet },
-  { href: "/panel/referidos", label: "Referidos", icon: Gift },
-  { href: "/panel/plan", label: "Plan", icon: Sparkles },
+interface NavGroup {
+  /** Rótulo de la sección. `null` = grupo sin encabezado (va primero). */
+  label: string | null;
+  items: NavItem[];
+}
+
+/**
+ * Trece destinos en una sola lista no son un menú, son un inventario: sin
+ * agrupar, el dueño lee los trece cada vez que busca uno. Los grupos son la
+ * misma navegación de siempre —mismos enlaces, mismo orden relativo— pero
+ * ordenada por el trabajo que viene a hacer: vender, mantener el catálogo,
+ * ver cómo va el negocio.
+ */
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: null,
+    items: [{ href: "/panel", label: "Resumen", icon: LayoutDashboard }],
+  },
+  {
+    label: "Ventas",
+    items: [
+      { href: "/panel/pedidos", label: "Pedidos", icon: ShoppingBag },
+      { href: "/panel/carritos", label: "Carritos", icon: ShoppingCart },
+      { href: "/panel/clientes", label: "Clientes", icon: Users },
+    ],
+  },
+  {
+    label: "Catálogo",
+    items: [
+      { href: "/panel/productos", label: "Productos", icon: Package },
+      { href: "/panel/categorias", label: "Categorías", icon: Tags },
+      { href: "/panel/descuentos", label: "Descuentos", icon: Ticket, pro: true },
+    ],
+  },
+  {
+    label: "Tienda",
+    items: [
+      { href: "/panel/personalizar", label: "Diseño", icon: Palette },
+      { href: "/panel/analitica", label: "Analítica", icon: BarChart3, pro: true },
+    ],
+  },
+  {
+    label: "Negocio",
+    items: [
+      { href: "/panel/finanzas", label: "Finanzas", icon: Wallet },
+      { href: "/panel/referidos", label: "Referidos", icon: Gift },
+      { href: "/panel/plan", label: "Plan", icon: Sparkles },
+    ],
+  },
+];
+
+/**
+ * Ajustes vive abajo, separado del resto: es configuración, no una sección
+ * del día a día, y perdido en el medio de trece ítems no se encontraba.
+ * En móvil sigue apareciendo dentro de "Más" como cualquier otro.
+ */
+const FOOTER_ITEMS: NavItem[] = [
   { href: "/panel/configuracion", label: "Ajustes", icon: Settings },
+];
+
+/** Orden plano, para la barra inferior de móvil. */
+const NAV_ITEMS: NavItem[] = [
+  ...NAV_GROUPS.flatMap((g) => g.items),
+  ...FOOTER_ITEMS,
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -60,13 +110,6 @@ interface NavProps {
   pro?: boolean;
 }
 
-/**
- * Ajustes vive abajo, separado del resto: es configuración, no una sección
- * del día a día, y perdido en el medio de trece ítems no se encontraba.
- * En móvil sigue apareciendo dentro de "Más" como cualquier otro.
- */
-const FOOTER_HREFS = ["/panel/configuracion"];
-
 /** Desktop sidebar navigation (md and up). */
 export function PanelSidebarNav({ badges = {}, pro = false }: NavProps) {
   const pathname = usePathname();
@@ -79,30 +122,35 @@ export function PanelSidebarNav({ badges = {}, pro = false }: NavProps) {
       <Link
         key={item.href}
         href={item.href}
+        aria-current={active ? "page" : undefined}
         className={cn(
-          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+          "group relative flex items-center gap-2.5 rounded-md py-1.5 pl-2.5 pr-2",
+          "text-[0.8125rem] font-medium leading-6",
+          "transition-colors duration-150 ease-out",
           active
-            ? "bg-primary/10 text-primary"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            ? // Estado activo neutro: superficie blanca elevada y texto tinta.
+              // El pill teñido con el color de marca en cada sección activa es
+              // justo lo que hace que un panel se lea como plantilla.
+              "bg-surface-raised text-foreground shadow-xs"
+            : "text-ink-600 hover:bg-ink-100/70 hover:text-foreground",
         )}
       >
-        <item.icon className="size-4 shrink-0" />
+        <item.icon
+          className={cn(
+            "size-[1.0625rem] shrink-0 transition-colors",
+            active ? "text-foreground" : "text-ink-400 group-hover:text-ink-600",
+          )}
+        />
         <span className="truncate">{item.label}</span>
         {locked && (
-          <Lock
-            className={cn(
-              "size-3 shrink-0",
-              active ? "text-primary/70" : "text-muted-foreground/60",
-            )}
-          />
+          <Lock className="size-3 shrink-0 text-ink-400" aria-label="Requiere Pro" />
         )}
         {badge ? (
           <span
             className={cn(
-              "ml-auto grid min-w-5 shrink-0 place-items-center rounded-full px-1 text-2xs font-bold leading-5",
-              active
-                ? "bg-primary text-primary-foreground"
-                : "bg-warning text-warning-foreground",
+              "ml-auto grid min-w-[1.125rem] shrink-0 place-items-center rounded px-1",
+              "text-3xs font-bold leading-[1.125rem] tabular-nums",
+              "bg-warning text-warning-foreground",
             )}
           >
             {badge > 99 ? "99+" : badge}
@@ -112,14 +160,20 @@ export function PanelSidebarNav({ badges = {}, pro = false }: NavProps) {
     );
   };
 
-  const main = NAV_ITEMS.filter((i) => !FOOTER_HREFS.includes(i.href));
-  const footer = NAV_ITEMS.filter((i) => FOOTER_HREFS.includes(i.href));
-
   return (
-    <nav className="flex h-full flex-col gap-1 p-3">
-      {main.map(renderItem)}
-      <div className="mt-auto flex flex-col gap-1 border-t pt-2">
-        {footer.map(renderItem)}
+    <nav className="flex h-full flex-col gap-0.5 px-2.5 py-3">
+      {NAV_GROUPS.map((group, i) => (
+        <div key={group.label ?? "root"} className={cn(i > 0 && "mt-4")}>
+          {group.label && (
+            <p className="mb-1 px-2.5 text-3xs font-semibold uppercase tracking-[0.08em] text-ink-400">
+              {group.label}
+            </p>
+          )}
+          <div className="flex flex-col gap-0.5">{group.items.map(renderItem)}</div>
+        </div>
+      ))}
+      <div className="mt-auto flex flex-col gap-0.5 border-t border-border pt-2">
+        {FOOTER_ITEMS.map(renderItem)}
       </div>
     </nav>
   );
@@ -165,7 +219,7 @@ export function PanelBottomNav({ badges = {}, pro = false }: NavProps) {
     <>
       {sheetOpen && (
         <div
-          className="fixed inset-0 z-40 bg-foreground/40 md:hidden"
+          className="fixed inset-0 z-40 bg-ink-950/45 backdrop-blur-[2px] md:hidden"
           onClick={() => setSheetOpen(false)}
           aria-hidden="true"
         />
@@ -174,7 +228,9 @@ export function PanelBottomNav({ badges = {}, pro = false }: NavProps) {
       {/* Hoja "Más" */}
       <div
         className={cn(
-          "fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t bg-background pb-[calc(4.5rem+env(safe-area-inset-bottom))] shadow-2xl transition-transform duration-200 md:hidden",
+          "fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-border bg-background",
+          "pb-[calc(4.5rem+env(safe-area-inset-bottom))] shadow-pop md:hidden",
+          "transition-transform duration-300 ease-out",
           sheetOpen ? "translate-y-0" : "pointer-events-none translate-y-full",
         )}
         role="dialog"
@@ -182,8 +238,8 @@ export function PanelBottomNav({ badges = {}, pro = false }: NavProps) {
         aria-label="Más secciones"
         aria-hidden={!sheetOpen}
       >
-        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" />
-        <div className="grid grid-cols-3 gap-1 p-3">
+        <div className="mx-auto mt-2.5 h-1 w-9 rounded-full bg-ink-300" />
+        <div className="grid grid-cols-3 gap-1.5 p-3">
           {rest.map((item) => {
             const active = isActive(pathname, item.href);
             const badge = badges[item.href];
@@ -193,21 +249,24 @@ export function PanelBottomNav({ badges = {}, pro = false }: NavProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-2xl p-2 text-xs font-medium transition-colors",
+                  "flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-xl p-2",
+                  "text-2xs font-medium transition-colors duration-150",
                   active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted",
+                    ? "bg-ink-100 text-foreground"
+                    : "text-ink-600 hover:bg-ink-100/70",
                 )}
               >
                 <span className="relative">
-                  <item.icon className="size-5" />
+                  <item.icon
+                    className={cn("size-5", active ? "text-foreground" : "text-ink-500")}
+                  />
                   {locked && (
-                    <span className="absolute -right-2 -top-1 grid size-3.5 place-items-center rounded-full bg-muted text-muted-foreground">
+                    <span className="absolute -right-2 -top-1 grid size-3.5 place-items-center rounded-full bg-ink-200 text-ink-600">
                       <Lock className="size-2" />
                     </span>
                   )}
                   {badge ? (
-                    <span className="absolute -right-2 -top-1.5 grid min-w-4 place-items-center rounded-full bg-warning px-1 text-3xs font-bold leading-4 text-warning-foreground">
+                    <span className="absolute -right-2 -top-1.5 grid min-w-4 place-items-center rounded-full bg-warning px-1 text-3xs font-bold leading-4 tabular-nums text-warning-foreground">
                       {badge > 9 ? "9+" : badge}
                     </span>
                   ) : null}
@@ -223,7 +282,7 @@ export function PanelBottomNav({ badges = {}, pro = false }: NavProps) {
           y en los Android donde backdrop-filter no aplica quedaba el contenido
           de la página pasando por detrás de las etiquetas. */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
         aria-label="Navegación principal"
       >
         {primary.map((item) => {
@@ -233,15 +292,17 @@ export function PanelBottomNav({ badges = {}, pro = false }: NavProps) {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={active ? "page" : undefined}
               className={cn(
-                "relative flex min-h-[3.25rem] flex-col items-center justify-center gap-1 py-2 text-2xs font-medium transition-colors",
-                active ? "text-primary" : "text-muted-foreground",
+                "relative flex min-h-[3.25rem] flex-col items-center justify-center gap-1 py-2",
+                "text-2xs font-medium transition-colors duration-150",
+                active ? "text-foreground" : "text-ink-500",
               )}
             >
               <span className="relative">
                 <item.icon className="size-5" />
                 {badge ? (
-                  <span className="absolute -right-2 -top-1.5 grid min-w-4 place-items-center rounded-full bg-warning px-1 text-3xs font-bold leading-4 text-warning-foreground">
+                  <span className="absolute -right-2 -top-1.5 grid min-w-4 place-items-center rounded-full bg-warning px-1 text-3xs font-bold leading-4 tabular-nums text-warning-foreground">
                     {badge > 9 ? "9+" : badge}
                   </span>
                 ) : null}
@@ -249,7 +310,7 @@ export function PanelBottomNav({ badges = {}, pro = false }: NavProps) {
               {item.label}
               <span
                 className={cn(
-                  "absolute bottom-0 h-0.5 w-6 rounded-full bg-primary transition-opacity",
+                  "absolute inset-x-0 top-0 mx-auto h-0.5 w-8 rounded-full bg-foreground transition-opacity",
                   active ? "opacity-100" : "opacity-0",
                 )}
                 aria-hidden="true"
@@ -263,14 +324,15 @@ export function PanelBottomNav({ badges = {}, pro = false }: NavProps) {
           onClick={() => setSheetOpen((o) => !o)}
           aria-expanded={sheetOpen}
           className={cn(
-            "relative flex min-h-[3.25rem] flex-col items-center justify-center gap-1 py-2 text-2xs font-medium transition-colors",
-            sheetOpen || restActive ? "text-primary" : "text-muted-foreground",
+            "relative flex min-h-[3.25rem] flex-col items-center justify-center gap-1 py-2",
+            "text-2xs font-medium transition-colors duration-150",
+            sheetOpen || restActive ? "text-foreground" : "text-ink-500",
           )}
         >
           <span className="relative">
             <MoreHorizontal className="size-5" />
             {restBadge > 0 && !sheetOpen ? (
-              <span className="absolute -right-2 -top-1.5 grid min-w-4 place-items-center rounded-full bg-warning px-1 text-3xs font-bold leading-4 text-warning-foreground">
+              <span className="absolute -right-2 -top-1.5 grid min-w-4 place-items-center rounded-full bg-warning px-1 text-3xs font-bold leading-4 tabular-nums text-warning-foreground">
                 {restBadge > 9 ? "9+" : restBadge}
               </span>
             ) : null}

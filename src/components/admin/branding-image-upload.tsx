@@ -96,7 +96,7 @@ export function BrandingImageUpload({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="mt-2 text-xs font-medium text-primary hover:underline"
+          className="mt-2 text-xs font-medium text-brand-700 hover:underline"
         >
           {uploading ? "Subiendo…" : "Cambiar"}
         </button>

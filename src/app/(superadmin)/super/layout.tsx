@@ -28,15 +28,18 @@ export default async function SuperLayout({
     .eq("status", "qualified");
 
   return (
-    <div className="min-h-dvh bg-muted/30">
-      <header className="sticky top-0 z-30 border-b bg-background">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-          <Link href="/super" className="flex items-center gap-2 font-bold">
-            <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <ShieldCheck className="size-5" />
+    <div className="chrome-admin min-h-dvh bg-surface">
+      <header className="sticky top-0 z-30 border-b border-border bg-surface-raised">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4">
+          <Link
+            href="/super"
+            className="flex shrink-0 items-center gap-2 text-sm font-semibold tracking-[-0.011em]"
+          >
+            <span className="grid size-7 place-items-center rounded-lg bg-ink-900 text-ink-25">
+              <ShieldCheck className="size-4" />
             </span>
             Tiendify
-            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+            <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-3xs font-semibold uppercase tracking-[0.06em] text-ink-500">
               Super Admin
             </span>
           </Link>
@@ -44,46 +47,46 @@ export default async function SuperLayout({
             <nav className="flex items-center gap-1">
               <Link
                 href="/super"
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-foreground"
               >
                 Tiendas
               </Link>
               <Link
                 href="/super/pagos"
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-foreground"
               >
                 Pagos
               </Link>
               <Link
                 href="/super/suscripciones"
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-foreground"
               >
                 Suscripciones
                 {pendingSubs ? (
-                  <span className="grid min-w-5 place-items-center rounded-full bg-warning px-1 text-[11px] font-bold leading-5 text-warning-foreground">
+                  <span className="grid min-w-[1.125rem] place-items-center rounded bg-warning px-1 text-3xs font-bold leading-[1.125rem] tabular-nums text-warning-foreground">
                     {pendingSubs > 99 ? "99+" : pendingSubs}
                   </span>
                 ) : null}
               </Link>
               <Link
                 href="/super/referidos"
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-foreground"
               >
                 Referidos
                 {pendingReferrals ? (
-                  <span className="grid min-w-5 place-items-center rounded-full bg-warning px-1 text-[11px] font-bold leading-5 text-warning-foreground">
+                  <span className="grid min-w-[1.125rem] place-items-center rounded bg-warning px-1 text-3xs font-bold leading-[1.125rem] tabular-nums text-warning-foreground">
                     {pendingReferrals > 99 ? "99+" : pendingReferrals}
                   </span>
                 ) : null}
               </Link>
             </nav>
-            <span className="hidden text-sm text-muted-foreground sm:inline">
+            <span className="hidden text-xs text-ink-500 sm:inline">
               {user.email}
             </span>
             <form action={signOut}>
               <button
                 type="submit"
-                className="rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-muted"
+                className="rounded-md border border-input bg-background px-2.5 py-1.5 text-[0.8125rem] font-medium shadow-xs transition-colors hover:bg-muted"
               >
                 Salir
               </button>
@@ -91,7 +94,7 @@ export default async function SuperLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+      <main className="mx-auto max-w-5xl px-4 py-7">{children}</main>
     </div>
   );
 }

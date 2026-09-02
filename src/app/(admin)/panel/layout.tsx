@@ -53,29 +53,37 @@ export default async function PanelLayout({
   // primary_color de la tienda: ese es el color de la tienda pública, no el
   // de la plataforma. Antes se pisaba acá con un estilo inline por tienda.
 
+  /**
+   * `chrome-admin` es lo que cambia el carácter del panel: dentro de esa clase
+   * `--primary` deja de ser el azul de marca y pasa a tinta. El azul se
+   * reserva para el logo y el anillo de foco. Repartir el color de marca por
+   * cada botón, cada badge y cada sección activa es lo que hace que un panel
+   * se lea como plantilla; quitarlo es lo que lo hace parecer una herramienta.
+   */
   return (
-    <div className="min-h-dvh bg-muted">
-      {/* Top bar */}
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background px-4 print:hidden">
-        {/* En escritorio la identidad de la tienda vive arriba del sidebar;
-            acá solo hace falta en móvil, donde no hay sidebar. */}
-        <div className="flex items-center gap-2.5 md:hidden">
-          <span className="grid size-9 place-items-center overflow-hidden rounded-lg bg-primary/10">
+    <div className="chrome-admin min-h-dvh bg-surface">
+      {/* Marca de la tienda + cuenta. En escritorio ocupa el ancho completo y
+          se apoya sobre el sidebar; en móvil es la única identidad visible. */}
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-surface-raised px-4 print:hidden">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-ink-50">
             {logo ? (
               <Image
                 src={logo}
                 alt={store.name}
-                width={36}
-                height={36}
-                className="size-9 object-cover"
+                width={32}
+                height={32}
+                className="size-8 object-cover"
               />
             ) : (
-              <StoreIcon className="size-5 text-primary" />
+              <StoreIcon className="size-4 text-ink-500" />
             )}
           </span>
           <div className="min-w-0 leading-tight">
-            <p className="truncate text-sm font-semibold">{store.name}</p>
-            <p className="text-xs text-muted-foreground">Panel de gestión</p>
+            <p className="truncate text-sm font-semibold tracking-[-0.011em]">
+              {store.name}
+            </p>
+            <p className="truncate text-2xs text-ink-500">Panel de gestión</p>
           </div>
         </div>
         <div className="ml-auto">
@@ -87,44 +95,26 @@ export default async function PanelLayout({
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-6xl gap-4 md:gap-6 md:px-6 md:py-4">
-        {/* Desktop sidebar: tarjeta blanca separada del fondo gris. */}
-        <aside className="sticky top-[4.5rem] hidden h-[calc(100dvh-5.5rem)] w-64 shrink-0 self-start md:block print:hidden">
-          <div className="flex h-full flex-col overflow-hidden rounded-2xl border bg-background shadow-sm">
-            {/* Cabecera de la tarjeta: de qué tienda es este panel. */}
-            <div className="flex items-center gap-2.5 border-b p-3">
-              <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-primary/10">
-                {logo ? (
-                  <Image
-                    src={logo}
-                    alt={store.name}
-                    width={36}
-                    height={36}
-                    className="size-9 object-cover"
-                  />
-                ) : (
-                  <StoreIcon className="size-5 text-primary" />
-                )}
-              </span>
-              <div className="min-w-0 leading-tight">
-                <p className="truncate text-sm font-semibold">{store.name}</p>
-                <p className="text-2xs text-muted-foreground">Panel de gestión</p>
-              </div>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <PanelSidebarNav badges={navBadges} pro={pro} />
-            </div>
+      <div className="flex w-full">
+        {/* Sidebar al ras, no una tarjeta flotando sobre gris: la tarjeta
+            dentro de la tarjeta suma un borde y una sombra que no informan
+            nada y le quitan altura útil a la navegación. */}
+        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-[15rem] shrink-0 self-start border-r border-border md:block print:hidden">
+          <div className="h-full overflow-y-auto">
+            <PanelSidebarNav badges={navBadges} pro={pro} />
           </div>
         </aside>
 
         {/* Content */}
-        <main className="min-w-0 flex-1 px-4 pb-24 pt-6 md:px-0 md:pb-10 md:pt-0">
-          <PlanBanner
-            pro={pro}
-            daysLeft={daysUntilExpiry(store)}
-            pendingReview={(pendingPayment ?? 0) > 0}
-          />
-          {children}
+        <main className="min-w-0 flex-1 px-4 pb-24 pt-5 md:px-8 md:pb-12 md:pt-7">
+          <div className="mx-auto w-full max-w-5xl">
+            <PlanBanner
+              pro={pro}
+              daysLeft={daysUntilExpiry(store)}
+              pendingReview={(pendingPayment ?? 0) > 0}
+            />
+            {children}
+          </div>
         </main>
       </div>
 
