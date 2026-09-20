@@ -22,8 +22,14 @@ import {
   createPaypalOrder,
   paypalCredsFromEnv,
 } from "@/lib/paypal";
-import { appUrl as publicAppUrl, getStripe, toCents } from "@/lib/stripe";
-import type { Coupon, CouponType, OrderStatus } from "@/types/database";
+import {
+  appUrl as publicAppUrl,
+  chargeBreakdown,
+  fromCents,
+  getStripe,
+  toCents,
+} from "@/lib/stripe";
+import type { Coupon, CouponType, Json, OrderStatus } from "@/types/database";
 
 const checkoutSchema = z.object({
   store_id: z.string().uuid(),
@@ -56,6 +62,23 @@ const checkoutSchema = z.object({
 
 export type CheckoutInput = z.input<typeof checkoutSchema>;
 type CheckoutData = z.infer<typeof checkoutSchema>;
+
+/**
+ * La parte del formulario que alcanza para calcular el total.
+ *
+ * Existe por el pago con tarjeta: los campos aparecen apenas el cliente elige
+ * el método, cuando todavía puede no haber escrito su nombre ni su email. El
+ * monto sí se puede calcular con esto, y es lo único que hace falta para abrir
+ * el cobro.
+ */
+const draftSchema = checkoutSchema.pick({
+  store_id: true,
+  payment_method_id: true,
+  fulfillment_type: true,
+  delivery_address: true,
+  payment_proof_path: true,
+  coupon_code: true,
+});
 
 export interface CheckoutResult {
   ok: boolean;
@@ -211,13 +234,28 @@ interface OrderDraft {
 }
 
 /**
+ * Lo único que hace falta para calcular el pedido. Los datos del cliente no
+ * entran: con la tarjeta el monto se calcula ANTES de que los escriba, porque
+ * los campos de pago se ven apenas elige el método.
+ */
+type DraftInput = Pick<
+  CheckoutData,
+  | "store_id"
+  | "payment_method_id"
+  | "fulfillment_type"
+  | "delivery_address"
+  | "payment_proof_path"
+  | "coupon_code"
+>;
+
+/**
  * Validate the request + cart and compute the order draft (items, totals,
  * stock changes). Shared by the manual checkout and the PayPal flow so the
  * money math lives in one place. Does NOT insert anything.
  */
 async function buildOrderDraft(
   db: AdminDb,
-  data: CheckoutData,
+  data: DraftInput,
 ): Promise<{ ok: true; draft: OrderDraft } | { ok: false; error: string }> {
   const { data: store } = await db
     .from("stores")
@@ -436,40 +474,31 @@ export async function createOrder(
   return placeOrder(input, {});
 }
 
-/** Lo justo para deshacer un pedido que nació y nunca llegó a cobrarse. */
-interface OrderUndo {
-  stockOps: { product_id: string; variant_id: string | null; qty: number }[];
-  couponId: string | null;
-}
-
 interface PlaceOptions {
   /**
-   * El pedido se va a pagar con tarjeta por Stripe.
+   * El pedido se pagó con tarjeta y esto corre DESPUÉS del cobro.
    *
-   * Cambia tres cosas respecto del camino normal, y las tres salen de que el
-   * checkout de Stripe es una REDIRECCIÓN: el cliente se va del sitio, así que
-   * el pedido tiene que existir antes de irse.
-   *
-   *  1. Nace en "esperando pago" — todavía no se cobró nada.
-   *  2. No se avisa a nadie: el dueño no quiere un "nuevo pedido" por cada
-   *     cliente que abre la pantalla de Stripe y se arrepiente. Los avisos
-   *     salen del webhook, cuando la plata entró de verdad.
-   *  3. No se vacía el carrito acá: si la sesión de Stripe no se llega a
-   *     crear, el cliente se queda sin pedido Y sin carrito. Lo vacía
-   *     `createStripeCheckoutAction` cuando ya tiene la URL en la mano.
+   * Con el Payment Element los campos se ven apenas el cliente elige tarjeta,
+   * así que el pedido no puede existir todavía: se crearía uno por cada
+   * curioso. Nace acá, con la plata ya cobrada — y eso cambia el criterio de
+   * los rechazos: ni un cupón agotado ni un faltante de stock pueden tumbar un
+   * pedido que ya se pagó. Se crea igual y se concilia a mano.
    */
-  stripe?: boolean;
+  card?: {
+    paymentIntentId: string;
+    /** Comisión y neto reales, para /super/pagos. */
+    fee: number | null;
+    net: number | null;
+    /**
+     * Quién está creando el pedido. Desde el navegador se puede vaciar el
+     * carrito y contar la compra; desde el webhook no hay visitante ninguno.
+     */
+    fromBrowser: boolean;
+    sessionId: string | null;
+  };
 }
 
-interface PlaceResult extends CheckoutResult {
-  undo?: OrderUndo;
-  /**
-   * El pedido ya existía (mismo idempotency_key) y esta llamada no creó nada.
-   * Quien llame NO puede deshacerlo: podría estar borrando un pedido que el
-   * cliente ya pagó en el intento anterior.
-   */
-  reused?: boolean;
-}
+type PlaceResult = CheckoutResult;
 
 async function placeOrder(
   input: CheckoutInput,
@@ -495,12 +524,30 @@ async function placeOrder(
       .maybeSingle();
     if (existing) {
       await clearCart(data.store_id);
-      return { ok: true, orderId: existing.id, reused: true };
+      return { ok: true, orderId: existing.id };
     }
   }
 
   const result = await buildOrderDraft(db, data);
   if (!result.ok) return { ok: false, error: result.error };
+
+  return insertOrder(db, data, result.draft, opts);
+}
+
+/**
+ * Crea el pedido a partir de un borrador ya calculado.
+ *
+ * Está separado de `placeOrder` por el pago con tarjeta: ahí el borrador se
+ * congela cuando el cliente va a pagar y el pedido se crea después, desde el
+ * navegador o desde el webhook. El webhook no tiene carrito ni cookies, así que
+ * todo lo que dependa del visitante va detrás de una opción.
+ */
+async function insertOrder(
+  db: AdminDb,
+  data: CheckoutData,
+  draft: OrderDraft,
+  opts: PlaceOptions,
+): Promise<PlaceResult> {
   const {
     store,
     method,
@@ -512,7 +559,7 @@ async function placeOrder(
     total,
     totalBs,
     stockOps,
-  } = result.draft;
+  } = draft;
 
   // Decide status + payment proof depending on the method.
   let status: OrderStatus;
@@ -521,17 +568,20 @@ async function placeOrder(
   let paymentFee: number | null = null;
   let paymentNet: number | null = null;
 
-  if (opts.stripe) {
+  if (opts.card) {
     if (method.type !== "stripe") {
       return { ok: false, error: "Método de pago no válido" };
     }
-    // Todavía no se cobró: el cliente recién va camino a Stripe.
-    status = "pending_payment";
-    paymentReference = null;
+    // La plata ya entró: esto corre después de que Stripe confirmó el cobro,
+    // y el monto ya se comparó contra el borrador congelado.
+    status = "confirmed";
+    paymentReference = opts.card.paymentIntentId;
     paymentProof = null;
+    paymentFee = opts.card.fee;
+    paymentNet = opts.card.net;
   } else if (method.type === "stripe") {
-    // El único camino legítimo para un pedido con tarjeta es
-    // createStripeCheckoutAction. Si alguien llama a createOrder con este
+    // El único camino legítimo para un pedido con tarjeta es el cobro
+    // confirmado (finalizeCardOrder). Si alguien llama a createOrder con este
     // método, estaría creando un pedido "confirmado" sin haber pagado.
     return { ok: false, error: "Método de pago no válido" };
   } else if (method.type === "paypal") {
@@ -578,13 +628,16 @@ async function placeOrder(
     const { data: claimed } = await db.rpc("claim_coupon_use", {
       p_coupon_id: appliedCoupon.id,
     });
-    if (!claimed) {
+    // Con la tarjeta ya cobrada no se puede rechazar: el cupón se agotó entre
+    // que lo aplicó y que pagó, y el problema no es del cliente. Se le respeta
+    // el descuento y el cupo queda pasado por uno.
+    if (!claimed && !opts.card) {
       return {
         ok: false,
         error: "El cupón acaba de agotarse. Quítalo para continuar con tu compra.",
       };
     }
-    couponClaimed = true;
+    couponClaimed = Boolean(claimed);
   }
   const releaseCoupon = async () => {
     if (!couponClaimed || !appliedCoupon) return;
@@ -616,6 +669,7 @@ async function placeOrder(
       payment_reference: paymentReference,
       payment_fee: paymentFee,
       payment_net: paymentNet,
+      stripe_payment_intent: opts.card?.paymentIntentId ?? null,
       status,
       notes: data.notes || null,
       confirmed_at: status === "confirmed" ? new Date().toISOString() : null,
@@ -639,7 +693,7 @@ async function placeOrder(
         .maybeSingle();
       if (twin) {
         await clearCart(store.id);
-        return { ok: true, orderId: twin.id, reused: true };
+        return { ok: true, orderId: twin.id };
       }
     }
     return { ok: false, error: "No se pudo crear el pedido. Intenta de nuevo." };
@@ -667,7 +721,7 @@ async function placeOrder(
   //  - paypal: la plata ya está capturada, así que nunca se rechaza. Se piso
   //    en 0 y un sobreventa raro se concilia a mano.
   if (stockOps.length > 0) {
-    const enforce = method.type !== "paypal";
+    const enforce = method.type !== "paypal" && !opts.card;
     const { error: stockErr } = await db.rpc("commit_order_stock", {
       p_items: stockOps,
       p_enforce: enforce,
@@ -707,6 +761,7 @@ async function placeOrder(
       recovered_order_id: order.id,
       recovered_at: new Date().toISOString(),
     };
+    const sessionId = opts.card ? opts.card.sessionId : getOrCreateSessionId();
     const pending = () =>
       db
         .from("abandoned_carts")
@@ -716,7 +771,7 @@ async function placeOrder(
 
     // Dos updates y no un .or(): el teléfono es texto libre del cliente y
     // concatenarlo en un filtro de PostgREST deja inyectar sintaxis de filtros.
-    await pending().eq("session_id", getOrCreateSessionId());
+    if (sessionId) await pending().eq("session_id", sessionId);
     await pending().eq("customer_phone", data.customer_phone);
   } catch (e) {
     // No es crítico: como mucho el comerciante ve un carrito de más.
@@ -750,20 +805,6 @@ async function placeOrder(
     orderUrl: `${appUrl}/${store.slug}/pedido/${order.id}`,
     panelUrl: `${appUrl}/panel/pedidos/${order.id}`,
   });
-
-  // Con Stripe nadie se entera todavía: los avisos (dueño, WhatsApp y recibo
-  // del cliente) los manda el webhook cuando el cobro entra de verdad.
-  if (opts.stripe) {
-    await recordEvent(store.id, "purchase");
-    return {
-      ok: true,
-      orderId: order.id,
-      undo: {
-        stockOps,
-        couponId: couponClaimed && appliedCoupon ? appliedCoupon.id : null,
-      },
-    };
-  }
 
   // Notify the store owner(s) by email (no-op if Resend isn't configured).
   try {
@@ -827,8 +868,12 @@ async function placeOrder(
     reportError("createOrder:customerReceipt", e, { orderId: order.id });
   }
 
-  await recordEvent(store.id, "purchase");
-  await clearCart(store.id);
+  // Las dos cosas que necesitan al visitante. Desde el webhook no hay ninguno
+  // de los dos: ni carrito que vaciar ni sesión que contar.
+  if (!opts.card || opts.card.fromBrowser) {
+    await recordEvent(store.id, "purchase");
+    await clearCart(store.id);
+  }
   return { ok: true, orderId: order.id };
 }
 
@@ -951,55 +996,6 @@ export interface StripeCheckoutResult {
    */
   clientSecret?: string;
   orderId?: string;
-}
-
-/**
- * Arranca un pago con tarjeta.
- *
- * Crea el pedido en "esperando pago" y devuelve la URL de Stripe. El pedido
- * existe ANTES de que el cliente se vaya del sitio, a propósito: si se va y no
- * vuelve, el comerciante igual ve que alguien intentó comprar, y el cliente
- * puede reintentar el pago desde la página de su pedido. El cobro lo confirma
- * el webhook, nunca el navegador.
- *
- * Si la sesión de Stripe no se llega a crear, el pedido se deshace completo
- * (stock devuelto, cupón liberado): un pedido fantasma que nadie va a poder
- * pagar es peor que ninguno.
- */
-export async function createStripeCheckoutAction(
-  input: CheckoutInput,
-): Promise<StripeCheckoutResult> {
-  if (!getStripe()) {
-    return { ok: false, error: "El pago con tarjeta no está disponible ahora" };
-  }
-
-  const placed = await placeOrder(input, { stripe: true });
-  if (!placed.ok || !placed.orderId) {
-    return { ok: false, error: placed.error ?? "No se pudo iniciar el pago" };
-  }
-
-  const db = createAdminClient();
-  const session = await openStripeSession(db, placed.orderId);
-  if (!session.ok || !session.clientSecret) {
-    // Solo se deshace lo que ESTA llamada creó. Si el pedido ya existía, el
-    // intento anterior pudo haberlo pagado y borrarlo sería destruir una venta.
-    if (!placed.reused) await discardOrder(db, placed.orderId, placed.undo);
-    return { ok: false, error: session.error ?? "No se pudo iniciar el pago" };
-  }
-
-  // Recién ahora se vacía: el pedido ya existe y es pagable.
-  const { data: order } = await db
-    .from("orders")
-    .select("store_id")
-    .eq("id", placed.orderId)
-    .maybeSingle();
-  if (order) await clearCart(order.store_id);
-
-  return {
-    ok: true,
-    clientSecret: session.clientSecret,
-    orderId: placed.orderId,
-  };
 }
 
 /**
@@ -1180,42 +1176,250 @@ function stripeLineItems(
   ];
 }
 
+// ── Pago con tarjeta (Payment Element) ──────────────────────────────────────
+//
+// El orden acá es al revés del resto del checkout, y es a propósito: primero se
+// cobra, después nace el pedido. Los campos de la tarjeta se ven apenas el
+// cliente elige el método, sin tocar ningún botón, y crear un pedido en ese
+// momento llenaría el panel del comerciante de pedidos de gente que solo está
+// mirando.
+//
+// Lo que sostiene ese orden es `checkout_intents`: el borrador completo del
+// pedido se congela ahí antes de cobrar. Si el cliente cierra la pestaña justo
+// después de pagar, el webhook encuentra el borrador y crea el pedido igual.
+// Sin eso, ese cobro sería plata sin pedido y nadie se enteraría.
+
+/** Lo que el navegador necesita para pintar el formulario de tarjeta. */
+export interface CardPaymentSetup {
+  ok: boolean;
+  error?: string;
+  clientSecret?: string;
+  paymentIntentId?: string;
+  /** El total que se va a cobrar, recalculado en el servidor. */
+  amount?: number;
+}
+
 /**
- * Borra un pedido que nació y nunca llegó a cobrarse, devolviendo lo que había
- * reservado. Solo se usa cuando Stripe no nos dio una URL de pago: el cliente
- * nunca vio nada, así que no tiene sentido dejarle un pedido imposible.
+ * El borrador que se congela para poder crear el pedido después del cobro.
+ * Es el `OrderDraft` más los datos del cliente, tal como se van a insertar.
  */
-async function discardOrder(
-  db: AdminDb,
-  orderId: string,
-  undo: OrderUndo | undefined,
-): Promise<void> {
+interface StoredDraft {
+  draft: OrderDraft;
+  data: CheckoutData | null;
+}
+
+/**
+ * Abre (o actualiza) el cobro con tarjeta.
+ *
+ * Se llama dos veces, y las dos son necesarias:
+ *
+ *  1. Al elegir "Tarjeta" y cada vez que cambia el total (un cupón, el envío).
+ *     Ahí todavía puede no haber datos del cliente: solo importa el monto.
+ *  2. Justo antes de confirmar el pago, ya con todo el formulario válido. Esa
+ *     llamada es la que congela el borrador completo — si falta, un cobro sin
+ *     pedido no se podría reconstruir.
+ *
+ * El monto NUNCA viene del navegador: se recalcula del carrito y los precios
+ * reales, igual que en el resto del checkout.
+ */
+export async function syncCardPayment(
+  input: CheckoutInput,
+  paymentIntentId?: string,
+): Promise<CardPaymentSetup> {
+  const stripe = getStripe();
+  if (!stripe) {
+    return { ok: false, error: "El pago con tarjeta no está disponible ahora" };
+  }
+
+  // Los datos del cliente pueden estar a medio llenar en la primera llamada;
+  // el resto (tienda, método, envío, cupón) sí tiene que ser válido para poder
+  // calcular el total.
+  const draftParsed = draftSchema.safeParse(input);
+  if (!draftParsed.success) {
+    return {
+      ok: false,
+      error: draftParsed.error.issues[0]?.message ?? "Datos inválidos",
+    };
+  }
+
+  const db = createAdminClient();
+  const result = await buildOrderDraft(db, draftParsed.data);
+  if (!result.ok) return { ok: false, error: result.error };
+  const { draft } = result;
+
+  if (draft.method.type !== "stripe") {
+    return { ok: false, error: "Método de pago no válido" };
+  }
+  if (!(draft.total > 0)) return { ok: false, error: "El total no es válido" };
+
+  // El formulario completo, cuando ya lo está. Es lo que permite crear el
+  // pedido desde el webhook si el navegador no vuelve.
+  const full = checkoutSchema.safeParse(input);
+  const stored: StoredDraft = {
+    draft,
+    data: full.success ? full.data : null,
+  };
+
   try {
-    // Último candado antes de borrar: el pedido tiene que seguir sin pagar y
-    // sin cobro asociado. Borrar una venta por un error al abrir el checkout
-    // sería un daño mucho peor que dejar un pedido de más.
-    const { data: order } = await db
-      .from("orders")
-      .select("status, stripe_payment_intent")
-      .eq("id", orderId)
-      .maybeSingle();
-    if (
-      !order ||
-      order.status !== "pending_payment" ||
-      order.stripe_payment_intent
-    ) {
-      return;
+    let intent = paymentIntentId
+      ? await stripe.paymentIntents.retrieve(paymentIntentId).catch(() => null)
+      : null;
+
+    // Un cobro que ya salió no se reusa: se abre uno nuevo.
+    if (intent && intent.status !== "requires_payment_method") {
+      if (intent.status !== "requires_confirmation" && intent.status !== "requires_action") {
+        intent = null;
+      }
     }
 
-    if (undo?.stockOps.length) {
-      await db.rpc("restore_order_stock", { p_items: undo.stockOps });
+    if (intent) {
+      if (intent.amount !== toCents(draft.total)) {
+        intent = await stripe.paymentIntents.update(intent.id, {
+          amount: toCents(draft.total),
+        });
+      }
+    } else {
+      intent = await stripe.paymentIntents.create({
+        amount: toCents(draft.total),
+        currency: "usd",
+        // Deja que Stripe ofrezca lo que tenga habilitado en el dashboard:
+        // tarjeta y, en los dispositivos que los tengan, Apple Pay y Google Pay.
+        automatic_payment_methods: { enabled: true },
+        description: `Pedido en ${draft.store.name}`,
+        metadata: { kind: "card_order", store_id: draft.store.id },
+      });
     }
-    if (undo?.couponId) {
-      await db.rpc("release_coupon_use", { p_coupon_id: undo.couponId });
+
+    if (!intent.client_secret) {
+      return { ok: false, error: "No se pudo iniciar el pago" };
     }
-    await db.from("order_items").delete().eq("order_id", orderId);
-    await db.from("orders").delete().eq("id", orderId);
+
+    // El borrador se guarda SIEMPRE, y se pisa en cada sincronización: lo que
+    // vale es la última foto antes de cobrar.
+    const { error: upsertErr } = await db.from("checkout_intents").upsert(
+      {
+        store_id: draft.store.id,
+        payment_intent_id: intent.id,
+        amount: draft.total,
+        draft: stored as unknown as Json,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "payment_intent_id" },
+    );
+    if (upsertErr) {
+      reportError("syncCardPayment:upsert", upsertErr, {
+        storeId: draft.store.id,
+      });
+      return { ok: false, error: "No se pudo iniciar el pago" };
+    }
+
+    return {
+      ok: true,
+      clientSecret: intent.client_secret,
+      paymentIntentId: intent.id,
+      amount: draft.total,
+    };
   } catch (e) {
-    reportError("discardOrder", e, { orderId });
+    reportError("syncCardPayment", e, { storeId: draftParsed.data.store_id });
+    return { ok: false, error: "No se pudo iniciar el pago con tarjeta" };
   }
+}
+
+/**
+ * Crea el pedido de un cobro con tarjeta que ya salió bien.
+ *
+ * Lo llaman los dos caminos: el navegador apenas Stripe confirma, y el webhook
+ * cuando el navegador no vuelve. Es idempotente por el UNIQUE sobre
+ * `orders.stripe_payment_intent` y por la marca en `checkout_intents.order_id`,
+ * así que los dos pueden correr a la vez sin duplicar nada.
+ *
+ * Nunca confía en el navegador: le pregunta a Stripe si el cobro está hecho y
+ * compara el monto contra el borrador congelado.
+ */
+export async function finalizeCardOrder(
+  paymentIntentId: string,
+  opts?: { fromBrowser?: boolean },
+): Promise<CheckoutResult> {
+  const id = paymentIntentId?.trim();
+  if (!id) return { ok: false, error: "Pago no válido" };
+
+  const stripe = getStripe();
+  if (!stripe) return { ok: false, error: "El pago no está disponible ahora" };
+
+  const db = createAdminClient();
+
+  // ¿Ya existe el pedido? El otro camino pudo haber llegado primero.
+  const { data: already } = await db
+    .from("orders")
+    .select("id")
+    .eq("stripe_payment_intent", id)
+    .maybeSingle();
+  if (already) return { ok: true, orderId: already.id };
+
+  const { data: row } = await db
+    .from("checkout_intents")
+    .select("id, store_id, amount, draft, order_id")
+    .eq("payment_intent_id", id)
+    .maybeSingle();
+  if (!row) {
+    reportError("finalizeCardOrder:sin-borrador", new Error("cobro sin borrador"), {
+      paymentIntentId: id,
+    });
+    return { ok: false, error: "No encontramos tu pedido. Escríbele a la tienda." };
+  }
+  if (row.order_id) return { ok: true, orderId: row.order_id };
+
+  const stored = row.draft as unknown as StoredDraft;
+  if (!stored?.draft || !stored.data) {
+    return { ok: false, error: "No encontramos tu pedido. Escríbele a la tienda." };
+  }
+
+  let intent;
+  try {
+    intent = await stripe.paymentIntents.retrieve(id, {
+      expand: ["latest_charge.balance_transaction"],
+    });
+  } catch {
+    return { ok: false, error: "No pudimos verificar el pago" };
+  }
+
+  if (intent.status !== "succeeded") {
+    return { ok: false, error: "El pago todavía no se completó" };
+  }
+  if (intent.amount_received !== toCents(Number(row.amount))) {
+    reportError(
+      "finalizeCardOrder:monto",
+      new Error("el cobro no coincide con el borrador"),
+      { paymentIntentId: id, cobrado: intent.amount_received, esperado: row.amount },
+    );
+    return { ok: false, error: "El monto cobrado no coincide. Escríbele a la tienda." };
+  }
+
+  const breakdown = await chargeBreakdown(stripe, id);
+
+  const created = await insertOrder(db, stored.data, stored.draft, {
+    card: {
+      paymentIntentId: id,
+      fee: breakdown?.fee ?? null,
+      net: breakdown?.net ?? fromCents(intent.amount_received),
+      fromBrowser: Boolean(opts?.fromBrowser),
+      sessionId: opts?.fromBrowser ? getOrCreateSessionId() : null,
+    },
+  });
+
+  if (!created.ok || !created.orderId) {
+    // La plata está cobrada y el pedido no se pudo crear: esto hay que verlo a
+    // mano, no se pierde silenciosamente.
+    reportError("finalizeCardOrder:insert", new Error(created.error ?? "falló"), {
+      paymentIntentId: id,
+    });
+    return created;
+  }
+
+  await db
+    .from("checkout_intents")
+    .update({ order_id: created.orderId, updated_at: new Date().toISOString() })
+    .eq("id", row.id);
+
+  return created;
 }

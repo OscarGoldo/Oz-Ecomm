@@ -715,6 +715,32 @@ export interface Database {
         >;
         Relationships: [];
       };
+      checkout_intents: {
+        Row: {
+          id: string;
+          store_id: string;
+          payment_intent_id: string;
+          amount: number;
+          draft: Json;
+          order_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          payment_intent_id: string;
+          amount: number;
+          draft: Json;
+          order_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["checkout_intents"]["Insert"]
+        >;
+        Relationships: [];
+      };
       stripe_webhook_events: {
         Row: {
           id: string;

@@ -36,8 +36,7 @@ import {
 } from "@/components/ui/card";
 import { PaymentProofUpload } from "@/components/storefront/payment-proof-upload";
 import { PaypalButtons } from "@/components/storefront/paypal-buttons";
-import { createStripeCheckoutAction } from "@/app/(public)/[store_slug]/checkout/actions";
-import { StripeEmbedded } from "@/components/storefront/stripe-embedded";
+import { CardPayment } from "@/components/storefront/card-payment";
 import {
   createOrder,
   previewCoupon,
@@ -107,11 +106,6 @@ export function CheckoutForm({
   /** Contenedor del teléfono: el input vive dentro de PhoneInput, sin id propio. */
   const phoneRef = useRef<HTMLDivElement>(null);
   const [submitting, setSubmitting] = useState(false);
-  /**
-   * Credencial de la sesión de Stripe. Mientras es null se muestra el botón;
-   * apenas existe, en su lugar se pinta el formulario de tarjeta.
-   */
-  const [stripeSecret, setStripeSecret] = useState<string | null>(null);
   const [proofPath, setProofPath] = useState<string | null>(null);
   /**
    * Una clave por intento de compra, generada al montar el formulario y
@@ -416,43 +410,29 @@ export function CheckoutForm({
     };
   }
 
-  // Apenas aparece el formulario de tarjeta, llevarlo a la vista: en el
-  // teléfono nace debajo del pliegue y el cliente no ve que pasó nada.
-  useEffect(() => {
-    if (!stripeSecret) return;
-    document
-      .getElementById("pago-tarjeta")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [stripeSecret]);
-
   /**
-   * Pago con tarjeta: crea el pedido y abre el formulario de Stripe acá mismo.
+   * Los datos mínimos para que el servidor calcule el monto de la tarjeta.
    *
-   * El pedido nace en "esperando pago" antes de que aparezca el formulario, a
-   * propósito: si el cliente se arrepiente, el comerciante igual ve que alguien
-   * intentó comprar y el cliente puede retomar el pago desde su pedido.
-   * Reintentar es seguro por la clave de idempotencia — devuelve el MISMO
-   * pedido, no uno nuevo.
+   * A diferencia de `buildInput`, no exige que el formulario esté completo ni
+   * marca errores: el formulario de tarjeta se muestra apenas se elige el
+   * método, cuando el cliente puede no haber escrito todavía su nombre. Lo
+   * completo se valida al momento de cobrar.
    */
-  async function startStripePayment() {
-    const input = buildInput();
-    if (!input) return;
-
-    setSubmitting(true);
-    try {
-      const res = await createStripeCheckoutAction(input);
-      if (!res.ok || !res.clientSecret) {
-        toast.error(res.error ?? "No se pudo iniciar el pago");
-        setSubmitting(false);
-        return;
-      }
-      clearDraft();
-      setStripeSecret(res.clientSecret);
-    } catch {
-      toast.error("Se perdió la conexión. Intenta de nuevo.");
-    } finally {
-      setSubmitting(false);
-    }
+  function draftInput(): CheckoutInput {
+    const v = getValues();
+    return {
+      store_id: store.id,
+      customer_name: v.customer_name,
+      customer_phone: v.customer_phone,
+      customer_email: v.customer_email,
+      fulfillment_type: v.fulfillment_type,
+      delivery_address: v.delivery_address || undefined,
+      delivery_notes: v.delivery_notes || undefined,
+      payment_method_id: v.payment_method_id,
+      coupon_code: coupon?.code || undefined,
+      notes: v.notes || undefined,
+      idempotency_key: idempotencyKey,
+    };
   }
 
   async function onSubmit() {
@@ -735,8 +715,8 @@ export function CheckoutForm({
               ) : isStripe && selectedMethod ? (
                 <div className="rounded-lg border bg-muted/30 p-3">
                   <p className="text-xs text-muted-foreground">
-                    Pagas con tarjeta de crédito o débito en una página segura
-                    de Stripe. Tu pedido se confirma apenas entra el pago.
+                    Pagas con tarjeta, Apple Pay o Google Pay sin salir de esta
+                    página. Tu pedido se confirma apenas entra el pago.
                   </p>
                 </div>
               ) : selectedMethod ? (
@@ -891,38 +871,17 @@ export function CheckoutForm({
           </Card>
 
           {isStripe ? (
-            stripeSecret ? (
-              <div className="space-y-2" id="pago-tarjeta">
-                <p className="text-center text-xs text-muted-foreground">
-                  Tu pedido quedó guardado. Completa el pago aquí abajo.
-                </p>
-                <StripeEmbedded
-                  clientSecret={stripeSecret}
-                  publishableKey={stripePublishableKey}
-                />
-              </div>
-            ) : stripePublishableKey ? (
-              <>
-                <Button
-                  type="button"
-                  size="lg"
-                  className="w-full"
-                  disabled={submitting}
-                  onClick={startStripePayment}
-                >
-                  {submitting ? <Loader2 className="animate-spin" /> : <Lock />}
-                  Pagar con tarjeta · {formatUSD(total)}
-                </Button>
-                <p className="text-center text-xs text-muted-foreground">
-                  Tarjeta, Apple Pay o Google Pay, sin salir de esta página. No
-                  guardamos los datos de tu tarjeta.
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-destructive">
-                El pago con tarjeta no está configurado correctamente.
-              </p>
-            )
+            <CardPayment
+              publishableKey={stripePublishableKey}
+              storeSlug={store.slug}
+              total={total}
+              getDraftInput={draftInput}
+              getInput={buildInput}
+              onPaid={(orderId) => {
+                clearDraft();
+                router.push(`/${store.slug}/pedido/${orderId}`);
+              }}
+            />
           ) : isPaypal ? (
             paypalClientId ? (
               <div className="rounded-xl border bg-card p-4">

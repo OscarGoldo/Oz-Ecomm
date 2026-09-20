@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 
+import { finalizeCardOrder } from "@/app/(public)/[store_slug]/checkout/actions";
 import { notifyPaidOrder } from "@/lib/order-notify";
 import { stockOpsForOrder } from "@/lib/order-stock";
 import { extendExpiry, priceFor } from "@/lib/plans";
@@ -77,6 +78,9 @@ export async function POST(request: Request) {
         break;
       case "checkout.session.expired":
         await handleSessionExpired(db, event.data.object);
+        break;
+      case "payment_intent.succeeded":
+        await handleCardPayment(db, event.data.object);
         break;
       case "invoice.paid":
         await handleInvoicePaid(db, event.data.object);
@@ -186,6 +190,30 @@ async function handleSessionCompleted(
   // Una venta confirmada es lo que puede activar el referido que trajo a esta
   // tienda; en el checkout normal esto pasa dentro de createOrder.
   await maybeQualifyReferral(order.store_id);
+}
+
+/**
+ * Un cobro con tarjeta salió bien.
+ *
+ * Es la red por debajo del navegador: si el cliente cerró la pestaña justo
+ * después de pagar, el pedido se crea igual desde el borrador congelado en
+ * `checkout_intents`. Sin esto, ese cobro sería plata sin pedido y nadie se
+ * enteraría — el mismo desastre mudo del webhook mal apuntado.
+ *
+ * Es idempotente: si el navegador llegó primero, `finalizeCardOrder` devuelve
+ * el pedido que ya existe en vez de crear otro.
+ */
+async function handleCardPayment(db: Db, intent: Stripe.PaymentIntent) {
+  if (intent.metadata?.kind !== "card_order") return;
+
+  const res = await finalizeCardOrder(intent.id);
+  if (!res.ok) {
+    // La plata está cobrada. Que quede ruidoso: hay que resolverlo a mano.
+    console.error("[stripe-webhook] cobro sin pedido", intent.id, res.error);
+    reportError("stripe-webhook:card-sin-pedido", new Error(res.error ?? "falló"), {
+      paymentIntentId: intent.id,
+    });
+  }
 }
 
 /**

@@ -49,31 +49,39 @@ Tarjeta de prueba: `4242 4242 4242 4242`, cualquier fecha futura y CVC.
 
 ## Cómo funciona el checkout de una tienda
 
-El formulario de Stripe va **embebido** en nuestra página (`ui_mode: "embedded"`),
-no en una página aparte. Aun así el pedido se crea antes de que el formulario
-aparezca, porque el cobro sigue ocurriendo del lado de Stripe:
+Los campos de la tarjeta (con Apple Pay y Google Pay) se ven **dentro** del
+checkout, apenas el cliente elige el método — Payment Element, no una página de
+Stripe. Eso obliga a invertir el orden de siempre: **primero se cobra, después
+nace el pedido**. Si el pedido se creara al mostrar el formulario, el panel del
+comerciante se llenaría de pedidos de gente que solo está mirando cómo se paga.
 
-1. El cliente elige "Tarjeta" y toca pagar → `createStripeCheckoutAction`.
-2. El pedido se crea **antes** de irse, en `pending_payment`, con el stock ya
-   reservado. El total lo calcula el servidor (`buildOrderDraft`), nunca el
-   navegador.
-3. El cliente paga en el formulario embebido —tarjeta, Apple Pay o Google
-   Pay— y Stripe lo manda a `/{tienda}/pedido/{id}` (`return_url`).
-4. El **webhook** (`checkout.session.completed`) compara el monto cobrado contra
-   el total del pedido, lo pasa a `confirmed`, guarda comisión y neto, y recién
-   ahí manda los avisos: email al dueño, WhatsApp y recibo al cliente.
+1. El cliente elige "Tarjeta" → `syncCardPayment` calcula el total del carrito
+   y abre un PaymentIntent. **No se crea ningún pedido.** El monto sale del
+   servidor, nunca del navegador, y se reajusta si el total cambia (un cupón).
+2. Al tocar Pagar, `syncCardPayment` corre otra vez con el formulario completo
+   y **congela el pedido entero** —productos, totales, datos del cliente— en
+   `checkout_intents`. Esto es lo que hace que el cobro no pueda quedar huérfano.
+3. Stripe cobra. Si el banco pide verificación, el cliente sale y vuelve a
+   `/{tienda}/checkout/procesando`.
+4. `finalizeCardOrder` le pregunta a Stripe si el cobro está hecho, compara el
+   monto contra el borrador congelado y **ahí sí crea el pedido**, ya
+   confirmado, con su comisión y su neto. Salen los avisos: email al dueño,
+   WhatsApp y recibo al cliente.
 
-Consecuencias buscadas de ese orden:
+Lo llaman los dos caminos —el navegador y el webhook
+(`payment_intent.succeeded`)— y es idempotente por el UNIQUE sobre
+`orders.stripe_payment_intent`. Esa duplicación es deliberada: si el cliente
+cierra la pestaña justo después de pagar, el webhook crea el pedido igual.
 
-- Si el cliente abandona, el pedido queda en "esperando pago" y puede
-  **reintentar** desde la página de su pedido. El comerciante ve que alguien
-  intentó comprar.
-- Si la sesión vence (24 h), el evento `checkout.session.expired` cancela el
-  pedido y **devuelve el stock**. Sin eso, la última unidad de algo quedaría
-  bloqueada un día por alguien que abrió Stripe y cerró la pestaña.
-- El pedido nunca se confirma desde el navegador. Sin webhook verificado, el
-  pedido se queda esperando: preferimos no confirmar a que alguien se regale uno
-  con un POST.
+Consecuencias de este orden, todas asumidas:
+
+- **El stock no se reserva** mientras el cliente escribe la tarjeta. Dos
+  personas pueden comprar la última unidad a la vez y las dos pagan. Cuando
+  pasa, el pedido se crea igual (la plata ya entró) y el faltante se concilia a
+  mano — mismo criterio que PayPal.
+- Un cupón que se agota entre que se aplica y que se paga tampoco tumba el
+  pedido, por lo mismo.
+- El pedido nunca se crea sin un cobro verificado contra Stripe.
 
 ## Cómo funciona el plan Pro
 

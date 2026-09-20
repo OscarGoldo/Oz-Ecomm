@@ -30,6 +30,9 @@ const YEARLY_USD = Number(process.env.SETUP_PRICE_YEARLY ?? 50);
 
 /** Los eventos que el webhook sabe procesar. Ni uno más. */
 const EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
+  // El de los pedidos con tarjeta: es la red que crea el pedido si el cliente
+  // cierra la pestaña justo después de pagar.
+  "payment_intent.succeeded",
   "checkout.session.completed",
   "checkout.session.expired",
   "invoice.paid",
