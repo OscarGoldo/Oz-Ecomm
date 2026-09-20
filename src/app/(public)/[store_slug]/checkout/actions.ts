@@ -944,8 +944,12 @@ export async function attachPaymentProof(
 export interface StripeCheckoutResult {
   ok: boolean;
   error?: string;
-  /** La página de pago alojada por Stripe. El navegador redirige acá. */
-  url?: string;
+  /**
+   * La credencial de la sesión para pintar el formulario de Stripe DENTRO de
+   * nuestra página. No es un secreto que sirva para cobrar: solo deja mostrar
+   * y pagar esa sesión, cuyo monto ya fijó el servidor.
+   */
+  clientSecret?: string;
   orderId?: string;
 }
 
@@ -976,14 +980,14 @@ export async function createStripeCheckoutAction(
 
   const db = createAdminClient();
   const session = await openStripeSession(db, placed.orderId);
-  if (!session.ok || !session.url) {
+  if (!session.ok || !session.clientSecret) {
     // Solo se deshace lo que ESTA llamada creó. Si el pedido ya existía, el
     // intento anterior pudo haberlo pagado y borrarlo sería destruir una venta.
     if (!placed.reused) await discardOrder(db, placed.orderId, placed.undo);
     return { ok: false, error: session.error ?? "No se pudo iniciar el pago" };
   }
 
-  // Recién ahora se vacía: ya hay a dónde mandar al cliente.
+  // Recién ahora se vacía: el pedido ya existe y es pagable.
   const { data: order } = await db
     .from("orders")
     .select("store_id")
@@ -991,7 +995,11 @@ export async function createStripeCheckoutAction(
     .maybeSingle();
   if (order) await clearCart(order.store_id);
 
-  return { ok: true, url: session.url, orderId: placed.orderId };
+  return {
+    ok: true,
+    clientSecret: session.clientSecret,
+    orderId: placed.orderId,
+  };
 }
 
 /**
@@ -1010,10 +1018,10 @@ export async function retryStripeCheckout(
   }
   const db = createAdminClient();
   const session = await openStripeSession(db, orderId);
-  if (!session.ok || !session.url) {
+  if (!session.ok || !session.clientSecret) {
     return { ok: false, error: session.error ?? "No se pudo iniciar el pago" };
   }
-  return { ok: true, url: session.url, orderId };
+  return { ok: true, clientSecret: session.clientSecret, orderId };
 }
 
 /**
@@ -1026,7 +1034,7 @@ export async function retryStripeCheckout(
 async function openStripeSession(
   db: AdminDb,
   orderId: string,
-): Promise<{ ok: boolean; error?: string; url?: string }> {
+): Promise<{ ok: boolean; error?: string; clientSecret?: string }> {
   const stripe = getStripe();
   if (!stripe) {
     return { ok: false, error: "El pago con tarjeta no está disponible ahora" };
@@ -1067,6 +1075,11 @@ async function openStripeSession(
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      // Embebido: el formulario (y los botones de Apple Pay / Google Pay) se
+      // pintan dentro de nuestra página en vez de mandar al cliente afuera.
+      // Es la misma sesión de siempre — mismo monto calculado en el servidor y
+      // mismo webhook —, solo cambia dónde se ve.
+      ui_mode: "embedded",
       locale: "es",
       client_reference_id: order.id,
       customer_email: order.customer_email ?? undefined,
@@ -1078,18 +1091,21 @@ async function openStripeSession(
         description: `Pedido #${order.order_number} · ${store.name}`,
         metadata: { kind: "order", order_id: order.id, store_id: order.store_id },
       },
-      success_url: `${orderUrl}?pago=ok`,
-      cancel_url: `${orderUrl}?pago=cancelado`,
+      // Al terminar, Stripe manda el navegador acá. El pedido igual lo confirma
+      // el webhook: esto es solo a dónde vuelve el cliente.
+      return_url: `${orderUrl}?pago=ok`,
     });
 
-    if (!session.url) return { ok: false, error: "No se pudo iniciar el pago" };
+    if (!session.client_secret) {
+      return { ok: false, error: "No se pudo iniciar el pago" };
+    }
 
     await db
       .from("orders")
       .update({ stripe_session_id: session.id })
       .eq("id", order.id);
 
-    return { ok: true, url: session.url };
+    return { ok: true, clientSecret: session.client_secret };
   } catch (e) {
     reportError("openStripeSession", e, { orderId: order.id });
     return { ok: false, error: "No se pudo iniciar el pago con tarjeta" };

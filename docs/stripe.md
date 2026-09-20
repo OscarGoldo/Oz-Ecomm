@@ -49,14 +49,16 @@ Tarjeta de prueba: `4242 4242 4242 4242`, cualquier fecha futura y CVC.
 
 ## Cómo funciona el checkout de una tienda
 
-El checkout de Stripe es una **redirección**, no un botón embebido como PayPal.
-Eso cambia el orden de las cosas:
+El formulario de Stripe va **embebido** en nuestra página (`ui_mode: "embedded"`),
+no en una página aparte. Aun así el pedido se crea antes de que el formulario
+aparezca, porque el cobro sigue ocurriendo del lado de Stripe:
 
 1. El cliente elige "Tarjeta" y toca pagar → `createStripeCheckoutAction`.
 2. El pedido se crea **antes** de irse, en `pending_payment`, con el stock ya
    reservado. El total lo calcula el servidor (`buildOrderDraft`), nunca el
    navegador.
-3. El cliente paga en la página de Stripe y vuelve a `/{tienda}/pedido/{id}`.
+3. El cliente paga en el formulario embebido —tarjeta, Apple Pay o Google
+   Pay— y Stripe lo manda a `/{tienda}/pedido/{id}` (`return_url`).
 4. El **webhook** (`checkout.session.completed`) compara el monto cobrado contra
    el total del pedido, lo pasa a `confirmed`, guarda comisión y neto, y recién
    ahí manda los avisos: email al dueño, WhatsApp y recibo al cliente.
@@ -118,3 +120,12 @@ Tiene que dar **400** ("falta la firma"), que significa que la ruta está viva y
 con sus variables. Un **503** es que faltan `STRIPE_SECRET_KEY` o
 `STRIPE_WEBHOOK_SECRET` en Vercel (o que falta el redeploy). Un **3xx** es esta
 misma trampa otra vez.
+
+## Apple Pay y Google Pay
+
+Aparecen solos arriba del formulario embebido cuando el dispositivo los tiene.
+Apple Pay necesita **una vez** que el dominio esté registrado: Stripe →
+Settings → Payment methods → Apple Pay → **Add domain** → `tiendifyapp.com`.
+Con el checkout alojado esto era automático; dentro de nuestro sitio, no.
+
+Google Pay no necesita registro.

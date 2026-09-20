@@ -38,6 +38,14 @@ export function stripeConfigured(): boolean {
   return Boolean((process.env.STRIPE_SECRET_KEY ?? "").trim());
 }
 
+/**
+ * La clave pública, la única que puede vivir en el navegador. La necesita el
+ * formulario embebido para hablar con Stripe; sin ella no se puede pintar.
+ */
+export function stripePublishableKey(): string {
+  return (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "").trim();
+}
+
 export function stripeWebhookSecret(): string | null {
   return (process.env.STRIPE_WEBHOOK_SECRET ?? "").trim() || null;
 }
