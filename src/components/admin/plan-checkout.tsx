@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, Loader2, Send } from "lucide-react";
+import { Check, Copy, CreditCard, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentProofUpload } from "@/components/storefront/payment-proof-upload";
 import { PlanPaypalButtons } from "@/components/admin/plan-paypal-buttons";
 import { PlanSubscribeButtons } from "@/components/admin/plan-subscribe-buttons";
-import { requestProUpgrade } from "@/app/(admin)/panel/plan/actions";
+import {
+  createProStripeCheckout,
+  requestProUpgrade,
+  type UpgradeInput,
+} from "@/app/(admin)/panel/plan/actions";
 import { formatBs, formatUSD, usdToBs } from "@/lib/format";
 import {
   PLAN_PERIODS,
@@ -30,8 +34,11 @@ export interface PlatformPaymentView {
   fields: { label: string; value: string }[];
 }
 
-/** Cómo va a pagar: online con PayPal, o manual subiendo comprobante. */
-type PayVia = "paypal" | "manual";
+/** Cómo va a pagar: online (tarjeta o PayPal), o manual subiendo comprobante. */
+type PayVia = "stripe" | "paypal" | "manual";
+
+/** Los métodos que se pagan por fuera y llevan comprobante. */
+type ManualMethod = UpgradeInput["method"];
 
 export function PlanCheckout({
   storeId,
@@ -40,6 +47,8 @@ export function PlanCheckout({
   bcvRate,
   paypalClientId,
   planIds,
+  stripeEnabled,
+  stripeRecurringPeriods,
 }: {
   storeId: string;
   prices: PlanPrices;
@@ -53,23 +62,37 @@ export function PlanCheckout({
    * no está acá (el trimestre) se cobra una sola vez y no se renueva.
    */
   planIds: Partial<Record<number, string>> | null;
+  /** ¿Está Stripe configurado en la plataforma? */
+  stripeEnabled: boolean;
+  /**
+   * Períodos que tienen precio recurrente en Stripe. Los que no están se
+   * cobran una sola vez — y hay que decírselo, porque la diferencia entre "se
+   * renueva solo" y "se vence" es la que le hace perder el Pro sin darse cuenta.
+   */
+  stripeRecurringPeriods: number[];
 }) {
   const router = useRouter();
   const [months, setMonths] = useState<number>(12);
   // PayPal primero cuando está disponible: se activa solo, sin esperar
   // revisión. El comprobante queda para quien paga en Bs.
-  const [via, setVia] = useState<PayVia>(paypalClientId ? "paypal" : "manual");
-  const [method, setMethod] = useState<SubscriptionMethod | null>(
-    payments[0]?.method ?? null,
+  const [via, setVia] = useState<PayVia>(
+    stripeEnabled ? "stripe" : paypalClientId ? "paypal" : "manual",
+  );
+  const [method, setMethod] = useState<ManualMethod | null>(
+    (payments[0]?.method as ManualMethod | undefined) ?? null,
   );
   const [reference, setReference] = useState("");
   const [proof, setProof] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   const amount = priceFor(months, prices);
   const amountBs = usdToBs(amount, bcvRate);
   const selected = payments.find((p) => p.method === method);
-  const nothingConfigured = payments.length === 0 && !paypalClientId;
+  const nothingConfigured =
+    payments.length === 0 && !paypalClientId && !stripeEnabled;
+  /** ¿El período elegido se renueva solo en Stripe? */
+  const stripeRecurring = stripeRecurringPeriods.includes(months);
   /**
    * Plan recurrente para el período elegido, si existe. El trimestre no tiene,
    * así que se cobra una sola vez — y hay que decírselo al comerciante, porque
@@ -77,6 +100,20 @@ export function PlanCheckout({
    * perder el Pro sin darse cuenta.
    */
   const recurringPlanId = planIds?.[months] ?? null;
+
+  /**
+   * Stripe cobra en una página suya, así que esto es una ida sin vuelta: el
+   * plan lo activa el webhook cuando el cobro entra, no este clic.
+   */
+  async function goToStripe() {
+    setRedirecting(true);
+    const res = await createProStripeCheckout(months);
+    if (!res.ok || !res.url) {
+      setRedirecting(false);
+      return toast.error(res.error ?? "No se pudo iniciar el pago");
+    }
+    window.location.href = res.url;
+  }
 
   async function submit() {
     if (!method) return toast.error("Elige cómo pagaste");
@@ -110,7 +147,7 @@ export function PlanCheckout({
             <button
               key={p.method}
               type="button"
-              onClick={() => setMethod(p.method)}
+              onClick={() => setMethod(p.method as ManualMethod)}
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                 method === p.method
@@ -175,6 +212,28 @@ export function PlanCheckout({
     </>
   );
 
+  const stripePayment = (
+    <div className="space-y-2">
+      <Button className="w-full" onClick={goToStripe} disabled={redirecting}>
+        {redirecting ? (
+          <>
+            <Loader2 className="animate-spin" /> Abriendo el pago…
+          </>
+        ) : (
+          <>
+            <CreditCard /> Pagar {formatUSD(amount)} con tarjeta
+          </>
+        )}
+      </Button>
+      <p className="text-center text-xs text-muted-foreground">
+        Pago seguro con Stripe. No necesitas cuenta.{" "}
+        {stripeRecurring
+          ? `Se renueva ${months >= 12 ? "cada año" : "cada mes"} y puedes cancelar cuando quieras.`
+          : "Es un pago único: no se renueva solo, te avisamos antes de que venza."}
+      </p>
+    </div>
+  );
+
   const paypalPayment = paypalClientId && (
     <div className="space-y-2">
       {recurringPlanId ? (
@@ -200,13 +259,37 @@ export function PlanCheckout({
     </div>
   );
 
+  const vias: { id: PayVia; title: string; sub: string }[] = [
+    ...(stripeEnabled
+      ? [
+          {
+            id: "stripe" as const,
+            title: "Tarjeta",
+            sub: "Se activa al instante",
+          },
+        ]
+      : []),
+    ...(paypalClientId
+      ? [{ id: "paypal" as const, title: "PayPal", sub: "Se activa al instante" }]
+      : []),
+    ...(payments.length > 0
+      ? [
+          {
+            id: "manual" as const,
+            title: "Pago Móvil, Zelle…",
+            sub: "Con comprobante",
+          },
+        ]
+      : []),
+  ];
+
   return (
     <Card className="rounded-2xl shadow-sm">
       <CardHeader>
         <CardTitle className="text-base">Activar Pro</CardTitle>
         <p className="text-xs text-muted-foreground">
-          {paypalClientId
-            ? "Paga con PayPal o tarjeta y se activa solo, o paga en bolívares y sube el comprobante."
+          {stripeEnabled || paypalClientId
+            ? "Paga con tarjeta y se activa solo, o paga en bolívares y sube el comprobante."
             : "Haz el pago, sube el comprobante y lo confirmamos. No necesitas tarjeta de crédito."}
         </p>
       </CardHeader>
@@ -283,23 +366,29 @@ export function PlanCheckout({
           </p>
         ) : (
           <>
-            {paypalClientId && payments.length > 0 && (
-              <div className="grid grid-cols-2 gap-2">
-                <ViaTab
-                  active={via === "paypal"}
-                  onClick={() => setVia("paypal")}
-                  title="PayPal o tarjeta"
-                  sub="Se activa al instante"
-                />
-                <ViaTab
-                  active={via === "manual"}
-                  onClick={() => setVia("manual")}
-                  title="Pago Móvil, Zelle…"
-                  sub="Con comprobante"
-                />
+            {vias.length > 1 && (
+              <div
+                className={cn(
+                  "grid gap-2",
+                  vias.length >= 3 ? "grid-cols-3" : "grid-cols-2",
+                )}
+              >
+                {vias.map((v) => (
+                  <ViaTab
+                    key={v.id}
+                    active={via === v.id}
+                    onClick={() => setVia(v.id)}
+                    title={v.title}
+                    sub={v.sub}
+                  />
+                ))}
               </div>
             )}
-            {via === "paypal" && paypalClientId ? paypalPayment : manualPayment}
+            {via === "stripe" && stripeEnabled
+              ? stripePayment
+              : via === "paypal" && paypalClientId
+                ? paypalPayment
+                : manualPayment}
           </>
         )}
       </CardContent>

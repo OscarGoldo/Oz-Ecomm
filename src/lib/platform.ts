@@ -2,6 +2,7 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { paypalCredsFromEnv } from "@/lib/paypal";
+import { stripeConfigured } from "@/lib/stripe";
 import {
   DEFAULT_PRO_PRICE_QUARTERLY_USD,
   DEFAULT_PRO_PRICE_USD,
@@ -28,6 +29,11 @@ export interface PlatformConfig {
    * el plan al instante. Depende solo de las credenciales de entorno.
    */
   paypalEnabled: boolean;
+  /**
+   * Stripe, igual que PayPal: un botón que cobra con tarjeta y activa el plan
+   * al instante. Depende solo de STRIPE_SECRET_KEY.
+   */
+  stripeEnabled: boolean;
 }
 
 const FALLBACK: PlatformConfig = {
@@ -38,6 +44,7 @@ const FALLBACK: PlatformConfig = {
   },
   payments: [],
   paypalEnabled: false,
+  stripeEnabled: false,
 };
 
 function str(v: unknown): string {
@@ -64,10 +71,11 @@ function fields(
  */
 export async function getPlatformConfig(): Promise<PlatformConfig> {
   const paypalEnabled = paypalCredsFromEnv() !== null;
+  const stripeEnabled = stripeConfigured();
 
   const db = createAdminClient();
   const { data } = await db.from("platform_settings").select("*").maybeSingle();
-  if (!data) return { ...FALLBACK, paypalEnabled };
+  if (!data) return { ...FALLBACK, paypalEnabled, stripeEnabled };
 
   const payments: PlatformPayment[] = [
     {
@@ -109,5 +117,6 @@ export async function getPlatformConfig(): Promise<PlatformConfig> {
     },
     payments,
     paypalEnabled,
+    stripeEnabled,
   };
 }

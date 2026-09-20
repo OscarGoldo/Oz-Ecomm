@@ -14,6 +14,7 @@ import {
 import { SubscriptionStatus } from "@/components/admin/subscription-status";
 import { paypalClientId } from "@/lib/paypal";
 import { planIdFor, subscriptionsConfigured } from "@/lib/paypal-subscriptions";
+import { stripePriceFor } from "@/lib/stripe";
 import { getPlatformConfig } from "@/lib/platform";
 import { createClient } from "@/lib/supabase/server";
 import { FREE_LAYOUTS, THEME_PRESETS } from "@/lib/theme";
@@ -48,7 +49,8 @@ export default async function PlanPage() {
   const pro = isPro(store);
   const daysLeft = daysUntilExpiry(store);
 
-  const [{ prices, payments, paypalEnabled }, rates, { data: history }] = await Promise.all([
+  const [{ prices, payments, paypalEnabled, stripeEnabled }, rates, { data: history }] =
+    await Promise.all([
     getPlatformConfig(),
     getCachedBcvRates(),
     createClient()
@@ -59,8 +61,11 @@ export default async function PlanPage() {
       .limit(10),
   ]);
 
-  // Suscripción vigente: no se le vuelve a ofrecer contratar.
-  const subscribed = store.paypal_subscription_status === "active";
+  // Suscripción vigente (con cualquiera de los dos): no se le vuelve a
+  // ofrecer contratar.
+  const subscribed =
+    store.paypal_subscription_status === "active" ||
+    store.stripe_subscription_status === "active";
   const recurringOn = paypalEnabled && subscriptionsConfigured();
 
   const payments_ = (history ?? []) as SubscriptionPayment[];
@@ -100,11 +105,20 @@ export default async function PlanPage() {
         </p>
       </div>
 
-      {store.paypal_subscription_id && store.paypal_subscription_status && (
+      {store.stripe_subscription_id && store.stripe_subscription_status ? (
         <SubscriptionStatus
-          status={store.paypal_subscription_status}
+          provider="stripe"
+          status={store.stripe_subscription_status}
           expiresAt={store.plan_expires_at}
         />
+      ) : (
+        store.paypal_subscription_id &&
+        store.paypal_subscription_status && (
+          <SubscriptionStatus
+            status={store.paypal_subscription_status}
+            expiresAt={store.plan_expires_at}
+          />
+        )
       )}
 
       {pending && (
@@ -161,6 +175,10 @@ export default async function PlanPage() {
           payments={payments}
           bcvRate={rates?.usd ?? null}
           paypalClientId={paypalEnabled ? paypalClientId() : null}
+          stripeEnabled={stripeEnabled}
+          stripeRecurringPeriods={PLAN_PERIODS.filter(
+            (m) => stripePriceFor(m) !== null,
+          )}
           planIds={
             recurringOn
               ? // Solo los períodos que tienen plan recurrente creado en

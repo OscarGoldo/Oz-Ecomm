@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/card";
 import { PaymentProofUpload } from "@/components/storefront/payment-proof-upload";
 import { PaypalButtons } from "@/components/storefront/paypal-buttons";
+import { createStripeCheckoutAction } from "@/app/(public)/[store_slug]/checkout/actions";
 import {
   createOrder,
   previewCoupon,
@@ -409,6 +410,32 @@ export function CheckoutForm({
     };
   }
 
+  /**
+   * Pago con tarjeta: el pedido se crea acá y el cobro pasa en una página de
+   * Stripe. Es una ida sin vuelta —el cliente sale del sitio—, así que el
+   * botón queda deshabilitado hasta que la redirección ocurre; volver atrás y
+   * reintentar es seguro por la clave de idempotencia.
+   */
+  async function goToStripe() {
+    const input = buildInput();
+    if (!input) return;
+
+    setSubmitting(true);
+    try {
+      const res = await createStripeCheckoutAction(input);
+      if (!res.ok || !res.url) {
+        toast.error(res.error ?? "No se pudo iniciar el pago");
+        setSubmitting(false);
+        return;
+      }
+      clearDraft();
+      window.location.href = res.url;
+    } catch {
+      toast.error("Se perdió la conexión. Intenta de nuevo.");
+      setSubmitting(false);
+    }
+  }
+
   async function onSubmit() {
     if (!selectedMethod) {
       toast.error("Elige cómo vas a pagar");
@@ -446,6 +473,7 @@ export function CheckoutForm({
       ? (selectedMethod.details as Record<string, unknown>)
       : {};
   const isPaypal = selectedMethod?.type === "paypal";
+  const isStripe = selectedMethod?.type === "stripe";
   /** Va a comprar sin haber pagado todavía: el pedido nace esperando el pago. */
   const awaitingPayment = Boolean(selectedMethod?.requires_proof) && !proofPath;
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
@@ -683,6 +711,13 @@ export function CheckoutForm({
                     pago más abajo. Tu pedido se confirma al instante.
                   </p>
                 </div>
+              ) : isStripe && selectedMethod ? (
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    Pagas con tarjeta de crédito o débito en una página segura
+                    de Stripe. Tu pedido se confirma apenas entra el pago.
+                  </p>
+                </div>
               ) : selectedMethod ? (
                 <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
                   {selectedMethod.requires_proof && (
@@ -834,7 +869,24 @@ export function CheckoutForm({
             </CardContent>
           </Card>
 
-          {isPaypal ? (
+          {isStripe ? (
+            <>
+              <Button
+                type="button"
+                size="lg"
+                className="w-full"
+                disabled={submitting}
+                onClick={goToStripe}
+              >
+                {submitting ? <Loader2 className="animate-spin" /> : <Lock />}
+                Pagar con tarjeta · {formatUSD(total)}
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                Te llevamos a la página segura de Stripe. No guardamos los datos
+                de tu tarjeta.
+              </p>
+            </>
+          ) : isPaypal ? (
             paypalClientId ? (
               <div className="rounded-xl border bg-card p-4">
                 <PaypalButtons

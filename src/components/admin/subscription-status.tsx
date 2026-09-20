@@ -6,7 +6,10 @@ import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { cancelProSubscription } from "@/app/(admin)/panel/plan/actions";
+import {
+  cancelProStripeSubscription,
+  cancelProSubscription,
+} from "@/app/(admin)/panel/plan/actions";
 import type { SubscriptionState } from "@/types/database";
 
 /**
@@ -18,9 +21,12 @@ import type { SubscriptionState } from "@/types/database";
 export function SubscriptionStatus({
   status,
   expiresAt,
+  provider = "paypal",
 }: {
   status: SubscriptionState;
   expiresAt: string | null;
+  /** Quién cobra la renovación. Decide a quién se le cancela. */
+  provider?: "paypal" | "stripe";
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -36,7 +42,10 @@ export function SubscriptionStatus({
 
   async function cancel() {
     setBusy(true);
-    const res = await cancelProSubscription();
+    const res =
+      provider === "stripe"
+        ? await cancelProStripeSubscription()
+        : await cancelProSubscription();
     setBusy(false);
     if (!res.ok) return toast.error(res.error ?? "No se pudo cancelar");
     toast.success("Renovación cancelada", {
@@ -53,8 +62,9 @@ export function SubscriptionStatus({
           <AlertTriangle className="size-4" /> No pudimos cobrar tu renovación
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          PayPal no pudo procesar el cobro — suele ser una tarjeta vencida o sin
-          fondos. Revisa tu método de pago en PayPal.
+          {provider === "stripe" ? "No se pudo" : "PayPal no pudo"} procesar el
+          cobro — suele ser una tarjeta vencida o sin fondos. Revisa tu método de
+          pago.
           {until && ` Tu plan sigue activo hasta el ${until}.`}
         </p>
       </div>

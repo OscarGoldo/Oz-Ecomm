@@ -50,9 +50,19 @@ const TYPES: PaymentMethodType[] = [
   "binance",
   "transfer",
   "cash",
+  "stripe",
   "paypal",
   "other",
 ];
+
+/**
+ * Los métodos que cobra la plataforma online (Stripe y PayPal). No llevan
+ * datos que el cliente transcriba ni comprobante: llevan la configuración de
+ * cómo le transferimos al comerciante lo recaudado.
+ */
+function isOnline(type: PaymentMethodType): boolean {
+  return type === "paypal" || type === "stripe";
+}
 
 interface FormState {
   type: PaymentMethodType;
@@ -122,11 +132,11 @@ export function PaymentMethodsManager({
 
   async function save() {
     setSaving(true);
-    // For PayPal, persist the payout method even if the dropdown was left on
-    // its default (otherwise it's never written and the super admin sees it
-    // as "not configured").
+    // Para los métodos online, persist the payout method even if the dropdown
+    // was left on its default (otherwise it's never written and the super
+    // admin sees it as "not configured").
     const details =
-      form.type === "paypal"
+      isOnline(form.type)
         ? { payout_method: form.details.payout_method || "zelle", ...form.details }
         : form.details;
     const input = {
@@ -285,19 +295,21 @@ export function PaymentMethodsManager({
               </div>
             )}
 
-            {form.type === "paypal" && (
+            {isOnline(form.type) && (
               <div className="space-y-4">
                 <p className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-                  Los pagos con PayPal y tarjeta se procesan de forma segura a
-                  través de la plataforma. El cliente paga el total online y el
-                  pedido se confirma al instante. Aplican comisiones del
-                  procesador de pago, que se descuentan de lo que recibes.
+                  Los pagos con tarjeta
+                  {form.type === "paypal" ? " y PayPal" : ""} se procesan de
+                  forma segura a través de la plataforma. El cliente paga el
+                  total online y el pedido se confirma al instante. Aplican
+                  comisiones del procesador de pago, que se descuentan de lo que
+                  recibes.
                 </p>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">¿Cómo quieres que te paguemos?</p>
                   <p className="text-xs text-muted-foreground">
-                    La plataforma te transfiere lo recaudado por PayPal por este
-                    medio.
+                    La plataforma te transfiere por este medio lo que recaudes
+                    con {form.type === "paypal" ? "PayPal" : "tarjeta"}.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -375,7 +387,7 @@ export function PaymentMethodsManager({
               />
             </div>
 
-            {form.type !== "paypal" && (
+            {!isOnline(form.type) && (
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div>
                   <p className="text-sm font-medium">Pedir comprobante</p>

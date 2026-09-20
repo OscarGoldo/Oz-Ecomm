@@ -51,6 +51,7 @@ export const PAYMENT_METHOD_META: Record<
   transfer: { label: "Transferencia" },
   other: { label: "Otro" },
   paypal: { label: "PayPal / Tarjeta" },
+  stripe: { label: "Tarjeta de crédito o débito" },
 };
 
 /** How the platform pays a tenant their PayPal earnings. */
@@ -85,6 +86,7 @@ export const PAYMENT_TYPE_FIELDS: Record<
   ],
   binance: [{ key: "email_o_id", label: "Email o ID de Binance" }],
   paypal: [],
+  stripe: [],
   transfer: [
     { key: "banco", label: "Banco" },
     { key: "cuenta", label: "N° de cuenta" },
@@ -104,4 +106,5 @@ export const PAYMENT_TYPE_DEFAULT_PROOF: Record<PaymentMethodType, boolean> = {
   cash: false,
   other: false,
   paypal: false,
+  stripe: false,
 };

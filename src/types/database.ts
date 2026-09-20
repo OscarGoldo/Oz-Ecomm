@@ -21,7 +21,12 @@ export type PlanSource = "free" | "paid" | "comp";
 /** Estado de revisión de un comprobante de suscripción. */
 export type SubscriptionPaymentStatus = "pending" | "approved" | "rejected";
 /** Cómo pagó el comerciante su plan. */
-export type SubscriptionMethod = "pago_movil" | "zelle" | "binance" | "paypal";
+export type SubscriptionMethod =
+  | "pago_movil"
+  | "zelle"
+  | "binance"
+  | "paypal"
+  | "stripe";
 /** Espejo del estado de la suscripción recurrente en PayPal. */
 export type SubscriptionState = "active" | "suspended" | "cancelled" | "expired";
 /**
@@ -39,7 +44,8 @@ export type PaymentMethodType =
   | "cash"
   | "transfer"
   | "other"
-  | "paypal";
+  | "paypal"
+  | "stripe";
 
 export type FulfillmentType = "delivery" | "pickup";
 
@@ -109,6 +115,9 @@ export interface Database {
           plan_note: string | null;
           paypal_subscription_id: string | null;
           paypal_subscription_status: SubscriptionState | null;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          stripe_subscription_status: SubscriptionState | null;
           referral_code: string;
           created_at: string;
           updated_at: string;
@@ -146,6 +155,9 @@ export interface Database {
           plan_note?: string | null;
           paypal_subscription_id?: string | null;
           paypal_subscription_status?: SubscriptionState | null;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          stripe_subscription_status?: SubscriptionState | null;
           referral_code?: string;
           created_at?: string;
           updated_at?: string;
@@ -306,6 +318,8 @@ export interface Database {
           payment_reference: string | null;
           payment_fee: number | null;
           payment_net: number | null;
+          stripe_session_id: string | null;
+          stripe_payment_intent: string | null;
           paid_out_at: string | null;
           payout_proof_url: string | null;
           payout_reference: string | null;
@@ -348,6 +362,8 @@ export interface Database {
           payment_reference?: string | null;
           payment_fee?: number | null;
           payment_net?: number | null;
+          stripe_session_id?: string | null;
+          stripe_payment_intent?: string | null;
           paid_out_at?: string | null;
           payout_proof_url?: string | null;
           payout_reference?: string | null;
@@ -649,6 +665,8 @@ export interface Database {
           reviewed_at: string | null;
           paypal_capture_id: string | null;
           paypal_subscription_id: string | null;
+          stripe_payment_id: string | null;
+          stripe_subscription_id: string | null;
           fee: number | null;
           net: number | null;
           created_at: string;
@@ -668,6 +686,8 @@ export interface Database {
           reviewed_at?: string | null;
           paypal_capture_id?: string | null;
           paypal_subscription_id?: string | null;
+          stripe_payment_id?: string | null;
+          stripe_subscription_id?: string | null;
           fee?: number | null;
           net?: number | null;
           created_at?: string;
@@ -692,6 +712,24 @@ export interface Database {
         };
         Update: Partial<
           Database["public"]["Tables"]["paypal_webhook_events"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      stripe_webhook_events: {
+        Row: {
+          id: string;
+          event_type: string;
+          resource_id: string | null;
+          processed_at: string;
+        };
+        Insert: {
+          id: string;
+          event_type: string;
+          resource_id?: string | null;
+          processed_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["stripe_webhook_events"]["Insert"]
         >;
         Relationships: [];
       };

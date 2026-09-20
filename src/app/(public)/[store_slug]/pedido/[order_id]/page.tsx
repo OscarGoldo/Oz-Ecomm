@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { OrderStatusBadge } from "@/components/admin/status-badge";
 import { OrderPayLater } from "@/components/storefront/order-pay-later";
+import { OrderStripePay } from "@/components/storefront/order-stripe-pay";
 import { getStoreBySlug } from "@/lib/storefront";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatBs, formatUSD } from "@/lib/format";
@@ -27,8 +28,11 @@ export const metadata: Metadata = { title: { absolute: "Tu pedido" } };
 
 export default async function OrderConfirmationPage({
   params,
+  searchParams,
 }: {
   params: { store_slug: string; order_id: string };
+  /** `pago=ok` / `pago=cancelado`: de vuelta del checkout de Stripe. */
+  searchParams?: { pago?: string };
 }) {
   const store = await getStoreBySlug(params.store_slug);
   if (!store) notFound();
@@ -52,6 +56,11 @@ export default async function OrderConfirmationPage({
   const isPendingProof = order.status === "pending_confirmation";
   /** Compró sin haber pagado: acá abajo sube el comprobante cuando lo tenga. */
   const isAwaitingPayment = order.status === "pending_payment";
+  /**
+   * Con tarjeta no hay comprobante que subir: o paga en Stripe, o el pedido
+   * sigue esperando. Por eso este caso reemplaza al bloque de "pagar después".
+   */
+  const isCardPending = isAwaitingPayment && order.payment_method_type === "stripe";
   const paymentLabel = order.payment_method_type
     ? (PAYMENT_METHOD_META[order.payment_method_type as PaymentMethodType]?.label ??
       order.payment_method_type)
@@ -61,7 +70,7 @@ export default async function OrderConfirmationPage({
   // buscan por tipo porque el pedido guarda el tipo, no el id del método.
   let payDetails: [string, string][] = [];
   let payInstructions: string | null = null;
-  if (isAwaitingPayment && order.payment_method_type) {
+  if (isAwaitingPayment && order.payment_method_type && !isCardPending) {
     const { data: method } = await db
       .from("payment_methods")
       .select("details, instructions")
@@ -117,7 +126,9 @@ export default async function OrderConfirmationPage({
           <OrderStatusBadge status={order.status} />
         </div>
         <p className="mt-3 max-w-md text-sm text-muted-foreground">
-          {isAwaitingPayment
+          {isCardPending
+            ? "Te guardamos el pedido. Falta completar el pago con tu tarjeta."
+            : isAwaitingPayment
             ? "Te guardamos el pedido. Falta que hagas el pago y subas el comprobante aquí abajo."
             : isPendingProof
               ? "Recibimos tu pedido y tu comprobante. La tienda va a verificar el pago y confirmarlo a la brevedad."
@@ -125,7 +136,15 @@ export default async function OrderConfirmationPage({
         </p>
       </div>
 
-      {isAwaitingPayment && (
+      {isCardPending && (
+        <OrderStripePay
+          orderId={order.id}
+          total={order.total}
+          justReturned={searchParams?.pago === "ok"}
+        />
+      )}
+
+      {isAwaitingPayment && !isCardPending && (
         <OrderPayLater
           orderId={order.id}
           storeId={store.id}

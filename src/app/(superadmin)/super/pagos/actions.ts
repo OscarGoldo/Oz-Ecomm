@@ -35,7 +35,9 @@ export async function settleStorePayout(
       payout_reference: reference,
     })
     .eq("store_id", storeId)
-    .eq("payment_method_type", "paypal")
+    // Los dos procesadores online: la plata de ambos cae en las cuentas de la
+    // plataforma, así que se liquidan juntos.
+    .in("payment_method_type", ["paypal", "stripe"])
     .is("paid_out_at", null)
     .in("status", SALES_STATUSES);
 

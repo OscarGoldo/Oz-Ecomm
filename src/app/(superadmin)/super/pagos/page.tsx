@@ -27,12 +27,14 @@ export default async function SuperPayoutsPage() {
     supabase
       .from("orders")
       .select("store_id, total, payment_net, payment_fee, paid_out_at, status")
-      .eq("payment_method_type", "paypal")
+      // PayPal y Stripe: los dos cobran a la cuenta de la plataforma, así que
+      // lo que se le debe al comerciante es la suma de ambos.
+      .in("payment_method_type", ["paypal", "stripe"])
       .in("status", SALES_STATUSES),
     supabase
       .from("payment_methods")
       .select("store_id, details")
-      .eq("type", "paypal"),
+      .in("type", ["paypal", "stripe"]),
   ]);
 
   const payoutByStore = new Map<
@@ -41,10 +43,14 @@ export default async function SuperPayoutsPage() {
   >();
   for (const m of methods ?? []) {
     const d = (m.details ?? {}) as Record<string, string>;
+    // Una tienda puede tener los dos métodos online configurados. Se combinan
+    // en vez de pisarse: si uno tiene los datos de cobro y el otro quedó
+    // vacío, lo que vale es el que los tiene.
+    const prev = payoutByStore.get(m.store_id);
     payoutByStore.set(m.store_id, {
-      method: d.payout_method ?? null,
-      holder: d.payout_holder ?? null,
-      account: d.payout_account ?? null,
+      method: d.payout_method || prev?.method || null,
+      holder: d.payout_holder || prev?.holder || null,
+      account: d.payout_account || prev?.account || null,
     });
   }
 
