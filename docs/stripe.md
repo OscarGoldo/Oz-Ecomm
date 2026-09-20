@@ -97,3 +97,24 @@ Consecuencias buscadas de ese orden:
 
 Todos se deduplican por id en `stripe_webhook_events`: Stripe reintenta hasta
 recibir un 200.
+
+## La URL del webhook no puede redirigir
+
+**Stripe no sigue redirecciones en las entregas del webhook.** Si el endpoint
+apunta a `https://www.tiendifyapp.com/...` y Vercel redirige `www` al dominio
+sin www con un 308, cada entrega queda como fallida y no se reintenta a la URL
+nueva: el cliente paga y su pedido se queda en "esperando pago" sin una sola
+pista en la app.
+
+Pasó en el primer cobro real. `scripts/stripe-setup.ts` ahora sigue la
+redirección solo y registra la URL final, pero si creas el endpoint a mano en
+el dashboard, verifica que responda directo:
+
+```bash
+curl -i -X POST https://tiendifyapp.com/api/stripe/webhook -d '{}'
+```
+
+Tiene que dar **400** ("falta la firma"), que significa que la ruta está viva y
+con sus variables. Un **503** es que faltan `STRIPE_SECRET_KEY` o
+`STRIPE_WEBHOOK_SECRET` en Vercel (o que falta el redeploy). Un **3xx** es esta
+misma trampa otra vez.

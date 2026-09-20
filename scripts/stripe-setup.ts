@@ -37,6 +37,40 @@ const EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
   "customer.subscription.deleted",
 ];
 
+/**
+ * La URL final del webhook, siguiendo las redirecciones a mano.
+ *
+ * Esto existe porque nos costó un cobro real: el endpoint quedó registrado en
+ * `www.tiendifyapp.com`, Vercel redirige `www` al dominio sin www con un 308,
+ * y **Stripe no sigue redirecciones en los webhooks** — anota cada entrega
+ * como fallida y no reintenta a la URL nueva. El resultado fue un cliente
+ * cobrado con su pedido colgado en "esperando pago", sin una sola pista en la
+ * app, porque el evento nunca llegó.
+ */
+async function resolveWebhookUrl(url: string): Promise<string> {
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    const location = res.headers.get("location");
+    if (res.status >= 300 && res.status < 400 && location) {
+      const final = new URL(location, url).toString();
+      console.log(
+        `⚠ ${url} redirige (${res.status}) a ${final}.\n` +
+          "  Stripe no sigue redirecciones: se registra la URL final.\n" +
+          "  Convendría alinear NEXT_PUBLIC_APP_URL con esa misma.",
+      );
+      return final;
+    }
+  } catch {
+    // Sin red o el sitio caído: se registra la URL tal cual y que Stripe avise.
+  }
+  return url;
+}
+
 async function main() {
   if (!key) {
     console.error("Falta STRIPE_SECRET_KEY.");
@@ -102,7 +136,7 @@ async function main() {
   // ── Webhook ───────────────────────────────────────────────────────────────
   let webhookSecret: string | null = null;
   if (appUrl && !appUrl.includes("localhost")) {
-    const url = `${appUrl}/api/stripe/webhook`;
+    const url = await resolveWebhookUrl(`${appUrl}/api/stripe/webhook`);
     const endpoints = await stripe.webhookEndpoints.list({ limit: 100 });
     const existing = endpoints.data.find((e) => e.url === url);
     if (existing) {
