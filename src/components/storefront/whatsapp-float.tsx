@@ -1,3 +1,7 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
 import { whatsappUrl } from "@/lib/whatsapp";
 
 /**
@@ -19,8 +23,12 @@ export function WhatsappFloat({
   phone: string | null;
   storeName: string;
 }) {
+  const pathname = usePathname();
   const url = whatsappUrl(phone, `Hola! Te escribo desde la tienda ${storeName}.`);
   if (!url) return null;
+  // /<tienda>/checkout y /<tienda>/checkout/procesando (la vuelta del banco).
+  // Por segmento y no por substring: una tienda puede llamarse "checkout-shop".
+  if (pathname?.split("/")[2] === "checkout") return null;
 
   return (
     <a

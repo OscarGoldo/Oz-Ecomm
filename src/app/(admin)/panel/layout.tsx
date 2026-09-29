@@ -17,12 +17,15 @@ export default async function PanelLayout({
 }) {
   const { user, store } = await requireStoreUser();
 
-  // Count orders awaiting payment confirmation (badge on the Pedidos nav).
+  // Pedidos que esperan algo del comerciante (badge en Pedidos): revisar un
+  // comprobante, o seguir a un cliente que eligió pagar por fuera y no mandó
+  // nada. Esos segundos tienen el stock apartado desde que se crearon; si no se
+  // ven, la última unidad queda "agotada" en la tienda por un pedido fantasma.
   const { count: unattended } = await createClient()
     .from("orders")
     .select("id", { count: "exact", head: true })
     .eq("store_id", store.id)
-    .eq("status", "pending_confirmation");
+    .in("status", ["pending_confirmation", "pending_payment"]);
   // Carritos abandonados pendientes (mismo criterio que /panel/carritos: solo
   // los que ya pasaron la ventana de gracia cuentan como abandonados).
   const { count: pendingCarts } = await createClient()

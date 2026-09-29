@@ -132,6 +132,7 @@ export function CardPayment({
         storeSlug={storeSlug}
         total={total}
         getInput={getInput}
+        getPaymentIntentId={() => paymentIntentId.current}
         onPaid={onPaid}
       />
     </Elements>
@@ -142,11 +143,14 @@ function CardForm({
   storeSlug,
   total,
   getInput,
+  getPaymentIntentId,
   onPaid,
 }: {
   storeSlug: string;
   total: number;
   getInput: () => CheckoutInput | null;
+  /** El cobro al que está atado este formulario (el del `clientSecret`). */
+  getPaymentIntentId: () => string | null;
   onPaid: (orderId: string) => void;
 }) {
   const stripe = useStripe();
@@ -166,10 +170,24 @@ function CardForm({
     // La sincronización final es la que congela el pedido entero —con los datos
     // del cliente— del lado del servidor. Sin esto, un cobro cuyo navegador no
     // vuelve no se podría convertir en pedido desde el webhook.
-    const sync = await syncCardPayment(input);
+    //
+    // Tiene que ir al MISMO cobro que se va a confirmar. Sin el id, el servidor
+    // abría uno nuevo y congelaba ahí los datos finales, mientras Stripe cobraba
+    // el original con el borrador de cuando se montó el formulario: sin la nota,
+    // sin los cambios del paso 1, o sin datos del cliente en absoluto.
+    const intentId = getPaymentIntentId();
+    const sync = await syncCardPayment(input, intentId ?? undefined, {
+      final: true,
+    });
     if (!sync.ok) {
       setPaying(false);
       return toast.error(sync.error ?? "No se pudo preparar el pago");
+    }
+    // El servidor tuvo que abrir otro cobro (el anterior ya no se podía usar).
+    // Confirmar este formulario cobraría uno sin borrador: mejor empezar de nuevo.
+    if (!intentId || sync.paymentIntentId !== intentId) {
+      setPaying(false);
+      return toast.error("El pago se reinició. Recarga la página e intenta de nuevo.");
     }
     // El monto pudo haberse movido entre que se montó el formulario y ahora.
     await elements.fetchUpdates();

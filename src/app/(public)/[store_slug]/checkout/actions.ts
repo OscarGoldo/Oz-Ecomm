@@ -1225,6 +1225,7 @@ interface StoredDraft {
 export async function syncCardPayment(
   input: CheckoutInput,
   paymentIntentId?: string,
+  opts?: { final?: boolean },
 ): Promise<CardPaymentSetup> {
   const stripe = getStripe();
   if (!stripe) {
@@ -1255,6 +1256,18 @@ export async function syncCardPayment(
   // El formulario completo, cuando ya lo está. Es lo que permite crear el
   // pedido desde el webhook si el navegador no vuelve.
   const full = checkoutSchema.safeParse(input);
+
+  // La sincronización final es la que el webhook usaría para crear el pedido,
+  // así que ahí el formulario TIENE que estar completo. Si no se corta acá, el
+  // navegador cobra igual y el cobro queda sin pedido: pasaba con un email que
+  // el navegador acepta y el servidor no, como `juan..perez@gmail.com`.
+  if (opts?.final && !full.success) {
+    return {
+      ok: false,
+      error: full.error.issues[0]?.message ?? "Revisa tus datos",
+    };
+  }
+
   const stored: StoredDraft = {
     draft,
     data: full.success ? full.data : null,
