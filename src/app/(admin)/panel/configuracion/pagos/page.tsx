@@ -13,6 +13,10 @@ export default async function PagosPage() {
     .from("payment_methods")
     .select("*")
     .eq("store_id", store.id)
+    // PayPal se quitó en septiembre de 2026. Los métodos viejos quedan en la
+    // base (guardan los datos de cobro de ventas pasadas), pero no se muestran:
+    // reactivarlos no haría nada, porque ya no hay con qué cobrarlos.
+    .neq("type", "paypal")
     .order("display_order");
 
   return (

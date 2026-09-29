@@ -25,7 +25,6 @@ const methodSchema = z.object({
     "cash",
     "transfer",
     "other",
-    "paypal",
     "stripe",
   ]),
   label: z.string().trim().min(2, "Pon un nombre"),

@@ -27,14 +27,16 @@ export default async function SuperPayoutsPage() {
     supabase
       .from("orders")
       .select("store_id, total, payment_net, payment_fee, paid_out_at, status")
-      // PayPal y Stripe: los dos cobran a la cuenta de la plataforma, así que
-      // lo que se le debe al comerciante es la suma de ambos.
-      .in("payment_method_type", ["paypal", "stripe"])
+      // Lo que cobró la plataforma por el comerciante. "paypal" sigue acá solo
+      // por las ventas viejas: PayPal se quitó en septiembre de 2026, pero esa
+      // plata ya entró y se le sigue debiendo. Sacarlo escondería una deuda.
+      .in("payment_method_type", ["stripe", "paypal"])
       .in("status", SALES_STATUSES),
     supabase
       .from("payment_methods")
       .select("store_id, details")
-      .in("type", ["paypal", "stripe"]),
+      // Los datos de cobro de las ventas viejas viven en el método PayPal.
+      .in("type", ["stripe", "paypal"]),
   ]);
 
   const payoutByStore = new Map<
@@ -96,9 +98,9 @@ export default async function SuperPayoutsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Pagos a tiendas</h1>
         <p className="text-sm text-muted-foreground">
-          Lo recaudado por PayPal entra a tu cuenta. Aquí ves cuánto le debes a
-          cada tienda (neto, ya descontada la comisión de PayPal) y registras el
-          pago.
+          Lo cobrado con tarjeta entra a tu cuenta. Aquí ves cuánto le debes a
+          cada tienda (neto, ya descontada la comisión del procesador) y
+          registras el pago.
         </p>
       </div>
 
@@ -109,7 +111,7 @@ export default async function SuperPayoutsPage() {
         </div>
         <div className="rounded-xl border bg-card p-4">
           <p className="text-xs font-medium text-muted-foreground">
-            Comisiones PayPal (pendientes)
+            Comisiones del procesador (pendientes)
           </p>
           <p className="mt-1 text-2xl font-bold tracking-tight">{formatUSD(totalCommission)}</p>
         </div>
@@ -118,7 +120,7 @@ export default async function SuperPayoutsPage() {
       {rows.length === 0 ? (
         <div className="grid place-items-center rounded-xl border border-dashed bg-card p-12 text-center">
           <Wallet className="mb-3 size-9 text-muted-foreground" />
-          <p className="font-medium">Todavía no hay ventas por PayPal</p>
+          <p className="font-medium">Todavía no hay ventas con tarjeta</p>
         </div>
       ) : (
         <ul className="space-y-3">

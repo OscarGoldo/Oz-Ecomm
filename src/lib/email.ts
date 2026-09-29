@@ -118,7 +118,7 @@ interface ReferralRewardEmailParams {
  * Aviso al comerciante de que su referido se activó y ya tiene el mes de Pro.
  *
  * Dice explícitamente que los meses se suman al FINAL del período: si tiene la
- * suscripción recurrente de PayPal, el premio no le frena el cobro de este mes,
+ * renovación automática, el premio no le frena el cobro de este mes,
  * y sin esa línea llega el reclamo.
  */
 export function referralRewardEmail(p: ReferralRewardEmailParams): {
@@ -159,7 +159,7 @@ export function referralRewardEmail(p: ReferralRewardEmailParams): {
         ? ""
         : `<p style="margin:0 0 16px;color:#64748b;font-size:14px;line-height:1.5">
       Los meses se agregan al final de tu período actual. Si pagas tu plan con
-      suscripción de PayPal, el cobro de este mes sigue igual y tu vencimiento
+      renovación automática, el cobro de este mes sigue igual y tu vencimiento
       se corre hacia adelante.
     </p>`
     }
@@ -209,7 +209,7 @@ export function customerOrderStatusEmail(p: CustomerStatusEmailParams): {
  * En qué punto del camino está el pedido cuando se manda el recibo.
  *  - awaiting_payment: eligió pago por fuera y todavía no subió el comprobante.
  *  - pending_proof:    ya lo subió y la tienda tiene que verificarlo.
- *  - confirmed:        efectivo o PayPal, no hay nada que esperar.
+ *  - confirmed:        efectivo o tarjeta, no hay nada que esperar.
  */
 export type ReceiptState = "awaiting_payment" | "pending_proof" | "confirmed";
 

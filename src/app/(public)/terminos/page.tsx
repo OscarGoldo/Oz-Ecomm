@@ -72,8 +72,8 @@ export default function TerminosPage() {
           <p>
             Las tiendas pueden aceptar métodos de pago locales (Pago Móvil,
             Zelle, Binance, efectivo, transferencia) gestionados directamente por
-            cada tienda, y pagos online con PayPal o tarjeta procesados por
-            PayPal. Los pagos procesados por terceros están sujetos a los
+            cada tienda, y pagos con tarjeta procesados por Stripe a través de
+            la plataforma. Los pagos procesados por terceros están sujetos a los
             términos y comisiones de esos procesadores. Los montos en bolívares
             son referenciales y se calculan con la tasa configurada por cada
             tienda.

@@ -12,8 +12,8 @@ export interface ActionResult {
 }
 
 /**
- * Mark a tenant's outstanding PayPal earnings as paid out. Stamps every
- * not-yet-settled PayPal sale of that store with the payout date + proof.
+ * Marca como pagado lo que se le debía a una tienda por sus ventas online.
+ * Estampa cada venta sin liquidar de esa tienda con la fecha y el comprobante.
  */
 export async function settleStorePayout(
   storeId: string,
@@ -35,9 +35,9 @@ export async function settleStorePayout(
       payout_reference: reference,
     })
     .eq("store_id", storeId)
-    // Los dos procesadores online: la plata de ambos cae en las cuentas de la
-    // plataforma, así que se liquidan juntos.
-    .in("payment_method_type", ["paypal", "stripe"])
+    // Todo lo cobrado online por la plataforma. "paypal" queda por las ventas
+    // anteriores a septiembre de 2026, que también hay que liquidar.
+    .in("payment_method_type", ["stripe", "paypal"])
     .is("paid_out_at", null)
     .in("status", SALES_STATUSES);
 

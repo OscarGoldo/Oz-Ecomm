@@ -33,9 +33,15 @@ export default async function CheckoutPage({
     .eq("active", true)
     .order("display_order");
 
-  // The PayPal method stores the tenant's payout info (how the platform pays
-  // them) in details — strip it so it never reaches the customer's browser.
-  const paymentMethods = (paymentMethodsRaw ?? []).map((m) => {
+  // PayPal se quitó en septiembre de 2026. Una tienda que todavía tenga el
+  // método activo en la base no puede ofrecerlo: no hay con qué cobrarlo.
+  //
+  // El método con tarjeta guarda los datos de cobro del comerciante (cómo le
+  // paga la plataforma) en details — se quitan para que nunca lleguen al
+  // navegador del cliente.
+  const paymentMethods = (paymentMethodsRaw ?? [])
+    .filter((m) => m.type !== "paypal")
+    .map((m) => {
     if (m.details && typeof m.details === "object") {
       const safe = Object.fromEntries(
         Object.entries(m.details as Record<string, unknown>).filter(

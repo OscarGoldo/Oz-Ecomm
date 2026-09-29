@@ -44,35 +44,41 @@ import {
 } from "@/lib/constants";
 import type { PaymentMethod, PaymentMethodType } from "@/types/database";
 
-const TYPES: PaymentMethodType[] = [
+/**
+ * Lo que un comerciante puede configurar hoy. PayPal sigue existiendo en el
+ * tipo de la base solo por los pedidos viejos (se quitó en septiembre de 2026),
+ * así que se deja afuera acá para que el formulario no pueda producirlo.
+ */
+type ConfigurableType = Exclude<PaymentMethodType, "paypal">;
+
+const TYPES: ConfigurableType[] = [
   "pago_movil",
   "zelle",
   "binance",
   "transfer",
   "cash",
   "stripe",
-  "paypal",
   "other",
 ];
 
 /**
- * Los métodos que cobra la plataforma online (Stripe y PayPal). No llevan
+ * Los métodos que cobra la plataforma online (la tarjeta, por Stripe). No llevan
  * datos que el cliente transcriba ni comprobante: llevan la configuración de
  * cómo le transferimos al comerciante lo recaudado.
  */
-function isOnline(type: PaymentMethodType): boolean {
-  return type === "paypal" || type === "stripe";
+function isOnline(type: ConfigurableType): boolean {
+  return type === "stripe";
 }
 
 interface FormState {
-  type: PaymentMethodType;
+  type: ConfigurableType;
   label: string;
   details: Record<string, string>;
   requires_proof: boolean;
   instructions: string;
 }
 
-function emptyForm(type: PaymentMethodType = "pago_movil"): FormState {
+function emptyForm(type: ConfigurableType = "pago_movil"): FormState {
   return {
     type,
     label: PAYMENT_METHOD_META[type].label,
@@ -88,7 +94,9 @@ function toForm(m: PaymentMethod): FormState {
       ? (m.details as Record<string, string>)
       : {};
   return {
-    type: m.type,
+    // La página ya no lista métodos PayPal; si alguno se colara, se abre como
+    // "Otro" en vez de romper el formulario.
+    type: m.type === "paypal" ? "other" : m.type,
     label: m.label,
     details,
     requires_proof: m.requires_proof,
@@ -118,7 +126,7 @@ export function PaymentMethodsManager({
     setEditingId(null);
   }
 
-  function changeType(type: PaymentMethodType) {
+  function changeType(type: ConfigurableType) {
     setForm((f) => ({
       ...f,
       type,
@@ -252,7 +260,7 @@ export function PaymentMethodsManager({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Tipo</Label>
-                <Select value={form.type} onValueChange={(v) => changeType(v as PaymentMethodType)}>
+                <Select value={form.type} onValueChange={(v) => changeType(v as ConfigurableType)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -298,18 +306,16 @@ export function PaymentMethodsManager({
             {isOnline(form.type) && (
               <div className="space-y-4">
                 <p className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-                  Los pagos con tarjeta
-                  {form.type === "paypal" ? " y PayPal" : ""} se procesan de
-                  forma segura a través de la plataforma. El cliente paga el
-                  total online y el pedido se confirma al instante. Aplican
-                  comisiones del procesador de pago, que se descuentan de lo que
-                  recibes.
+                  Los pagos con tarjeta se procesan de forma segura a través de
+                  la plataforma. El cliente paga el total online y el pedido se
+                  confirma al instante. Aplican comisiones del procesador de
+                  pago, que se descuentan de lo que recibes.
                 </p>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">¿Cómo quieres que te paguemos?</p>
                   <p className="text-xs text-muted-foreground">
                     La plataforma te transfiere por este medio lo que recaudes
-                    con {form.type === "paypal" ? "PayPal" : "tarjeta"}.
+                    con tarjeta.
                   </p>
                 </div>
                 <div className="space-y-2">

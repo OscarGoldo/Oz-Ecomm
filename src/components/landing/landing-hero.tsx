@@ -8,7 +8,7 @@ import { FREE_MAX_PRODUCTS } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 
 /** Lo que de verdad diferencia a Tiendify de un Shopify: cómo se cobra acá. */
-const PAYMENTS = ["Pago Móvil", "Zelle", "Binance", "Efectivo", "PayPal"];
+const PAYMENTS = ["Pago Móvil", "Zelle", "Binance", "Efectivo", "Tarjeta"];
 
 export async function LandingHero() {
   // La vista previa muestra precios en Bs con la tasa BCV real del día. Es la

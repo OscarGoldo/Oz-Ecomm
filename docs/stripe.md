@@ -6,13 +6,16 @@ tiendas** y el **plan Pro** de los comerciantes.
 ## Modelo
 
 Una sola cuenta de Stripe (la de la plataforma, en Canadá) para todas las
-tiendas — igual que PayPal. **No es Stripe Connect**: no hay cuentas conectadas
+tiendas. **No es Stripe Connect**: no hay cuentas conectadas
 ni KYC por tienda. La plata de los pedidos cae en la cuenta de la plataforma y
-lo que se le debe a cada comerciante se liquida en `/super/pagos`, sumado con lo
-de PayPal.
+lo que se le debe a cada comerciante se liquida en `/super/pagos`.
+
+PayPal se quitó en septiembre de 2026. Las ventas que ya se habían cobrado por
+ahí siguen apareciendo en `/super/pagos` y en las finanzas del comerciante
+hasta que se liquiden: esa plata entró y se le sigue debiendo.
 
 El comerciante recibe el **neto** (total − comisión de Stripe). Sin comisión de
-plataforma, igual que se decidió para PayPal.
+plataforma.
 
 Todo se cobra en **USD**. La cuenta es canadiense: si Stripe liquida en CAD, la
 comisión y el neto se convierten de vuelta a USD con el `exchange_rate` del
@@ -78,7 +81,7 @@ Consecuencias de este orden, todas asumidas:
 - **El stock no se reserva** mientras el cliente escribe la tarjeta. Dos
   personas pueden comprar la última unidad a la vez y las dos pagan. Cuando
   pasa, el pedido se crea igual (la plata ya entró) y el faltante se concilia a
-  mano — mismo criterio que PayPal.
+  mano.
 - Un cupón que se agota entre que se aplica y que se paga tampoco tumba el
   pedido, por lo mismo.
 - El pedido nunca se crea sin un cobro verificado contra Stripe.
@@ -92,7 +95,7 @@ Consecuencias de este orden, todas asumidas:
   que le hace perder el Pro sin darse cuenta.
 - Los meses los suma **solo `invoice.paid`**. `checkout.session.completed` en
   modo suscripción únicamente registra el id — sumar en los dos daría el doble
-  de meses en el primer cobro (misma regla que el webhook de PayPal).
+  de meses en el primer cobro.
 - Cancelar corta la renovación pero **no** el plan: lo pagado corre hasta su
   vencimiento.
 

@@ -10,8 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentProofUpload } from "@/components/storefront/payment-proof-upload";
-import { PlanPaypalButtons } from "@/components/admin/plan-paypal-buttons";
-import { PlanSubscribeButtons } from "@/components/admin/plan-subscribe-buttons";
 import {
   createProStripeCheckout,
   requestProUpgrade,
@@ -34,8 +32,8 @@ export interface PlatformPaymentView {
   fields: { label: string; value: string }[];
 }
 
-/** Cómo va a pagar: online (tarjeta o PayPal), o manual subiendo comprobante. */
-type PayVia = "stripe" | "paypal" | "manual";
+/** Cómo va a pagar: con tarjeta, o manual subiendo comprobante. */
+type PayVia = "stripe" | "manual";
 
 /** Los métodos que se pagan por fuera y llevan comprobante. */
 type ManualMethod = UpgradeInput["method"];
@@ -45,8 +43,6 @@ export function PlanCheckout({
   prices,
   payments,
   bcvRate,
-  paypalClientId,
-  planIds,
   stripeEnabled,
   stripeRecurringPeriods,
 }: {
@@ -55,13 +51,6 @@ export function PlanCheckout({
   payments: PlatformPaymentView[];
   /** Tasa BCV para mostrar el monto en Bs. null = solo USD. */
   bcvRate: number | null;
-  /** Client id público de PayPal. null = PayPal no configurado. */
-  paypalClientId: string | null;
-  /**
-   * Ids de los planes de facturación de PayPal, por período. Un período que
-   * no está acá (el trimestre) se cobra una sola vez y no se renueva.
-   */
-  planIds: Partial<Record<number, string>> | null;
   /** ¿Está Stripe configurado en la plataforma? */
   stripeEnabled: boolean;
   /**
@@ -73,11 +62,9 @@ export function PlanCheckout({
 }) {
   const router = useRouter();
   const [months, setMonths] = useState<number>(12);
-  // PayPal primero cuando está disponible: se activa solo, sin esperar
+  // Tarjeta primero cuando está disponible: se activa sola, sin esperar
   // revisión. El comprobante queda para quien paga en Bs.
-  const [via, setVia] = useState<PayVia>(
-    stripeEnabled ? "stripe" : paypalClientId ? "paypal" : "manual",
-  );
+  const [via, setVia] = useState<PayVia>(stripeEnabled ? "stripe" : "manual");
   const [method, setMethod] = useState<ManualMethod | null>(
     (payments[0]?.method as ManualMethod | undefined) ?? null,
   );
@@ -89,17 +76,9 @@ export function PlanCheckout({
   const amount = priceFor(months, prices);
   const amountBs = usdToBs(amount, bcvRate);
   const selected = payments.find((p) => p.method === method);
-  const nothingConfigured =
-    payments.length === 0 && !paypalClientId && !stripeEnabled;
+  const nothingConfigured = payments.length === 0 && !stripeEnabled;
   /** ¿El período elegido se renueva solo en Stripe? */
   const stripeRecurring = stripeRecurringPeriods.includes(months);
-  /**
-   * Plan recurrente para el período elegido, si existe. El trimestre no tiene,
-   * así que se cobra una sola vez — y hay que decírselo al comerciante, porque
-   * la diferencia entre "se renueva solo" y "se vence" es justo la que le hace
-   * perder el Pro sin darse cuenta.
-   */
-  const recurringPlanId = planIds?.[months] ?? null;
 
   /**
    * Stripe cobra en una página suya, así que esto es una ida sin vuelta: el
@@ -234,31 +213,6 @@ export function PlanCheckout({
     </div>
   );
 
-  const paypalPayment = paypalClientId && (
-    <div className="space-y-2">
-      {recurringPlanId ? (
-        <PlanSubscribeButtons
-          clientId={paypalClientId}
-          planId={recurringPlanId}
-          storeId={storeId}
-          onSubscribed={() => router.refresh()}
-        />
-      ) : (
-        <PlanPaypalButtons
-          clientId={paypalClientId}
-          months={months}
-          onPaid={() => router.refresh()}
-        />
-      )}
-      <p className="text-center text-xs text-muted-foreground">
-        Puedes pagar con tarjeta de débito o crédito sin tener cuenta de PayPal.{" "}
-        {recurringPlanId
-          ? `Se renueva ${months >= 12 ? "cada año" : "cada mes"} y puedes cancelar cuando quieras.`
-          : "Es un pago único: no se renueva solo, te avisamos antes de que venza."}
-      </p>
-    </div>
-  );
-
   const vias: { id: PayVia; title: string; sub: string }[] = [
     ...(stripeEnabled
       ? [
@@ -268,9 +222,6 @@ export function PlanCheckout({
             sub: "Se activa al instante",
           },
         ]
-      : []),
-    ...(paypalClientId
-      ? [{ id: "paypal" as const, title: "PayPal", sub: "Se activa al instante" }]
       : []),
     ...(payments.length > 0
       ? [
@@ -288,7 +239,7 @@ export function PlanCheckout({
       <CardHeader>
         <CardTitle className="text-base">Activar Pro</CardTitle>
         <p className="text-xs text-muted-foreground">
-          {stripeEnabled || paypalClientId
+          {stripeEnabled
             ? "Paga con tarjeta y se activa solo, o paga en bolívares y sube el comprobante."
             : "Haz el pago, sube el comprobante y lo confirmamos. No necesitas tarjeta de crédito."}
         </p>
@@ -384,11 +335,7 @@ export function PlanCheckout({
                 ))}
               </div>
             )}
-            {via === "stripe" && stripeEnabled
-              ? stripePayment
-              : via === "paypal" && paypalClientId
-                ? paypalPayment
-                : manualPayment}
+            {via === "stripe" && stripeEnabled ? stripePayment : manualPayment}
           </>
         )}
       </CardContent>

@@ -115,7 +115,7 @@ export default async function ReferidosPage() {
           {QUALIFY_MIN_PRODUCTS} productos y confirma{" "}
           {QUALIFY_MIN_ORDERS === 1 ? "su primera venta" : `${QUALIFY_MIN_ORDERS} ventas`}.
           Los meses se suman al final de tu período actual — si pagas con
-          suscripción de PayPal, el cobro sigue igual y tu vencimiento se corre
+          renovación automática, el cobro sigue igual y tu vencimiento se corre
           hacia adelante.
         </p>
       </div>

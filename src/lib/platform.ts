@@ -1,7 +1,6 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { paypalCredsFromEnv } from "@/lib/paypal";
 import { stripeConfigured } from "@/lib/stripe";
 import {
   DEFAULT_PRO_PRICE_QUARTERLY_USD,
@@ -24,14 +23,9 @@ export interface PlatformConfig {
   /** Métodos manuales: el comerciante copia los datos y sube comprobante. */
   payments: PlatformPayment[];
   /**
-   * PayPal se cobra online, no se copia. Va aparte de `payments` porque no
+   * La tarjeta se cobra online, no se copia. Va aparte de `payments` porque no
    * son datos que el comerciante transcribe, sino un botón que cobra y activa
-   * el plan al instante. Depende solo de las credenciales de entorno.
-   */
-  paypalEnabled: boolean;
-  /**
-   * Stripe, igual que PayPal: un botón que cobra con tarjeta y activa el plan
-   * al instante. Depende solo de STRIPE_SECRET_KEY.
+   * el plan al instante. Depende solo de STRIPE_SECRET_KEY.
    */
   stripeEnabled: boolean;
 }
@@ -43,7 +37,6 @@ const FALLBACK: PlatformConfig = {
     yearly: DEFAULT_PRO_PRICE_YEARLY_USD,
   },
   payments: [],
-  paypalEnabled: false,
   stripeEnabled: false,
 };
 
@@ -70,12 +63,11 @@ function fields(
  * defecto y sin métodos de pago, en vez de romper el panel.
  */
 export async function getPlatformConfig(): Promise<PlatformConfig> {
-  const paypalEnabled = paypalCredsFromEnv() !== null;
   const stripeEnabled = stripeConfigured();
 
   const db = createAdminClient();
   const { data } = await db.from("platform_settings").select("*").maybeSingle();
-  if (!data) return { ...FALLBACK, paypalEnabled, stripeEnabled };
+  if (!data) return { ...FALLBACK, stripeEnabled };
 
   const payments: PlatformPayment[] = [
     {
@@ -116,7 +108,6 @@ export async function getPlatformConfig(): Promise<PlatformConfig> {
       yearly: Number(data.pro_price_yearly_usd) || DEFAULT_PRO_PRICE_YEARLY_USD,
     },
     payments,
-    paypalEnabled,
     stripeEnabled,
   };
 }

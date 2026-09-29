@@ -46,12 +46,14 @@ export default async function FinanzasPage() {
   const employees = (employeeRows ?? []) as Employee[];
   const rate = store.exchange_rate;
 
-  // Payouts received from the platform (PayPal earnings settled by Tiendify).
+  // Lo que la plataforma le liquidó por sus ventas online. Incluye "paypal"
+  // solo por las ventas viejas: PayPal se quitó en septiembre de 2026, pero lo
+  // que ya se cobró por ahí se sigue pagando y se tiene que ver.
   const { data: payoutOrders } = await supabase
     .from("orders")
     .select("paid_out_at, payment_net, total, payout_proof_url, payout_reference")
     .eq("store_id", store.id)
-    .eq("payment_method_type", "paypal")
+    .in("payment_method_type", ["stripe", "paypal"])
     .not("paid_out_at", "is", null)
     .order("paid_out_at", { ascending: false });
 
@@ -121,7 +123,7 @@ export default async function FinanzasPage() {
           <div>
             <h2 className="text-sm font-semibold">Pagos recibidos de Tiendify</h2>
             <p className="text-xs text-muted-foreground">
-              Lo que te transfirió la plataforma por tus ventas con PayPal/tarjeta
+              Lo que te transfirió la plataforma por tus ventas con tarjeta
               (neto, ya descontada la comisión del procesador).
             </p>
           </div>

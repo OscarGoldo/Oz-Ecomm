@@ -20,7 +20,7 @@ export const runtime = "nodejs";
  * Webhook de Stripe. Cubre las dos cosas que cobramos con tarjeta: los pedidos
  * de las tiendas y el plan Pro.
  *
- * Reglas de oro, las mismas que el de PayPal:
+ * Reglas de oro:
  *
  *  1. NADA se procesa sin verificar la firma sobre el cuerpo CRUDO. Sin eso,
  *     cualquiera que descubra esta URL se regala pedidos pagados y meses de Pro.
@@ -265,9 +265,8 @@ async function handleSessionExpired(db: Db, session: Stripe.Checkout.Session) {
  * El comerciante terminó el checkout del plan.
  *
  * En modo suscripción esto NO extiende nada: solo registra la suscripción. Los
- * meses los suma `invoice.paid`, que es el evento de plata de verdad — igual
- * que en PayPal, donde ACTIVATED registra y PAYMENT.SALE.COMPLETED cobra.
- * Sumar en los dos daría el doble de meses en el primer cobro.
+ * meses los suma `invoice.paid`, que es el evento de plata de verdad. Sumar en
+ * los dos daría el doble de meses en el primer cobro.
  */
 async function handlePlanSession(db: Db, session: Stripe.Checkout.Session) {
   const storeId = session.metadata?.store_id;
@@ -433,9 +432,8 @@ async function storeForSubscription(
 
 /**
  * ¿Cuántos meses compró? Se deduce del monto contra los precios configurados,
- * eligiendo el período más parecido. Es el mismo criterio que el webhook de
- * PayPal, pero sin la constante mágica: si mañana el anual cambia de precio,
- * esto sigue acertando.
+ * eligiendo el período más parecido, sin constantes mágicas: si mañana el
+ * anual cambia de precio, esto sigue acertando.
  */
 function monthsForAmount(
   amount: number,

@@ -83,8 +83,8 @@ export default function PrivacidadPage() {
             Los datos del pedido se comparten con la tienda a la que le
             compraste (es quien procesa tu entrega). Usamos proveedores de
             infraestructura para operar la plataforma: Supabase (base de datos y
-            archivos), Vercel (alojamiento), Resend (correos) y PayPal (pagos
-            online, sujeto a su propia política de privacidad).
+            archivos), Vercel (alojamiento), Resend (correos) y Stripe (pagos
+            con tarjeta, sujeto a su propia política de privacidad).
           </p>
         </section>
 

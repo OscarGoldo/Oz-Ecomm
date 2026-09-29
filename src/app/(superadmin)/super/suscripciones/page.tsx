@@ -46,8 +46,8 @@ export default async function SuperSubscriptionsPage() {
   const comped = storeList.filter((s) => isPro(s) && s.plan_source === "comp");
   const approved = list.filter((p) => p.status === "approved");
   const collected = approved.reduce((s, p) => s + Number(p.amount), 0);
-  // Lo que se llevó PayPal de lo cobrado por esa vía.
-  const paypalFees = approved.reduce((s, p) => s + Number(p.fee ?? 0), 0);
+  // Lo que se llevó el procesador de lo cobrado con tarjeta.
+  const processorFees = approved.reduce((s, p) => s + Number(p.fee ?? 0), 0);
   // Normalizado a mensual para que el anual no infle el número.
   const mrr = approved
     .filter((p) => {
@@ -74,8 +74,8 @@ export default async function SuperSubscriptionsPage() {
           label="Cobrado histórico"
           value={formatUSD(collected)}
           sub={
-            paypalFees > 0
-              ? `${formatUSD(paypalFees)} en comisiones PayPal`
+            processorFees > 0
+              ? `${formatUSD(processorFees)} en comisiones`
               : comped.length > 0
                 ? `${comped.length} de cortesía`
                 : undefined
@@ -159,9 +159,9 @@ export default async function SuperSubscriptionsPage() {
                   </span>
                   <span className="shrink-0 text-right font-medium">
                     {formatUSD(Number(p.amount))}
-                    {p.method === "paypal" && (
+                    {p.method === "stripe" && p.net != null && (
                       <span className="block text-[11px] font-normal text-muted-foreground">
-                        PayPal · neto {formatUSD(Number(p.net ?? p.amount))}
+                        Tarjeta · neto {formatUSD(Number(p.net))}
                       </span>
                     )}
                   </span>

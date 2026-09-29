@@ -18,11 +18,6 @@ import { notifyOwnerNewOrder } from "@/lib/whatsapp-cloud";
 import { evaluateCoupon, findCouponByCode } from "@/lib/coupons";
 import { maybeQualifyReferral } from "@/lib/referrals-server";
 import {
-  capturePaypalOrder,
-  createPaypalOrder,
-  paypalCredsFromEnv,
-} from "@/lib/paypal";
-import {
   appUrl as publicAppUrl,
   chargeBreakdown,
   fromCents,
@@ -48,7 +43,6 @@ const checkoutSchema = z.object({
   payment_method_id: z.string().uuid("Elige un método de pago"),
   payment_reference: z.string().trim().optional(),
   payment_proof_path: z.string().trim().max(400).optional(),
-  paypal_order_id: z.string().trim().optional(),
   coupon_code: z.string().trim().optional(),
   notes: z.string().trim().optional(),
   /**
@@ -250,7 +244,7 @@ type DraftInput = Pick<
 
 /**
  * Validate the request + cart and compute the order draft (items, totals,
- * stock changes). Shared by the manual checkout and the PayPal flow so the
+ * stock changes). Shared by the manual checkout and the card flow so the
  * money math lives in one place. Does NOT insert anything.
  */
 async function buildOrderDraft(
@@ -437,37 +431,6 @@ async function buildOrderDraft(
   };
 }
 
-/**
- * Step 1 of a PayPal payment: create the PayPal order for the real (server
- * computed) total. The browser then shows the PayPal/card buttons for it.
- */
-export async function createPaypalOrderAction(
-  input: CheckoutInput,
-): Promise<{ ok: boolean; error?: string; paypalOrderId?: string }> {
-  const parsed = checkoutSchema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
-  }
-
-  const db = createAdminClient();
-  const result = await buildOrderDraft(db, parsed.data);
-  if (!result.ok) return { ok: false, error: result.error };
-  const { draft } = result;
-
-  if (draft.method.type !== "paypal") {
-    return { ok: false, error: "Método no válido" };
-  }
-  const creds = paypalCredsFromEnv();
-  if (!creds) return { ok: false, error: "PayPal no está disponible por el momento" };
-  if (draft.total <= 0) return { ok: false, error: "El total no es válido" };
-
-  const res = await createPaypalOrder(creds, draft.total, {
-    description: `Pedido en ${draft.store.name}`,
-  });
-  if (!res.ok) return { ok: false, error: "No se pudo iniciar el pago con PayPal" };
-  return { ok: true, paypalOrderId: res.id };
-}
-
 export async function createOrder(
   input: CheckoutInput,
 ): Promise<CheckoutResult> {
@@ -585,27 +548,9 @@ async function insertOrder(
     // método, estaría creando un pedido "confirmado" sin haber pagado.
     return { ok: false, error: "Método de pago no válido" };
   } else if (method.type === "paypal") {
-    // Capture the online payment now; only create the order if it succeeds.
-    const creds = paypalCredsFromEnv();
-    if (!creds) return { ok: false, error: "PayPal no está disponible por el momento" };
-    if (!data.paypal_order_id) {
-      return { ok: false, error: "El pago de PayPal no se completó" };
-    }
-    const cap = await capturePaypalOrder(creds, data.paypal_order_id);
-    if (!cap.ok) {
-      return { ok: false, error: "No se pudo confirmar el pago con PayPal" };
-    }
-    if (Math.abs(cap.amount - total) > 0.01) {
-      return {
-        ok: false,
-        error: "El monto cobrado no coincide con el pedido. Contacta a la tienda.",
-      };
-    }
-    status = "confirmed";
-    paymentReference = cap.captureId;
-    paymentProof = null;
-    paymentFee = cap.fee;
-    paymentNet = cap.net;
+    // PayPal se quitó en septiembre de 2026. Un método viejo que haya quedado
+    // en la base no puede crear pedidos: no hay con qué cobrarlo.
+    return { ok: false, error: "Método de pago no válido" };
   } else if (!method.requires_proof) {
     status = "confirmed";
   } else if (data.payment_proof_path) {
@@ -711,17 +656,17 @@ async function insertOrder(
   // El stock se reserva AL TOMAR EL PEDIDO, no al confirmar el pago.
   //
   // Antes esto corría solo para los pedidos que nacen confirmados (efectivo y
-  // PayPal), y el flujo más usado en Venezuela —Pago Móvil con comprobante—
+  // pago online), y el flujo más usado en Venezuela —Pago Móvil con comprobante—
   // se quedaba en pending_confirmation sin reservar nada hasta que el dueño
   // revisara la foto, horas después. En esa ventana dos clientes compraban la
   // última unidad, los dos pagaban de verdad, y alguien se quedaba sin nada.
   //
-  //  - todo lo que no sea PayPal: guardia activa. Si el stock se agotó en la
+  //  - sin cobrar todavía: guardia activa. Si el stock se agotó en la
   //    carrera, se rechaza limpio — todavía no se cobró nada.
-  //  - paypal: la plata ya está capturada, así que nunca se rechaza. Se piso
-  //    en 0 y un sobreventa raro se concilia a mano.
+  //  - tarjeta: la plata ya está cobrada, así que nunca se rechaza. Se pisa
+  //    en 0 y una sobreventa rara se concilia a mano.
   if (stockOps.length > 0) {
-    const enforce = method.type !== "paypal" && !opts.card;
+    const enforce = !opts.card;
     const { error: stockErr } = await db.rpc("commit_order_stock", {
       p_items: stockOps,
       p_enforce: enforce,
@@ -746,7 +691,7 @@ async function insertOrder(
     }
   }
 
-  // Los pedidos en efectivo y por PayPal nacen confirmados: nunca pasan por
+  // Los pedidos en efectivo y con tarjeta nacen confirmados: nunca pasan por
   // confirmPayment, así que el referido que trajo a esta tienda se evalúa aquí
   // también. Los que quedan en pending_confirmation se evalúan al confirmarse.
   if (status === "confirmed") {
