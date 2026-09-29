@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth";
+import { paypalEnabled } from "@/lib/paypal";
 
 export interface ActionResult {
   ok: boolean;
@@ -25,6 +26,7 @@ const methodSchema = z.object({
     "cash",
     "transfer",
     "other",
+    "paypal",
     "stripe",
   ]),
   label: z.string().trim().min(2, "Pon un nombre"),
@@ -47,6 +49,9 @@ export async function createPaymentMethod(
   const parsed = methodSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+  if (parsed.data.type === "paypal" && !paypalEnabled()) {
+    return { ok: false, error: "PayPal no está disponible por ahora" };
   }
   let storeId: string;
   try {
@@ -86,6 +91,9 @@ export async function updatePaymentMethod(
   const parsed = methodSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+  if (parsed.data.type === "paypal" && !paypalEnabled()) {
+    return { ok: false, error: "PayPal no está disponible por ahora" };
   }
   let storeId: string;
   try {

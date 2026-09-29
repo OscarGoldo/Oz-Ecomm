@@ -350,6 +350,7 @@ const METHOD_ICONS: Record<string, LucideIcon> = {
   cash: Banknote,
   transfer: Building2,
   stripe: CreditCard,
+  paypal: CreditCard,
 };
 const METHOD_BAR_COLORS = [
   "bg-chart-1",

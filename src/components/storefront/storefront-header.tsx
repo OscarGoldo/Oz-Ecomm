@@ -59,7 +59,7 @@ export function StorefrontHeader({
   layout?: LayoutId;
 }) {
   const logo = getImageUrl(store.logo_url);
-  // The checkout embeds Stripe's tall card form; a sticky header would overlap
+  // The checkout embeds PayPal's tall card form; a sticky header would overlap
   // it, so on checkout the header scrolls away normally.
   const pathname = usePathname();
   const sticky = !(pathname?.endsWith("/checkout") ?? false);

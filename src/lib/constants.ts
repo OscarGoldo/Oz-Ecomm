@@ -50,13 +50,11 @@ export const PAYMENT_METHOD_META: Record<
   cash: { label: "Efectivo" },
   transfer: { label: "Transferencia" },
   other: { label: "Otro" },
-  // Solo para mostrar los pedidos de antes de septiembre de 2026, cuando se
-  // quitó PayPal. No se puede crear un método nuevo de este tipo.
-  paypal: { label: "PayPal" },
+  paypal: { label: "PayPal / Tarjeta" },
   stripe: { label: "Tarjeta de crédito o débito" },
 };
 
-/** Cómo le paga la plataforma a una tienda lo que cobró con tarjeta. */
+/** How the platform pays a tenant their PayPal earnings. */
 export const PAYOUT_METHODS = ["zelle", "pago_movil", "binance"] as const;
 export type PayoutMethod = (typeof PAYOUT_METHODS)[number];
 export const PAYOUT_METHOD_LABELS: Record<PayoutMethod, string> = {

@@ -1,7 +1,7 @@
 // Stripe, lado servidor. La clave secreta nunca sale de acá.
 //
-// Modelo: UNA cuenta de la plataforma (Canadá) para todas las tiendas. Lo que
-// se le debe a cada comerciante se liquida en /super/pagos.
+// Modelo: UNA cuenta de la plataforma (Canadá) para todas las tiendas, igual
+// que PayPal. Lo que se le debe a cada comerciante se liquida en /super/pagos.
 // No es Stripe Connect: no hay cuentas conectadas ni KYC por tienda.
 //
 // Variables de entorno:
@@ -10,8 +10,9 @@
 //   STRIPE_PRICE_MONTHLY     — id del precio recurrente mensual del plan Pro
 //   STRIPE_PRICE_YEARLY      — id del precio recurrente anual del plan Pro
 //
-// La única clave que llega al navegador es la pública
-// (NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY), que pinta los campos de la tarjeta.
+// A diferencia de PayPal, no hay client id público: el checkout de Stripe es
+// una redirección a una página alojada por ellos, así que el navegador no
+// necesita ninguna credencial.
 
 import Stripe from "stripe";
 
@@ -57,8 +58,8 @@ export function stripeIsTestMode(): boolean {
 /**
  * El precio recurrente del plan Pro para ese período, si existe.
  *
- * Un período sin precio recurrente devuelve null y la UI cae al cobro único.
- * Devolver el
+ * Misma regla que `planIdFor` en paypal-subscriptions.ts: un período sin
+ * precio recurrente devuelve null y la UI cae al cobro único. Devolver el
  * precio mensual para un período de tres meses sería cobrarle al comerciante
  * un débito mensual cuando creía estar pagando un trimestre.
  */
@@ -106,7 +107,7 @@ export interface ChargeBreakdown {
  * columna y las cuentas de los payouts saldrían mal.
  *
  * Nunca lanza: si algo falla devuelve null y el pedido se confirma igual sin
- * el desglose (cae al net = total).
+ * el desglose (cae al net = total, como los pedidos viejos de PayPal).
  */
 export async function chargeBreakdown(
   stripe: Stripe,

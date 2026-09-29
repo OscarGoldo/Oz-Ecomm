@@ -7,6 +7,7 @@ import { CheckoutForm } from "@/components/storefront/checkout-form";
 import { CheckoutStartTracker } from "@/components/storefront/event-tracker";
 import { getStoreBySlug } from "@/lib/storefront";
 import { getEnrichedCart } from "@/lib/cart";
+import { paypalEnabled } from "@/lib/paypal";
 import { createClient } from "@/lib/supabase/server";
 import type { PaymentMethod } from "@/types/database";
 
@@ -33,14 +34,15 @@ export default async function CheckoutPage({
     .eq("active", true)
     .order("display_order");
 
-  // PayPal se quitó en septiembre de 2026. Una tienda que todavía tenga el
-  // método activo en la base no puede ofrecerlo: no hay con qué cobrarlo.
-  //
-  // El método con tarjeta guarda los datos de cobro del comerciante (cómo le
-  // paga la plataforma) en details — se quitan para que nunca lleguen al
-  // navegador del cliente.
+  // PayPal está escondido (ver paypalEnabled): una tienda que lo tenga activo
+  // en la base no lo ofrece. Se filtra acá y no en la base a propósito, así el
+  // día que se prenda vuelve a aparecer solo, tal como lo dejó el comerciante.
+  const showPaypal = paypalEnabled();
+
+  // The online methods store the tenant's payout info (how the platform pays
+  // them) in details — strip it so it never reaches the customer's browser.
   const paymentMethods = (paymentMethodsRaw ?? [])
-    .filter((m) => m.type !== "paypal")
+    .filter((m) => showPaypal || m.type !== "paypal")
     .map((m) => {
     if (m.details && typeof m.details === "object") {
       const safe = Object.fromEntries(

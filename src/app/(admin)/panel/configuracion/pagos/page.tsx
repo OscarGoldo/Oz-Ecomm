@@ -1,6 +1,7 @@
 import { ConfigTabs } from "@/components/admin/config-tabs";
 import { PaymentMethodsManager } from "@/components/admin/payment-methods-manager";
 import { requireStoreUser } from "@/lib/auth";
+import { paypalEnabled } from "@/lib/paypal";
 import { createClient } from "@/lib/supabase/server";
 import type { PaymentMethod } from "@/types/database";
 
@@ -13,17 +14,21 @@ export default async function PagosPage() {
     .from("payment_methods")
     .select("*")
     .eq("store_id", store.id)
-    // PayPal se quitó en septiembre de 2026. Los métodos viejos quedan en la
-    // base (guardan los datos de cobro de ventas pasadas), pero no se muestran:
-    // reactivarlos no haría nada, porque ya no hay con qué cobrarlos.
-    .neq("type", "paypal")
     .order("display_order");
+
+  // Con PayPal escondido, el método ni se lista ni se puede agregar. Queda
+  // intacto en la base: guarda los datos de cobro del comerciante, y el día que
+  // se prenda PayPal reaparece tal cual estaba.
+  const showPaypal = paypalEnabled();
+  const visible = ((methods ?? []) as PaymentMethod[]).filter(
+    (m) => showPaypal || m.type !== "paypal",
+  );
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <h1 className="text-2xl font-bold tracking-tight">Configuración</h1>
       <ConfigTabs />
-      <PaymentMethodsManager initial={(methods ?? []) as PaymentMethod[]} />
+      <PaymentMethodsManager initial={visible} paypalEnabled={showPaypal} />
     </div>
   );
 }

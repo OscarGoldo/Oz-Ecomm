@@ -35,6 +35,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PaymentProofUpload } from "@/components/storefront/payment-proof-upload";
+import { PaypalButtons } from "@/components/storefront/paypal-buttons";
 import { CardPayment } from "@/components/storefront/card-payment";
 import {
   createOrder,
@@ -383,7 +384,7 @@ export function CheckoutForm({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  /** Build + validate the checkout payload (shared by manual submit + card). */
+  /** Build + validate the checkout payload (shared by manual submit + PayPal). */
   function buildInput(): CheckoutInput | null {
     const values = getValues();
     // Marca los campos y hace foco; también devuelve al paso 1 si hace falta.
@@ -470,11 +471,13 @@ export function CheckoutForm({
     selectedMethod && typeof selectedMethod.details === "object" && selectedMethod.details
       ? (selectedMethod.details as Record<string, unknown>)
       : {};
+  const isPaypal = selectedMethod?.type === "paypal";
   const isStripe = selectedMethod?.type === "stripe";
   const stripePublishableKey =
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
   /** Va a comprar sin haber pagado todavía: el pedido nace esperando el pago. */
   const awaitingPayment = Boolean(selectedMethod?.requires_proof) && !proofPath;
+  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
   const detailEntries = Object.entries(details).filter(
     ([, v]) => typeof v === "string" && v.length > 0,
   ) as [string, string][];
@@ -702,7 +705,14 @@ export function CheckoutForm({
                 </div>
               )}
 
-              {isStripe && selectedMethod ? (
+              {isPaypal && selectedMethod ? (
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    Pagas con PayPal, tarjeta de crédito o débito. Confirmas el
+                    pago más abajo. Tu pedido se confirma al instante.
+                  </p>
+                </div>
+              ) : isStripe && selectedMethod ? (
                 <div className="rounded-lg border bg-muted/30 p-3">
                   <p className="text-xs text-muted-foreground">
                     Pagas con tarjeta, Apple Pay o Google Pay sin salir de esta
@@ -872,6 +882,26 @@ export function CheckoutForm({
                 router.push(`/${store.slug}/pedido/${orderId}`);
               }}
             />
+          ) : isPaypal ? (
+            paypalClientId ? (
+              <div className="rounded-xl border bg-card p-4">
+                <PaypalButtons
+                  clientId={paypalClientId}
+                  getInput={buildInput}
+                  onSuccess={(id) => {
+                    clearDraft();
+                    router.push(`/${store.slug}/pedido/${id}`);
+                  }}
+                />
+                <p className="mt-2 text-center text-xs text-muted-foreground">
+                  Pago seguro procesado por PayPal · {formatUSD(total)}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-destructive">
+                PayPal no está configurado correctamente.
+              </p>
+            )
           ) : (
             <>
               <Button type="submit" size="lg" className="w-full" disabled={submitting}>

@@ -159,11 +159,13 @@ export default async function SuperSubscriptionsPage() {
                   </span>
                   <span className="shrink-0 text-right font-medium">
                     {formatUSD(Number(p.amount))}
-                    {p.method === "stripe" && p.net != null && (
-                      <span className="block text-[11px] font-normal text-muted-foreground">
-                        Tarjeta · neto {formatUSD(Number(p.net))}
-                      </span>
-                    )}
+                    {(p.method === "stripe" || p.method === "paypal") &&
+                      p.net != null && (
+                        <span className="block text-[11px] font-normal text-muted-foreground">
+                          {p.method === "stripe" ? "Tarjeta" : "PayPal"} · neto{" "}
+                          {formatUSD(Number(p.net))}
+                        </span>
+                      )}
                   </span>
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
