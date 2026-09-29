@@ -22,6 +22,9 @@ const nextConfig = {
         : []),
       // Placeholder images used in the Alfa Electronic seed
       { protocol: "https", hostname: "placehold.co" },
+      // Fotos de stock de Alfa Electronic, la tienda de muestra. Solo el CDN de
+      // imágenes de Unsplash (licencia libre), con la ruta de sus fotos.
+      { protocol: "https", hostname: "images.unsplash.com", pathname: "/photo-*" },
     ],
   },
 };
