@@ -1,3 +1,4 @@
+import { publicSiteUrl } from "@/lib/site-url";
 import { STORE_IMAGES_BUCKET, getImageUrl } from "@/lib/storage";
 
 /**
@@ -190,6 +191,5 @@ export function initialOf(name: string): string {
 
 /** El dominio público, sin protocolo, para el pie de la tarjeta. */
 export function publicHost(): string {
-  const url = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.tiendifyapp.com";
-  return url.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  return publicSiteUrl().replace(/^https?:\/\//, "");
 }

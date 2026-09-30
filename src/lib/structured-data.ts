@@ -1,3 +1,4 @@
+import { publicSiteUrl } from "@/lib/site-url";
 import type { Product, ProductVariant, Store } from "@/types/database";
 
 /**
@@ -18,10 +19,7 @@ import type { Product, ProductVariant, Store } from "@/types/database";
 const SCHEMA = "https://schema.org";
 
 function absoluteUrl(path: string): string {
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "https://tiendifyapp.com").replace(
-    /\/$/,
-    "",
-  );
+  const base = publicSiteUrl();
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
 

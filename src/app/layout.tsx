@@ -11,6 +11,7 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { publicSiteUrl } from "@/lib/site-url";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -64,9 +65,7 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   // Sin esto Next emite `og:image` como ruta relativa y WhatsApp la descarta:
   // exige URL absoluta para mostrar la preview.
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://www.tiendifyapp.com",
-  ),
+  metadataBase: new URL(publicSiteUrl()),
   title: {
     default: "Tiendify",
     template: "%s · Tiendify",

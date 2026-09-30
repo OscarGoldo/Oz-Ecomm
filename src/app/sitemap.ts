@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { reportError } from "@/lib/report-error";
+import { publicSiteUrl } from "@/lib/site-url";
 
 /**
  * Se regenera cada hora en vez de quedar congelado en el build.
@@ -16,7 +17,7 @@ export const revalidate = 3600;
 
 /** Landing + active store homes + their active products. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://tiendifyapp.com";
+  const base = publicSiteUrl();
 
   // Las rutas que existen siempre, haya base de datos o no. Se arman primero
   // para poder devolverlas si la consulta falla.
