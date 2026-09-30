@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import {
-  AlertTriangle,
   ArrowLeft,
   Bike,
   Check,
@@ -37,6 +36,7 @@ import {
 import { PaymentProofUpload } from "@/components/storefront/payment-proof-upload";
 import { PaypalButtons } from "@/components/storefront/paypal-buttons";
 import { CardPayment } from "@/components/storefront/card-payment";
+import { CartChanges } from "@/components/storefront/cart-changes";
 import {
   createOrder,
   previewCoupon,
@@ -448,6 +448,11 @@ export function CheckoutForm({
       const res = await createOrder(input);
       if (!res.ok || !res.orderId) {
         toast.error(res.error ?? "No se pudo crear el pedido");
+        // El rechazo más común es que el carrito cambió mientras compraba (se
+        // agotó o se despublicó algo). Refrescar vuelve a armar el carrito:
+        // aparece el aviso y la cookie se corrige sola (ver CartChanges). Lo
+        // escrito en el formulario no se pierde.
+        router.refresh();
         return;
       }
       clearDraft();
@@ -501,23 +506,7 @@ export function CheckoutForm({
 
       {/* Steps + form */}
       <form onSubmit={handleSubmit(onSubmit)} className="lg:order-1">
-        {cart.changes.length > 0 && (
-          <div className="mb-5 rounded-xl border border-warning/40 bg-warning/10 p-3">
-            <p className="flex items-center gap-2 text-sm font-medium">
-              <AlertTriangle className="size-4 shrink-0 text-warning-foreground" />
-              Ajustamos tu pedido
-            </p>
-            <ul className="mt-1.5 space-y-0.5 pl-6 text-sm text-muted-foreground">
-              {cart.changes.map((c, i) => (
-                <li key={`${c.name}-${i}`}>
-                  {c.kind === "removed"
-                    ? `${c.name} se agotó y lo quitamos.`
-                    : `De ${c.name} quedaban ${c.available}, así que llevas esa cantidad.`}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <CartChanges storeId={store.id} changes={cart.changes} className="mb-5" />
         <Stepper step={step} />
 
         {/* ── Step 1: Entrega ─────────────────────────────────────────────── */}

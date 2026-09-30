@@ -41,7 +41,11 @@ export interface CartLine {
  */
 export interface CartChange {
   name: string;
-  kind: "removed" | "clamped";
+  /**
+   * removed: se agotó. unavailable: la tienda lo despublicó o lo borró (o
+   * apagó esa variante). clamped: quedaba menos de lo pedido.
+   */
+  kind: "removed" | "unavailable" | "clamped";
   /** Cuántas quedaron, en el caso de un recorte. */
   available?: number;
 }
@@ -156,14 +160,14 @@ export async function getEnrichedCart(
     const product = byId.get(item.id);
     if (!product) {
       // No sabemos el nombre: el producto ya no está activo ni se pudo leer.
-      changes.push({ name: "Un producto", kind: "removed" });
+      changes.push({ name: "Un producto", kind: "unavailable" });
       continue;
     }
 
     if (item.variantId) {
       const variant = variantById.get(item.variantId);
       if (!variant || variant.product_id !== product.id || !variant.active) {
-        changes.push({ name: product.name, kind: "removed" });
+        changes.push({ name: product.name, kind: "unavailable" });
         continue;
       }
       const unitPrice = variant.price != null ? variant.price : product.price;

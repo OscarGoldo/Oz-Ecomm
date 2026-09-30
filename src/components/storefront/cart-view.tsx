@@ -8,6 +8,7 @@ import { ImageOff, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { CartChanges } from "@/components/storefront/cart-changes";
 import { removeCartItem, updateCartItem } from "@/lib/cart-actions";
 import { getImageUrl } from "@/lib/storage";
 import { formatBs, formatUSD } from "@/lib/format";
@@ -38,23 +39,34 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
     });
   }
 
+  // Lo que se quitó o recortó, y la cookie corregida para que el contador y el
+  // checkout coincidan con esta lista. Va también en el carrito vacío: puede
+  // quedar vacío justamente porque lo único que tenía ya no está disponible.
+  const notice = (
+    <CartChanges storeId={storeId} changes={cart.changes} />
+  );
+
   if (cart.lines.length === 0) {
     return (
-      <div className="grid place-items-center rounded-xl border border-dashed bg-card p-12 text-center">
-        <ShoppingBag className="mb-3 size-9 text-muted-foreground" />
-        <p className="font-medium">Tu carrito está vacío</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Agrega productos para empezar tu pedido.
-        </p>
-        <Button asChild className="mt-4">
-          <Link href={`/${storeSlug}`}>Ver productos</Link>
-        </Button>
+      <div className="space-y-4">
+        {notice}
+        <div className="grid place-items-center rounded-xl border border-dashed bg-card p-12 text-center">
+          <ShoppingBag className="mb-3 size-9 text-muted-foreground" />
+          <p className="font-medium">Tu carrito está vacío</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Agrega productos para empezar tu pedido.
+          </p>
+          <Button asChild className="mt-4">
+            <Link href={`/${storeSlug}`}>Ver productos</Link>
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {notice}
       <ul className="space-y-3">
         {cart.lines.map((line) => {
           const cover = getImageUrl(line.product.images[0]);

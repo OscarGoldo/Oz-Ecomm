@@ -2,7 +2,13 @@
 
 import { cookies } from "next/headers";
 
-import { CART_COOKIE, readCart, type Cart, type CartItem } from "@/lib/cart";
+import {
+  CART_COOKIE,
+  getEnrichedCart,
+  readCart,
+  type Cart,
+  type CartItem,
+} from "@/lib/cart";
 import { recordEvent } from "@/lib/analytics";
 
 const MAX_QTY = 99;
@@ -91,4 +97,41 @@ export async function removeCartItem(
 
 export async function clearCart(storeId: string): Promise<void> {
   writeCart({ storeId, items: [] });
+}
+
+/**
+ * Deja la cookie igual al carrito que el cliente ve.
+ *
+ * `getEnrichedCart` ya descarta lo que no se puede comprar (producto
+ * despublicado o borrado, variante apagada, sin stock) y recorta cantidades al
+ * stock, pero solo en pantalla: la cookie seguía con todo. El contador del
+ * header sumaba lo que no se veía, y al confirmar el servidor —que lee la
+ * cookie— rechazaba el pedido por un producto que el cliente no podía ver ni
+ * quitar. La compra quedaba trabada hasta que borrara las cookies.
+ *
+ * Vive acá y no en la página porque un Server Component no puede escribir
+ * cookies: la llama `CartReconciler` apenas la página detecta un ajuste.
+ */
+export async function reconcileCart(storeId: string): Promise<CartActionResult> {
+  // Solo importa qué líneas sobreviven; la tasa no juega en eso.
+  const enriched = await getEnrichedCart({
+    id: storeId,
+    exchange_rate: null,
+    show_bs_prices: false,
+  });
+  // Sin ajustes no se toca nada. Esto también cubre la cookie de otra tienda,
+  // que getEnrichedCart ve como carrito vacío.
+  if (enriched.changes.length === 0) {
+    return { ok: true, count: enriched.count };
+  }
+  const cart: Cart = {
+    storeId,
+    items: enriched.lines.map((l) => ({
+      id: l.product.id,
+      qty: l.available,
+      variantId: l.variantId,
+    })),
+  };
+  writeCart(cart);
+  return { ok: true, count: count(cart) };
 }
