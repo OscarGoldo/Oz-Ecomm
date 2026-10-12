@@ -7,6 +7,12 @@ import type { AppUser, Store } from "@/types/database";
 export interface SessionContext {
   user: AppUser;
   store: Store | null;
+  /**
+   * Supabase Auth `user_metadata`. The user can write it themselves, so it is
+   * only good for their own preferences (e.g. which notices they dismissed),
+   * never for anything that grants access.
+   */
+  metadata: Record<string, unknown>;
 }
 
 /**
@@ -40,7 +46,7 @@ export const getSessionContext = cache(
       store = data ?? null;
     }
 
-    return { user: appUser, store };
+    return { user: appUser, store, metadata: authUser.user_metadata ?? {} };
   },
 );
 
@@ -50,7 +56,7 @@ export async function requireStoreUser(): Promise<SessionContext & { store: Stor
   if (!ctx) redirect("/login");
   if (ctx.user.role === "super_admin") redirect("/super");
   if (!ctx.store) redirect("/login?error=no-store");
-  return { user: ctx.user, store: ctx.store };
+  return { ...ctx, store: ctx.store };
 }
 
 /** Guard for super-admin routes. */

@@ -1,13 +1,16 @@
 import Image from "next/image";
 import { Store as StoreIcon } from "lucide-react";
 
+import { DomainNotice } from "@/components/admin/domain-notice";
 import { PanelBottomNav, PanelSidebarNav } from "@/components/admin/panel-nav";
 import { PlanBanner } from "@/components/admin/plan-banner";
 import { UserMenu } from "@/components/admin/user-menu";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { abandonedCartCutoff } from "@/lib/constants";
+import { shouldShowDomainNotice } from "@/lib/domain-notice";
 import { daysUntilExpiry, isPro } from "@/lib/plans";
+import { publicSiteUrl } from "@/lib/site-url";
 import { getImageUrl } from "@/lib/storage";
 
 export default async function PanelLayout({
@@ -15,7 +18,7 @@ export default async function PanelLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, store } = await requireStoreUser();
+  const { user, store, metadata } = await requireStoreUser();
 
   // Pedidos que esperan algo del comerciante (badge en Pedidos): revisar un
   // comprobante, o seguir a un cliente que eligió pagar por fuera y no mandó
@@ -124,6 +127,10 @@ export default async function PanelLayout({
       <div className="print:hidden">
         <PanelBottomNav badges={navBadges} pro={pro} />
       </div>
+
+      {shouldShowDomainNotice(user, metadata) && (
+        <DomainNotice storeUrl={`${publicSiteUrl()}/${store.slug}`} />
+      )}
     </div>
   );
 }
