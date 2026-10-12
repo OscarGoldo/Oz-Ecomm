@@ -111,7 +111,7 @@ recibir un 200.
 ## La URL del webhook no puede redirigir
 
 **Stripe no sigue redirecciones en las entregas del webhook.** Si el endpoint
-apunta a `https://www.tiendifyapp.com/...` y Vercel redirige `www` al dominio
+apunta a `https://www.usatiendify.com/...` y Vercel redirige `www` al dominio
 sin www con un 308, cada entrega queda como fallida y no se reintenta a la URL
 nueva: el cliente paga y su pedido se queda en "esperando pago" sin una sola
 pista en la app.
@@ -121,7 +121,7 @@ redirección solo y registra la URL final, pero si creas el endpoint a mano en
 el dashboard, verifica que responda directo:
 
 ```bash
-curl -i -X POST https://tiendifyapp.com/api/stripe/webhook -d '{}'
+curl -i -X POST https://usatiendify.com/api/stripe/webhook -d '{}'
 ```
 
 Tiene que dar **400** ("falta la firma"), que significa que la ruta está viva y
@@ -133,7 +133,7 @@ misma trampa otra vez.
 
 Aparecen solos arriba del formulario embebido cuando el dispositivo los tiene.
 Apple Pay necesita **una vez** que el dominio esté registrado: Stripe →
-Settings → Payment methods → Apple Pay → **Add domain** → `tiendifyapp.com`.
+Settings → Payment methods → Apple Pay → **Add domain** → `usatiendify.com`.
 Con el checkout alojado esto era automático; dentro de nuestro sitio, no.
 
 Google Pay no necesita registro.

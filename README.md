@@ -139,7 +139,7 @@ Dos cosas distintas:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY` (secreto)
-   - `NEXT_PUBLIC_APP_URL` = la URL de producción (ej. `https://tiendifyapp.com`)
+   - `NEXT_PUBLIC_APP_URL` = la URL de producción (ej. `https://usatiendify.com`)
 4. **Deploy**.
 5. En Supabase → **Authentication → URL Configuration**: agrega tu dominio de
    Vercel como **Site URL** y a **Redirect URLs** (`https://tu-dominio.vercel.app/**`).

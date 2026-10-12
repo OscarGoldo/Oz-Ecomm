@@ -6,8 +6,8 @@ import { createClient } from "@/lib/supabase/server";
  * Ruta de destino segura a partir del `?next=` de la URL.
  *
  * Antes se concatenaba `${origin}${next}` sin mirar qué traía. Con
- * `next=@evil.com` la cadena queda `https://tiendifyapp.com@evil.com`, que el
- * parser de URL lee como usuario `tiendifyapp.com` en el host `evil.com`: un
+ * `next=@evil.com` la cadena queda `https://usatiendify.com@evil.com`, que el
+ * parser de URL lee como usuario `usatiendify.com` en el host `evil.com`: un
  * open redirect con TU dominio al principio del enlace, que es justo lo que
  * hace creíble un phishing contra tus comerciantes.
  *

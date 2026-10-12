@@ -37,7 +37,7 @@ export const REFERRAL_FIELD = "ref";
 
 function appUrl(): string {
   return (
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://www.tiendifyapp.com"
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://usatiendify.com"
   ).replace(/\/+$/, "");
 }
 
