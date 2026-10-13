@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { ExternalLink, Plus, ShoppingBag, Store as StoreIcon, Wallet } from "lucide-react";
+import {
+  ExternalLink,
+  MessageCircle,
+  Plus,
+  ShoppingBag,
+  Store as StoreIcon,
+  Wallet,
+} from "lucide-react";
 
 import { StoreActiveSwitch } from "@/components/admin/store-active-switch";
 import { StorePlanControl } from "@/components/admin/store-plan-control";
@@ -7,6 +14,8 @@ import { createClient } from "@/lib/supabase/server";
 import { SALES_STATUSES } from "@/lib/metrics";
 import { formatUSD } from "@/lib/format";
 import { isPro } from "@/lib/plans";
+import { storeClosedByOwner } from "@/lib/store-status";
+import { whatsappUrl } from "@/lib/whatsapp";
 import type { Store } from "@/types/database";
 
 export const metadata = { title: "Tiendas" };
@@ -14,12 +23,24 @@ export const metadata = { title: "Tiendas" };
 export default async function SuperDashboardPage() {
   const supabase = createClient();
 
-  const [{ data: stores }, { data: sales }, { data: products }] =
+  const [{ data: stores }, { data: sales }, { data: products }, { data: owners }] =
     await Promise.all([
       supabase.from("stores").select("*").order("created_at"),
       supabase.from("orders").select("store_id, total").in("status", SALES_STATUSES),
       supabase.from("products").select("store_id"),
+      supabase
+        .from("users")
+        .select("store_id, full_name, email")
+        .eq("role", "store_owner")
+        .order("created_at"),
     ]);
+
+  // La persona detrás de cada tienda. Si una tienda tuviera más de un dueño,
+  // queda el primero que se registró.
+  const ownerByStore = new Map<string, { full_name: string; email: string }>();
+  for (const o of owners ?? []) {
+    if (o.store_id && !ownerByStore.has(o.store_id)) ownerByStore.set(o.store_id, o);
+  }
 
   const gmvByStore = new Map<string, number>();
   const salesByStore = new Map<string, number>();
@@ -76,46 +97,103 @@ export default async function SuperDashboardPage() {
       ) : (
         <ul className="space-y-2">
           {storeList.map((store) => (
-            <li
+            <StoreRow
               key={store.id}
-              className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-3"
-            >
-              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
-                {store.name.charAt(0).toUpperCase()}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate font-medium">{store.name}</span>
-                  <PlanBadge store={store} />
-                  {!store.active && (
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                      pausada
-                    </span>
-                  )}
-                </div>
-                <p className="truncate text-xs text-muted-foreground">
-                  /{store.slug} · {productsByStore.get(store.id) ?? 0} prod ·{" "}
-                  {salesByStore.get(store.id) ?? 0} ventas ·{" "}
-                  {formatUSD(gmvByStore.get(store.id) ?? 0)}
-                  {store.plan_note ? ` · ${store.plan_note}` : ""}
-                </p>
-              </div>
-              <Link
-                href={`/${store.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label="Ver tienda"
-              >
-                <ExternalLink className="size-4" />
-              </Link>
-              <StorePlanControl storeId={store.id} note={store.plan_note} />
-              <StoreActiveSwitch storeId={store.id} active={store.active} />
-            </li>
+              store={store}
+              owner={ownerByStore.get(store.id)}
+              products={productsByStore.get(store.id) ?? 0}
+              sales={salesByStore.get(store.id) ?? 0}
+              gmv={gmvByStore.get(store.id) ?? 0}
+            />
           ))}
         </ul>
       )}
     </div>
+  );
+}
+
+/** Una tienda en la lista: quién es, cómo va y los controles de plan. */
+function StoreRow({
+  store,
+  owner,
+  products,
+  sales,
+  gmv,
+}: {
+  store: Store;
+  owner: { full_name: string; email: string } | undefined;
+  products: number;
+  sales: number;
+  gmv: number;
+}) {
+  const wa = whatsappUrl(store.whatsapp);
+  return (
+    <li className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-3">
+      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+        {store.name.charAt(0).toUpperCase()}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/super/tiendas/${store.id}`}
+            className="truncate font-medium hover:underline"
+          >
+            {store.name}
+          </Link>
+          <PlanBadge store={store} />
+          {!store.active && (
+            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              {storeClosedByOwner(store) ? "cerrada por el dueño" : "pausada"}
+            </span>
+          )}
+        </div>
+        <p className="truncate text-xs text-muted-foreground">
+          /{store.slug} · {products} prod ·{" "}
+          {sales} ventas ·{" "}
+          {formatUSD(gmv)}
+          {store.plan_note ? ` · ${store.plan_note}` : ""}
+        </p>
+        {/* Quién es: lo primero que hace falta para escribirle. */}
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+          {owner ? (
+            <>
+              <span className="font-medium">{owner.full_name}</span>
+              <a
+                href={`mailto:${owner.email}`}
+                className="text-muted-foreground hover:text-foreground hover:underline"
+              >
+                {owner.email}
+              </a>
+            </>
+          ) : (
+            <span className="text-muted-foreground">Sin dueño asignado</span>
+          )}
+          {wa ? (
+            <a
+              href={wa}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+            >
+              <MessageCircle className="size-3" /> {store.whatsapp}
+            </a>
+          ) : (
+            <span className="text-muted-foreground">sin WhatsApp</span>
+          )}
+        </p>
+      </div>
+      <Link
+        href={`/${store.slug}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+        aria-label="Ver tienda"
+      >
+        <ExternalLink className="size-4" />
+      </Link>
+      <StorePlanControl storeId={store.id} note={store.plan_note} />
+      <StoreActiveSwitch storeId={store.id} active={store.active} />
+    </li>
   );
 }
 
