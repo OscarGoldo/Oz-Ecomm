@@ -27,6 +27,14 @@ export default async function SuperLayout({
     .select("id", { count: "exact", head: true })
     .eq("status", "qualified");
 
+  // Comentarios de comerciantes sin leer: alguien esperando respuesta. Si la
+  // tabla todavía no existe (migración 0028 sin correr) esto da null y el
+  // numerito simplemente no aparece.
+  const { count: unreadFeedback } = await supabase
+    .from("feedback")
+    .select("id", { count: "exact", head: true })
+    .is("read_at", null);
+
   return (
     <div className="chrome-admin min-h-dvh bg-surface">
       <header className="sticky top-0 z-30 border-b border-border bg-surface-raised">
@@ -43,8 +51,10 @@ export default async function SuperLayout({
               Super Admin
             </span>
           </Link>
-          <div className="flex items-center gap-3">
-            <nav className="flex items-center gap-1">
+          {/* Cinco secciones no entran en un teléfono: el menú se desliza de
+              lado en vez de empujar la página entera. */}
+          <div className="flex min-w-0 items-center gap-3">
+            <nav className="flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap">
               <Link
                 href="/super"
                 className="rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-foreground"
@@ -79,14 +89,32 @@ export default async function SuperLayout({
                   </span>
                 ) : null}
               </Link>
+              <Link
+                href="/super/comentarios"
+                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-foreground"
+              >
+                Comentarios
+                {unreadFeedback ? (
+                  <span className="grid min-w-[1.125rem] place-items-center rounded bg-warning px-1 text-3xs font-bold leading-[1.125rem] tabular-nums text-warning-foreground">
+                    {unreadFeedback > 99 ? "99+" : unreadFeedback}
+                  </span>
+                ) : null}
+              </Link>
+              <Link
+                href="/super/codigos"
+                className="rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-foreground"
+              >
+                Códigos
+              </Link>
             </nav>
-            <span className="hidden text-xs text-ink-500 sm:inline">
-              {user.email}
-            </span>
+            {/* Con seis secciones el correo ya no entra al lado del menú: queda
+                como ayuda del botón de salir, que es donde importa saber con
+                qué cuenta se está. */}
             <form action={signOut}>
               <button
                 type="submit"
-                className="rounded-md border border-input bg-background px-2.5 py-1.5 text-[0.8125rem] font-medium shadow-xs transition-colors hover:bg-muted"
+                title={`Salir (${user.email})`}
+                className="shrink-0 rounded-md border border-input bg-background px-2.5 py-1.5 text-[0.8125rem] font-medium shadow-xs transition-colors hover:bg-muted"
               >
                 Salir
               </button>

@@ -21,6 +21,8 @@ interface SendEmailParams {
   to: string | string[];
   subject: string;
   html: string;
+  /** A quién le llega la respuesta si quien lo recibe toca "Responder". */
+  replyTo?: string;
 }
 
 /**
@@ -32,6 +34,7 @@ export async function sendEmail({
   to,
   subject,
   html,
+  replyTo,
 }: SendEmailParams): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -59,7 +62,13 @@ export async function sendEmail({
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ from, to, subject, html }),
+      body: JSON.stringify({
+        from,
+        to,
+        subject,
+        html,
+        ...(replyTo ? { reply_to: replyTo } : {}),
+      }),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
@@ -164,6 +173,45 @@ export function referralRewardEmail(p: ReferralRewardEmailParams): {
     </p>`
     }
     <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Tiendify</p>
+  </div>`;
+  return { subject, html };
+}
+
+interface FeedbackEmailParams {
+  storeName: string;
+  kindLabel: string;
+  message: string;
+  ownerName: string;
+  ownerEmail: string;
+  /** WhatsApp de la tienda, tal como está guardado. */
+  whatsapp: string | null;
+  /** La bandeja en /super/comentarios. */
+  inboxUrl: string;
+}
+
+/**
+ * Aviso al super admin de que un comerciante escribió desde su panel.
+ *
+ * Lleva el mensaje entero y cómo contactarlo, para poder contestar desde el
+ * correo sin abrir nada: quien lo manda pone al comerciante en el "responder".
+ */
+export function feedbackEmail(p: FeedbackEmailParams): {
+  subject: string;
+  html: string;
+} {
+  const subject = `💬 ${p.storeName}: ${p.kindLabel.toLowerCase()}`;
+  const html = `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+    <h2 style="margin:0 0 4px">${esc(p.kindLabel)}</h2>
+    <p style="margin:0 0 16px;color:#64748b">${esc(p.storeName)}</p>
+    <div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:16px">
+      <p style="margin:0;color:#334155;line-height:1.5;white-space:pre-wrap">${esc(p.message)}</p>
+    </div>
+    <p style="margin:0;color:#334155"><strong>${esc(p.ownerName)}</strong></p>
+    <p style="margin:0;color:#334155">${esc(p.ownerEmail)}</p>
+    ${p.whatsapp ? `<p style="margin:0 0 16px;color:#334155">WhatsApp: ${esc(p.whatsapp)}</p>` : `<p style="margin:0 0 16px"></p>`}
+    <a href="${esc(p.inboxUrl)}" style="display:inline-block;background:#0EA5E9;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">Ver en el panel</a>
+    <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Tiendify · Responde este correo para escribirle a ${esc(p.ownerName)}.</p>
   </div>`;
   return { subject, html };
 }

@@ -8,6 +8,7 @@ import {
   Gift,
   LayoutDashboard,
   Lock,
+  MessageSquare,
   MoreHorizontal,
   Package,
   Palette,
@@ -86,9 +87,12 @@ const NAV_GROUPS: NavGroup[] = [
 /**
  * Ajustes vive abajo, separado del resto: es configuración, no una sección
  * del día a día, y perdido en el medio de trece ítems no se encontraba.
- * En móvil sigue apareciendo dentro de "Más" como cualquier otro.
+ * Comentarios lo acompaña por lo mismo: no es parte de vender, es el canal
+ * para hablar con Tiendify, y tiene que estar siempre en el mismo lugar.
+ * En móvil siguen apareciendo dentro de "Más" como cualquier otro.
  */
 const FOOTER_ITEMS: NavItem[] = [
+  { href: "/panel/comentarios", label: "Comentarios", icon: MessageSquare },
   { href: "/panel/configuracion", label: "Ajustes", icon: Settings },
 ];
 
