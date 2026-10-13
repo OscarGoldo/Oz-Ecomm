@@ -5,8 +5,16 @@ import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { extendExpiry } from "@/lib/plans";
+import { monthsLabel } from "@/lib/promo";
+import {
+  claimPromoCode,
+  releasePromoCode,
+  type ClaimedPromo,
+} from "@/lib/promo-server";
 import { REFERRAL_COOKIE } from "@/lib/referrals";
 import { attachReferral } from "@/lib/referrals-server";
+import { reportError } from "@/lib/report-error";
 import { isReservedSlug, slugify } from "@/lib/slug";
 
 /** Best-effort client IP from the proxy headers (Vercel sets x-forwarded-for). */
@@ -25,9 +33,13 @@ const GLOBAL_HOURLY_LIMIT = 60;
 export interface SignupResult {
   ok: boolean;
   error?: string;
+  /** El campo que causó el error, cuando es uno solo y se puede marcar. */
+  field?: "promo";
   slug?: string;
   /** La sesión quedó abierta: el panel se abre directo, sin pasar por /login. */
   signedIn?: boolean;
+  /** Meses de Pro gratis que le dio el código promocional, si usó uno. */
+  promoMonths?: number;
 }
 
 const schema = z.object({
@@ -40,13 +52,27 @@ const schema = z.object({
     .trim()
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional(),
-  whatsapp: z.string().trim().optional(),
+  // Obligatorio: es por donde le escriben sus clientes, y la única forma de
+  // contactar al comerciante que no depende de que abra el correo. Llega del
+  // PhoneInput como dígitos con el código de país ("584241234567").
+  whatsapp: z
+    .string({ error: "Ingresa tu WhatsApp" })
+    .trim()
+    .transform((v) => v.replace(/\D/g, ""))
+    .pipe(
+      z
+        .string()
+        .min(1, "Ingresa tu WhatsApp")
+        .regex(/^\d{8,15}$/, "Ese número de WhatsApp no parece válido"),
+    ),
   /** Honeypot: hidden field humans never fill. */
   website: z.string().optional(),
   /** Timestamp of when the form was rendered (bot speed check). */
   form_ts: z.coerce.number().optional(),
   /** Código de referido de la URL; la cookie de /r/<codigo> tiene prioridad. */
   ref: z.string().trim().max(40).optional(),
+  /** Código promocional de una campaña: meses de Pro gratis (ver lib/promo). */
+  promo: z.string().trim().max(60).optional(),
 });
 
 export type SignupInput = z.input<typeof schema>;
@@ -144,19 +170,47 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
     }
   }
 
-  // Create the store.
+  // ── Código promocional ─────────────────────────────────────────────────────
+  // Se reclama el cupo ANTES de crear nada, y se devuelve en cada salida por
+  // error de acá para abajo. Así quien llega tarde a "las primeras 10" se entera
+  // antes de tener una tienda creada, y un registro que falla no le quema el
+  // cupo a otro.
+  let promo: ClaimedPromo | null = null;
+  if (d.promo) {
+    promo = await claimPromoCode(d.promo);
+    if (!promo) {
+      return {
+        ok: false,
+        field: "promo",
+        error:
+          "Ese código no es válido o ya se agotó. Bórralo y crea tu tienda gratis igual.",
+      };
+    }
+  }
+
+  // Create the store. Con código, nace en Pro por los meses que regala: es
+  // cortesía ('comp'), no pago, así no infla el número de tiendas que pagan.
   const { data: store, error: storeErr } = await db
     .from("stores")
     .insert({
       slug,
       name: d.store_name,
       primary_color: d.primary_color ?? "#0EA5E9",
-      whatsapp: d.whatsapp?.trim() || null,
+      whatsapp: d.whatsapp,
       active: true,
+      ...(promo
+        ? {
+            plan: "pro" as const,
+            plan_source: "comp" as const,
+            plan_expires_at: extendExpiry(null, promo.months),
+            plan_note: `Código ${promo.code}: ${monthsLabel(promo.months)} de Pro gratis`,
+          }
+        : {}),
     })
     .select("id")
     .single();
   if (storeErr || !store) {
+    if (promo) await releasePromoCode(promo.id);
     return { ok: false, error: "No se pudo crear la tienda. Intenta de nuevo." };
   }
 
@@ -169,6 +223,7 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
   const userId = created.data.user?.id;
   if (!userId) {
     await db.from("stores").delete().eq("id", store.id);
+    if (promo) await releasePromoCode(promo.id);
     return { ok: false, error: "No se pudo crear tu cuenta. ¿Ya estás registrado?" };
   }
 
@@ -183,7 +238,25 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
   if (userErr) {
     await db.auth.admin.deleteUser(userId);
     await db.from("stores").delete().eq("id", store.id);
+    if (promo) await releasePromoCode(promo.id);
     return { ok: false, error: "No se pudo crear tu cuenta. Intenta de nuevo." };
+  }
+
+  // Quién usó el código, para verlo en /super/codigos. Si esto fallara, la
+  // tienda ya tiene su Pro y el cupo ya está contado: solo faltaría el nombre
+  // en la lista, y eso no justifica tumbar un registro que salió bien.
+  if (promo) {
+    const { error: redeemErr } = await db.from("promo_redemptions").insert({
+      promo_code_id: promo.id,
+      store_id: store.id,
+      months: promo.months,
+    });
+    if (redeemErr) {
+      reportError("signUpStore:promo-redemption", new Error(redeemErr.message), {
+        storeId: store.id,
+        code: promo.code,
+      });
+    }
   }
 
   // ¿Alguien la trajo? La cookie manda: la deja /r/<codigo> y sobrevive a que
@@ -225,5 +298,5 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
     // Queda en false y el cliente muestra el camino manual.
   }
 
-  return { ok: true, slug, signedIn };
+  return { ok: true, slug, signedIn, promoMonths: promo?.months };
 }

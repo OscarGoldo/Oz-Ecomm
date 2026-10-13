@@ -4,17 +4,25 @@ import { ArrowLeft } from "lucide-react";
 
 import { SignupForm } from "@/components/storefront/signup-form";
 import { TiendifyLogo } from "@/components/landing/tiendify-logo";
+import { normalizePromoCode } from "@/lib/promo";
+import { lookupPromoCode } from "@/lib/promo-server";
 
 export const metadata: Metadata = {
   title: { absolute: "Crea tu tienda · Tiendify" },
   description: "Crea tu tienda online gratis en minutos.",
 };
 
-export default function CrearTiendaPage({
+export default async function CrearTiendaPage({
   searchParams,
 }: {
-  searchParams: { email?: string; ref?: string };
+  searchParams: { email?: string; ref?: string; codigo?: string };
 }) {
+  // El link de una campaña trae el código (?codigo=…). Se revisa acá para
+  // decirle qué le toca antes de que llene nada, y para no dejarle puesto en el
+  // formulario un código agotado que después le frenaría el registro.
+  const linkCode = normalizePromoCode(searchParams.codigo);
+  const offer = linkCode ? await lookupPromoCode(linkCode) : null;
+
   return (
     <main className="min-h-dvh bg-muted/30">
       <div className="container flex h-16 items-center justify-between">
@@ -43,6 +51,8 @@ export default function CrearTiendaPage({
         <SignupForm
           prefillEmail={searchParams.email ?? ""}
           referralCode={searchParams.ref ?? ""}
+          promoOffer={offer}
+          promoUnavailable={linkCode && !offer ? linkCode : null}
         />
         <p className="mt-4 text-center text-xs text-muted-foreground">
           Al crear tu tienda aceptas los{" "}

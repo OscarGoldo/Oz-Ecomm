@@ -34,6 +34,8 @@ export type SubscriptionState = "active" | "suspended" | "cancelled" | "expired"
  * premio todavía no se acreditó (pasó el tope y espera revisión en /super).
  */
 export type ReferralStatus = "pending" | "qualified" | "rewarded" | "rejected";
+/** De qué va un comentario que manda un comerciante desde su panel. */
+export type FeedbackKind = "problem" | "idea" | "other";
 
 export type ProductStatus = "active" | "draft" | "archived";
 
@@ -768,9 +770,8 @@ export interface Database {
           paypal: Json;
           pro_price_usd: number;
           /**
-           * Opcional a nivel de tipo: la agrega la migración 0022. Así el
-           * panel no revienta si el código llega antes que el SQL — cae a
-           * 3× el mensual (ver lib/platform.ts).
+           * Del trimestre que ya no se vende (ver PLAN_PERIODS). La columna
+           * sigue en la base, pero el código no la lee.
            */
           pro_price_quarterly_usd?: number;
           pro_price_yearly_usd: number;
@@ -789,6 +790,74 @@ export interface Database {
         };
         Update: Partial<
           Database["public"]["Tables"]["platform_settings"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      feedback: {
+        Row: {
+          id: string;
+          store_id: string | null;
+          user_id: string | null;
+          kind: FeedbackKind;
+          message: string;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id?: string | null;
+          user_id?: string | null;
+          kind: FeedbackKind;
+          message: string;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["feedback"]["Insert"]>;
+        Relationships: [];
+      };
+      promo_codes: {
+        Row: {
+          id: string;
+          code: string;
+          months: number;
+          max_uses: number | null;
+          used_count: number;
+          expires_at: string | null;
+          active: boolean;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          months: number;
+          max_uses?: number | null;
+          used_count?: number;
+          expires_at?: string | null;
+          active?: boolean;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["promo_codes"]["Insert"]>;
+        Relationships: [];
+      };
+      promo_redemptions: {
+        Row: {
+          id: string;
+          promo_code_id: string;
+          store_id: string;
+          months: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          promo_code_id: string;
+          store_id: string;
+          months: number;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["promo_redemptions"]["Insert"]
         >;
         Relationships: [];
       };
@@ -823,6 +892,14 @@ export interface Database {
         Args: { p_items: Json };
         Returns: undefined;
       };
+      claim_promo_code: {
+        Args: { p_code: string };
+        Returns: { id: string; code: string; months: number }[];
+      };
+      release_promo_code: {
+        Args: { p_id: string };
+        Returns: undefined;
+      };
     };
     Enums: Record<never, never>;
     CompositeTypes: Record<never, never>;
@@ -847,3 +924,6 @@ export type SubscriptionPayment = Tables["subscription_payments"]["Row"];
 export type PlatformSettings = Tables["platform_settings"]["Row"];
 export type AbandonedCart = Tables["abandoned_carts"]["Row"];
 export type Referral = Tables["referrals"]["Row"];
+export type Feedback = Tables["feedback"]["Row"];
+export type PromoCode = Tables["promo_codes"]["Row"];
+export type PromoRedemption = Tables["promo_redemptions"]["Row"];

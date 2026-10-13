@@ -4,7 +4,14 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { Check, CheckCircle2, ExternalLink, Loader2, Rocket } from "lucide-react";
+import {
+  Check,
+  CheckCircle2,
+  ExternalLink,
+  Gift,
+  Loader2,
+  Rocket,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { signUpStore } from "@/app/(public)/crear-tienda/actions";
+import { monthsLabel } from "@/lib/promo";
 import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +46,8 @@ interface FormValues {
   owner_email: string;
   password: string;
   whatsapp: string;
+  /** Código promocional de una campaña. Opcional. */
+  promo: string;
   primary_color: string;
   /** Honeypot: hidden field humans never fill. */
   website: string;
@@ -47,11 +57,15 @@ interface Success {
   slug: string;
   email: string;
   storeName: string;
+  /** Meses de Pro gratis, si entró con un código. */
+  promoMonths?: number;
 }
 
 export function SignupForm({
   prefillEmail = "",
   referralCode = "",
+  promoOffer = null,
+  promoUnavailable = null,
 }: {
   prefillEmail?: string;
   /**
@@ -59,6 +73,17 @@ export function SignupForm({
    * server action lo saca de la cookie que dejó /r/<codigo>.
    */
   referralCode?: string;
+  /**
+   * El código que trajo el link de la campaña (?codigo=…), ya revisado en el
+   * servidor: llega solo si hoy se puede usar, y deja el campo puesto.
+   */
+  promoOffer?: { code: string; months: number } | null;
+  /**
+   * El código del link, cuando ya NO se puede usar. Se avisa y el campo queda
+   * vacío: dejarlo puesto frenaría el registro de alguien que igual puede
+   * crear su tienda gratis.
+   */
+  promoUnavailable?: string | null;
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -71,6 +96,8 @@ export function SignupForm({
     handleSubmit,
     watch,
     setValue,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
@@ -79,6 +106,7 @@ export function SignupForm({
       owner_email: prefillEmail,
       password: "",
       whatsapp: "",
+      promo: promoOffer?.code ?? "",
       primary_color: "#0EA5E9",
       website: "",
     },
@@ -89,27 +117,45 @@ export function SignupForm({
   const previewSlug = slugify(storeName) || "mi-tienda";
 
   async function onSubmit(values: FormValues) {
+    // El teléfono no es un <input> registrado: lo arma PhoneInput y llega por
+    // setValue, así que su validación va a mano. El servidor lo vuelve a
+    // revisar; esto es solo para marcar el campo sin un viaje de más.
+    if (!/^\d{8,15}$/.test(values.whatsapp)) {
+      setError("whatsapp", {
+        message: values.whatsapp
+          ? "Ese número no parece válido. Revisa el prefijo del país."
+          : "Ingresa tu WhatsApp",
+      });
+      return;
+    }
     setSubmitting(true);
     const res = await signUpStore({
       store_name: values.store_name,
       owner_name: values.owner_name,
       owner_email: values.owner_email,
       password: values.password,
-      whatsapp: values.whatsapp || undefined,
+      whatsapp: values.whatsapp,
       primary_color: values.primary_color || undefined,
       website: values.website,
       form_ts: startedAt.current,
       ref: referralCode || undefined,
+      promo: values.promo.trim() || undefined,
     });
     setSubmitting(false);
     if (!res.ok || !res.slug) {
+      // El error del código va también en su campo: es el que hay que tocar.
+      if (res.field === "promo") setError("promo", { message: res.error });
       toast.error(res.error ?? "No se pudo crear la tienda");
       return;
     }
     if (res.signedIn) {
       // Ya tiene sesión: se lo lleva al panel, que es donde va a hacer lo
       // siguiente que importa (cargar su primer producto).
-      toast.success(`¡${values.store_name} está lista!`);
+      toast.success(`¡${values.store_name} está lista!`, {
+        description: res.promoMonths
+          ? `Tienes ${monthsLabel(res.promoMonths)} de Pro gratis.`
+          : undefined,
+      });
       router.push("/panel");
       router.refresh();
       return;
@@ -118,6 +164,7 @@ export function SignupForm({
       slug: res.slug,
       email: values.owner_email,
       storeName: values.store_name,
+      promoMonths: res.promoMonths,
     });
   }
 
@@ -139,6 +186,11 @@ export function SignupForm({
         >
           /{done.slug} <ExternalLink className="size-3.5" />
         </Link>
+        {done.promoMonths && (
+          <p className="mt-3 text-sm font-medium text-success">
+            Tienes {monthsLabel(done.promoMonths)} de Pro gratis.
+          </p>
+        )}
 
         <div className="mt-5 rounded-lg bg-muted/60 p-3 text-left text-sm text-muted-foreground">
           Entra a tu panel con tu email{" "}
@@ -174,6 +226,27 @@ export function SignupForm({
           {...register("website")}
         />
       </div>
+
+      {/* Lo que trae el link de la campaña va arriba de todo: es el motivo por
+          el que esa persona llegó hasta acá. */}
+      {promoOffer && (
+        <div className="flex items-start gap-3 rounded-xl border border-success-border bg-success-surface p-3 text-success-text">
+          <Gift className="mt-0.5 size-4 shrink-0" />
+          <p className="text-sm">
+            <span className="font-semibold">
+              {monthsLabel(promoOffer.months)} de Pro gratis
+            </span>{" "}
+            con el código {promoOffer.code}. Se activan solos al crear tu tienda,
+            sin tarjeta.
+          </p>
+        </div>
+      )}
+      {promoUnavailable && (
+        <div className="rounded-xl border border-warning-border bg-warning-surface p-3 text-sm text-warning-text">
+          El código {promoUnavailable} ya no está disponible. Igual puedes crear
+          tu tienda gratis.
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="store_name">Nombre de tu tienda *</Label>
@@ -236,11 +309,49 @@ export function SignupForm({
       </div>
 
       <div className="space-y-2">
-        <Label>WhatsApp</Label>
-        <PhoneInput onChange={(v) => setValue("whatsapp", v)} placeholder="424 1234567" />
-        <p className="text-xs text-muted-foreground">
-          Elige el prefijo de tu país. Por aquí te escriben tus clientes.
-        </p>
+        <Label>WhatsApp *</Label>
+        <PhoneInput
+          onChange={(v) => {
+            setValue("whatsapp", v);
+            clearErrors("whatsapp");
+          }}
+          placeholder="424 1234567"
+          invalid={Boolean(errors.whatsapp)}
+          describedBy={errors.whatsapp ? "whatsapp-error" : undefined}
+        />
+        {errors.whatsapp ? (
+          <p id="whatsapp-error" className="text-xs text-destructive">
+            {errors.whatsapp.message}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Elige el prefijo de tu país. Por aquí te escriben tus clientes, y
+            nosotros si hace falta.
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="promo">
+          Código promocional{" "}
+          <span className="font-normal text-muted-foreground">(opcional)</span>
+        </Label>
+        <Input
+          id="promo"
+          {...register("promo", { onChange: () => clearErrors("promo") })}
+          placeholder="Si tienes uno, escríbelo aquí"
+          autoComplete="off"
+          autoCapitalize="characters"
+          maxLength={40}
+          className="uppercase placeholder:normal-case"
+          aria-invalid={Boolean(errors.promo)}
+          aria-describedby={errors.promo ? "promo-error" : undefined}
+        />
+        {errors.promo && (
+          <p id="promo-error" className="text-xs text-destructive">
+            {errors.promo.message}
+          </p>
+        )}
       </div>
 
       {/* Muestras con nombre, no un hex. Quien vende ropa por Instagram no
