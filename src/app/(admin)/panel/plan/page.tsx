@@ -44,6 +44,31 @@ function fmtDate(iso: string): string {
   });
 }
 
+/**
+ * Qué se cobra y cuándo toca de nuevo, deducido del último cobro que entró por
+ * esa suscripción (los pagos vienen del más nuevo al más viejo).
+ *
+ * No sale de `plan_expires_at`: un mes de regalo por un referido corre el
+ * vencimiento del plan, pero no la fecha en que se vuelve a cobrar.
+ */
+function nextCharge(payments: SubscriptionPayment[], subscriptionId: string) {
+  const last = payments.find(
+    (p) =>
+      p.status === "approved" &&
+      (p.stripe_subscription_id === subscriptionId ||
+        p.paypal_subscription_id === subscriptionId),
+  );
+  if (!last) return null;
+  const next = new Date(last.created_at);
+  next.setMonth(next.getMonth() + last.period_months);
+  return {
+    label: `${formatUSD(Number(last.amount))} al ${
+      last.period_months >= 12 ? "año" : "mes"
+    }`,
+    nextDate: fmtDate(next.toISOString()),
+  };
+}
+
 export default async function PlanPage() {
   const { store } = await requireStoreUser();
   const pro = isPro(store);
@@ -69,6 +94,7 @@ export default async function PlanPage() {
   const recurringOn = paypalEnabled && subscriptionsConfigured();
 
   const payments_ = (history ?? []) as SubscriptionPayment[];
+  const until = store.plan_expires_at ? fmtDate(store.plan_expires_at) : null;
   const pending = payments_.find((p) => p.status === "pending");
   const lastRejected =
     payments_[0]?.status === "rejected" ? payments_[0] : undefined;
@@ -109,14 +135,16 @@ export default async function PlanPage() {
         <SubscriptionStatus
           provider="stripe"
           status={store.stripe_subscription_status}
-          expiresAt={store.plan_expires_at}
+          until={until}
+          charge={nextCharge(payments_, store.stripe_subscription_id)}
         />
       ) : (
         store.paypal_subscription_id &&
         store.paypal_subscription_status && (
           <SubscriptionStatus
             status={store.paypal_subscription_status}
-            expiresAt={store.plan_expires_at}
+            until={until}
+            charge={nextCharge(payments_, store.paypal_subscription_id)}
           />
         )
       )}
@@ -182,7 +210,7 @@ export default async function PlanPage() {
           planIds={
             recurringOn
               ? // Solo los períodos que tienen plan recurrente creado en
-                // PayPal. El trimestre no está y por eso se cobra una vez.
+                // PayPal. El que no esté se cobra una sola vez.
                 Object.fromEntries(
                   PLAN_PERIODS.map(
                     (m) => [m, planIdFor(m)] as [number, string | null],

@@ -60,8 +60,8 @@ export function stripeIsTestMode(): boolean {
  *
  * Misma regla que `planIdFor` en paypal-subscriptions.ts: un período sin
  * precio recurrente devuelve null y la UI cae al cobro único. Devolver el
- * precio mensual para un período de tres meses sería cobrarle al comerciante
- * un débito mensual cuando creía estar pagando un trimestre.
+ * precio mensual para cualquier otro período sería cobrarle al comerciante un
+ * débito mensual cuando creía estar pagando otra cosa.
  */
 export function stripePriceFor(months: number): string | null {
   let id: string | undefined;

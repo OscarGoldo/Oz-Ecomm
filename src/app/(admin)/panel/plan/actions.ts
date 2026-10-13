@@ -317,7 +317,7 @@ export async function captureProPaypalPayment(
 // ── Plan Pro por Stripe ─────────────────────────────────────────────────────
 // Una sola pantalla para las dos formas de cobrar: si el período tiene precio
 // recurrente creado en Stripe, se contrata la suscripción (se renueva sola); si
-// no —hoy el trimestre—, se cobra una vez. Lo decide `stripePriceFor`, no la UI.
+// no, se cobra una vez. Lo decide `stripePriceFor`, no la UI.
 
 export interface StripeCheckoutUrl extends ActionResult {
   url?: string;

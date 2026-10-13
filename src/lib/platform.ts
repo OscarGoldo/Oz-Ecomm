@@ -4,7 +4,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { paypalCredsFromEnv } from "@/lib/paypal";
 import { stripeConfigured } from "@/lib/stripe";
 import {
-  DEFAULT_PRO_PRICE_QUARTERLY_USD,
   DEFAULT_PRO_PRICE_USD,
   DEFAULT_PRO_PRICE_YEARLY_USD,
   type PlanPrices,
@@ -39,7 +38,6 @@ export interface PlatformConfig {
 const FALLBACK: PlatformConfig = {
   prices: {
     monthly: DEFAULT_PRO_PRICE_USD,
-    quarterly: DEFAULT_PRO_PRICE_QUARTERLY_USD,
     yearly: DEFAULT_PRO_PRICE_YEARLY_USD,
   },
   payments: [],
@@ -108,11 +106,6 @@ export async function getPlatformConfig(): Promise<PlatformConfig> {
   return {
     prices: {
       monthly: Number(data.pro_price_usd) || DEFAULT_PRO_PRICE_USD,
-      // Si la migración 0022 todavía no corrió, la columna no viene y el
-      // trimestre cae a 3× el mensual en vez de a 0.
-      quarterly:
-        Number(data.pro_price_quarterly_usd) ||
-        (Number(data.pro_price_usd) || DEFAULT_PRO_PRICE_USD) * 3,
       yearly: Number(data.pro_price_yearly_usd) || DEFAULT_PRO_PRICE_YEARLY_USD,
     },
     payments,

@@ -4,7 +4,12 @@ import type Stripe from "stripe";
 import { finalizeCardOrder } from "@/app/(public)/[store_slug]/checkout/actions";
 import { notifyPaidOrder } from "@/lib/order-notify";
 import { stockOpsForOrder } from "@/lib/order-stock";
-import { extendExpiry, priceFor } from "@/lib/plans";
+import {
+  PLAN_PERIODS,
+  extendExpiry,
+  priceFor,
+  type PlanPrices,
+} from "@/lib/plans";
 import { getPlatformConfig } from "@/lib/platform";
 import { maybeQualifyReferral } from "@/lib/referrals-server";
 import { reportError } from "@/lib/report-error";
@@ -294,7 +299,7 @@ async function handlePlanSession(db: Db, session: Stripe.Checkout.Session) {
     return;
   }
 
-  // Pago único (el trimestre, que no tiene precio recurrente).
+  // Pago único: el período no tiene precio recurrente configurado en Stripe.
   if (session.payment_status !== "paid") return;
   const months = Number(session.metadata?.months ?? 0);
   if (!months) return;
@@ -437,14 +442,10 @@ async function storeForSubscription(
  * PayPal, pero sin la constante mágica: si mañana el anual cambia de precio,
  * esto sigue acertando.
  */
-function monthsForAmount(
-  amount: number,
-  prices: { monthly: number; quarterly: number; yearly: number },
-): number {
-  const periods = [1, 3, 12];
+function monthsForAmount(amount: number, prices: PlanPrices): number {
   let best = 1;
   let diff = Infinity;
-  for (const m of periods) {
+  for (const m of PLAN_PERIODS) {
     const d = Math.abs(priceFor(m, prices) - amount);
     if (d < diff) {
       diff = d;

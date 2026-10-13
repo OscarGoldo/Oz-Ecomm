@@ -15,7 +15,6 @@ import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { TiendifyLogo } from "@/components/landing/tiendify-logo";
 import {
-  DEFAULT_PRO_PRICE_QUARTERLY_USD,
   DEFAULT_PRO_PRICE_USD,
   DEFAULT_PRO_PRICE_YEARLY_USD,
   FREE_MAX_PRODUCTS,
@@ -331,8 +330,7 @@ export default function LandingPage() {
                   </span>
                 </p>
                 <p className="mt-1 text-sm text-ink-400">
-                  o ${DEFAULT_PRO_PRICE_QUARTERLY_USD} por 3 meses · $
-                  {DEFAULT_PRO_PRICE_YEARLY_USD} al año (2 meses gratis)
+                  o ${DEFAULT_PRO_PRICE_YEARLY_USD} al año (2 meses gratis)
                 </p>
                 <ul className="mt-6 space-y-3 text-sm">
                   <PlanFeature dark>Productos ilimitados</PlanFeature>

@@ -87,9 +87,10 @@ Consecuencias de este orden, todas asumidas:
 
 - Si el período tiene precio recurrente (`STRIPE_PRICE_MONTHLY` / `_YEARLY`), se
   contrata una **suscripción** que se renueva sola.
-- El trimestre no tiene precio recurrente, así que se cobra **una sola vez**. La
-  UI lo dice explícito: la diferencia entre "se renueva solo" y "se vence" es la
-  que le hace perder el Pro sin darse cuenta.
+- Un período sin precio recurrente se cobra **una sola vez**. Hoy los dos que se
+  venden (mes y año) lo tienen; el trimestre, que no lo tenía, se quitó. La UI
+  dice explícito qué pasa después de pagar: la diferencia entre "se renueva
+  solo" y "se vence" es la que le hace perder el Pro sin darse cuenta.
 - Los meses los suma **solo `invoice.paid`**. `checkout.session.completed` en
   modo suscripción únicamente registra el id — sumar en los dos daría el doble
   de meses en el primer cobro (misma regla que el webhook de PayPal).

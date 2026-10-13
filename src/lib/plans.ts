@@ -19,25 +19,24 @@ export type PlanId = "free" | "pro";
 export const FREE_MAX_PRODUCTS = 30;
 
 /**
- * Meses que puede comprar el comerciante de una vez.
+ * Meses que puede comprar el comerciante de una vez: un mes o un año.
  *
- * El trimestre existe por el pago manual: quien paga por Pago Móvil o Zelle no
- * tiene renovación automática, así que cada mes es una transferencia más un
- * comprobante más una revisión. Tres meses es el punto medio entre atarse un
- * año y hacer el trámite doce veces.
+ * Hubo un trimestre, pensado para quien paga por Pago Móvil o Zelle y no quiere
+ * hacer el trámite doce veces. Se quitó porque con tarjeta era el único período
+ * que no se renovaba solo, y esa excepción hacía que nadie entendiera qué estaba
+ * contratando. Ahora la regla es una sola: con tarjeta se renueva, con
+ * comprobante no, y los dos eligen entre mes y año.
  */
-export const PLAN_PERIODS = [1, 3, 12] as const;
+export const PLAN_PERIODS = [1, 12] as const;
 export type PlanPeriod = (typeof PLAN_PERIODS)[number];
 
 /** Precios por defecto, si `platform_settings` todavía no existe. */
 export const DEFAULT_PRO_PRICE_USD = 5;
-export const DEFAULT_PRO_PRICE_QUARTERLY_USD = 15;
 export const DEFAULT_PRO_PRICE_YEARLY_USD = 50;
 
-/** Los tres precios configurables desde `platform_settings`. */
+/** Los dos precios configurables desde `platform_settings`. */
 export interface PlanPrices {
   monthly: number;
-  quarterly: number;
   yearly: number;
 }
 
@@ -145,20 +144,19 @@ export function extendExpiry(
 /**
  * Precio en USD de un período, según los precios configurados.
  *
- * Cada período tiene su propio precio guardado en vez de salir de una fórmula,
- * para poder moverlos por separado sin redeploy. Solo el múltiplo de años se
- * calcula, porque hoy no se venden períodos de más de 12 meses.
+ * El mes y el año tienen cada uno su precio guardado en vez de salir de una
+ * fórmula, para poder moverlos por separado sin redeploy. Solo el múltiplo de
+ * años se calcula, porque hoy no se venden períodos de más de 12 meses.
  */
 export function priceFor(months: number, prices: PlanPrices): number {
   if (months >= 12) return prices.yearly * (months / 12);
-  if (months === 3) return prices.quarterly;
   return prices.monthly * months;
 }
 
 /**
  * Cuánto se ahorra por mes contra pagar mes a mes, en porcentaje. 0 = sin
- * descuento. La UI lo usa para no anunciar un ahorro que no existe: si el
- * trimestre está a 3× el mensual, no muestra nada.
+ * descuento. La UI lo usa para no anunciar un ahorro que no existe: si el año
+ * está a 12× el mensual, no muestra nada.
  */
 export function savingPct(months: number, prices: PlanPrices): number {
   if (months <= 1 || prices.monthly <= 0) return 0;
