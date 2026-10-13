@@ -3,8 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import {
+  cancelProStripeSubscription,
+  cancelProSubscription,
+} from "@/app/(admin)/panel/plan/actions";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth";
+import { storeClosedByOwner } from "@/lib/store-status";
 
 export interface ActionResult {
   ok: boolean;
@@ -155,5 +161,103 @@ export async function updateDeliverySettings(
   if (error) return { ok: false, error: "No se pudieron guardar los cambios" };
 
   revalidatePath("/panel/configuracion/entrega");
+  return { ok: true };
+}
+
+// ── Cerrar la tienda ────────────────────────────────────────────────────────
+
+/** Para comparar el nombre que escribe con el de la tienda sin ser quisquilloso. */
+function sameName(a: string, b: string): boolean {
+  const norm = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
+  return norm(a) === norm(b);
+}
+
+/** ¿Hay una suscripción que todavía puede cobrar? */
+function billing(status: string | null): boolean {
+  return status === "active" || status === "suspended";
+}
+
+/**
+ * El dueño cierra su tienda: deja de estar en línea y se le deja de cobrar.
+ *
+ * No borra nada. Los pedidos, los productos y lo que la plataforma le debe por
+ * ventas con tarjeta quedan en la base: borrarlos de un clic sería perder la
+ * cuenta de plata que no es nuestra, y un cierre por error no tendría vuelta.
+ * Por eso el mismo dueño puede reabrirla (ver `reopenStore`).
+ *
+ * El orden importa: primero se corta el cobro y recién después se cierra. Si
+ * Stripe no confirma la cancelación, la tienda NO se cierra — una tienda
+ * cerrada a la que le siguen debitando la tarjeta es el peor resultado posible.
+ *
+ * `active` y `subscription_status` están fuera del alcance del comerciante en
+ * la base (migración 0021), así que esto escribe con service role.
+ */
+export async function closeStore(confirmName: string): Promise<ActionResult> {
+  const ctx = await getSessionContext();
+  if (!ctx?.store) return { ok: false, error: "No autorizado" };
+  if (ctx.user.role !== "store_owner") {
+    return { ok: false, error: "Solo el dueño de la tienda puede cerrarla" };
+  }
+  const store = ctx.store;
+
+  // Escribir el nombre es el freno contra el clic distraído.
+  if (!sameName(confirmName ?? "", store.name)) {
+    return { ok: false, error: "El nombre no coincide con el de tu tienda" };
+  }
+
+  const failed = {
+    ok: false,
+    error:
+      "No pudimos cancelar tu suscripción, así que no cerramos la tienda. Intenta de nuevo o escríbenos.",
+  };
+  if (store.stripe_subscription_id && billing(store.stripe_subscription_status)) {
+    const res = await cancelProStripeSubscription();
+    if (!res.ok) return failed;
+  }
+  if (store.paypal_subscription_id && billing(store.paypal_subscription_status)) {
+    const res = await cancelProSubscription();
+    if (!res.ok) return failed;
+  }
+
+  const { error } = await createAdminClient()
+    .from("stores")
+    .update({ active: false, subscription_status: "cancelled" })
+    .eq("id", store.id);
+  if (error) {
+    return { ok: false, error: "No se pudo cerrar la tienda. Intenta de nuevo." };
+  }
+
+  revalidatePath("/panel", "layout");
+  revalidatePath(`/${store.slug}`, "layout");
+  return { ok: true };
+}
+
+/**
+ * Reabre una tienda que cerró su propio dueño.
+ *
+ * Solo deshace ese cierre: una tienda que pausó el super admin se queda
+ * pausada, porque `storeClosedByOwner` distingue los dos casos. La suscripción
+ * no vuelve sola — se canceló al cerrar y hay que contratarla de nuevo.
+ */
+export async function reopenStore(): Promise<ActionResult> {
+  const ctx = await getSessionContext();
+  if (!ctx?.store) return { ok: false, error: "No autorizado" };
+  if (ctx.user.role !== "store_owner") {
+    return { ok: false, error: "Solo el dueño de la tienda puede reabrirla" };
+  }
+  if (!storeClosedByOwner(ctx.store)) {
+    return { ok: false, error: "Tu tienda no está cerrada" };
+  }
+
+  const { error } = await createAdminClient()
+    .from("stores")
+    .update({ active: true, subscription_status: "active" })
+    .eq("id", ctx.store.id);
+  if (error) {
+    return { ok: false, error: "No se pudo reabrir la tienda. Intenta de nuevo." };
+  }
+
+  revalidatePath("/panel", "layout");
+  revalidatePath(`/${ctx.store.slug}`, "layout");
   return { ok: true };
 }

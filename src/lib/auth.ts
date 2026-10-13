@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 
+import { storeClosedByOwner } from "@/lib/store-status";
 import { createClient } from "@/lib/supabase/server";
 import type { AppUser, Store } from "@/types/database";
 
@@ -56,6 +57,8 @@ export async function requireStoreUser(): Promise<SessionContext & { store: Stor
   if (!ctx) redirect("/login");
   if (ctx.user.role === "super_admin") redirect("/super");
   if (!ctx.store) redirect("/login?error=no-store");
+  // A store its owner closed has no panel to work in, only the way back.
+  if (storeClosedByOwner(ctx.store)) redirect("/tienda-cerrada");
   return { ...ctx, store: ctx.store };
 }
 

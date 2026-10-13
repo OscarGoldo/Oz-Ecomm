@@ -42,6 +42,7 @@ const RESERVED_SLUGS = new Set([
   "finanzas",
   "tienda",
   "tiendas",
+  "tienda-cerrada",
   "_next",
   "static",
   "public",
