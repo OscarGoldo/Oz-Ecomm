@@ -1,5 +1,7 @@
 import "server-only";
 
+import { unstable_noStore as noStore } from "next/cache";
+
 import { PROMO_CODE_MIN, normalizePromoCode, promoState } from "@/lib/promo";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -27,6 +29,13 @@ export interface ClaimedPromo extends PromoOffer {
 export async function lookupPromoCode(
   raw: string | null | undefined,
 ): Promise<PromoOffer | null> {
+  // Sin esto Next guarda la respuesta de la consulta y la repite para siempre:
+  // la página del registro no lee cookies antes de llegar acá, así que nada
+  // más la saca de la caché. Se vio en producción: un código ya agotado seguía
+  // ofreciendo los meses gratis, y uno consultado antes de existir habría
+  // quedado como "no disponible" aunque después se creara.
+  noStore();
+
   const code = normalizePromoCode(raw);
   if (code.length < PROMO_CODE_MIN) return null;
 
