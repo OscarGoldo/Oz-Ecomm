@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { getSessionContext } from "@/lib/auth";
 import { feedbackEmail, sendEmail } from "@/lib/email";
+import { recordPlatformEvent } from "@/lib/platform-events";
 import { reportError } from "@/lib/report-error";
 import { publicSiteUrl } from "@/lib/site-url";
 import { feedbackKindLabel } from "@/lib/support";
@@ -92,6 +93,17 @@ export async function sendFeedback(input: FeedbackInput): Promise<ActionResult> 
         inboxUrl: `${publicSiteUrl()}/super/comentarios`,
       }),
     }));
+
+  await recordPlatformEvent({
+    type: "feedback.received",
+    storeId: store.id,
+    title: `Comentario de ${store.name}`,
+    // El mensaje entero vive en la bandeja; al grupo va el arranque.
+    detail: `${feedbackKindLabel(d.kind)} · ${user.full_name}: ${
+      d.message.length > 280 ? `${d.message.slice(0, 280)}…` : d.message
+    }`,
+    url: "/super/comentarios",
+  });
 
   if (saveErr) {
     // Con el correo entregado el comentario llegó, pero la bandeja está rota y

@@ -36,6 +36,20 @@ export function shortDate(iso: string, now = new Date()): string {
     : DAY_MONTH_YEAR.format(d);
 }
 
+/**
+ * Una fecha de calendario que llega como medianoche UTC (la de llegada de un
+ * depósito de Stripe). Pasarla a hora de Caracas la corre al día anterior.
+ */
+export function calendarDate(iso: string, now = new Date()): string {
+  const d = new Date(iso);
+  return new Intl.DateTimeFormat("es-VE", {
+    day: "numeric",
+    month: "short",
+    ...(d.getUTCFullYear() === now.getUTCFullYear() ? {} : { year: "numeric" }),
+    timeZone: "UTC",
+  }).format(d);
+}
+
 /** Siempre con año, para el `title` y para exportar. */
 export function fullDate(iso: string): string {
   return DAY_MONTH_YEAR.format(new Date(iso));
@@ -48,6 +62,15 @@ export function agoShort(iso: string, now = new Date()): string {
   if (days === 1) return "ayer";
   if (days < 31) return `hace ${days} d`;
   return shortDate(iso, now);
+}
+
+/** Para un feed de actividad: "ahora", "hace 5 min", "hace 3 h", y después como agoShort. */
+export function agoTime(iso: string, now = new Date()): string {
+  const min = Math.floor((now.getTime() - new Date(iso).getTime()) / 60_000);
+  if (min < 1) return "ahora";
+  if (min < 60) return `hace ${min} min`;
+  if (min < 24 * 60) return `hace ${Math.floor(min / 60)} h`;
+  return agoShort(iso, now);
 }
 
 export interface PlanBadge {

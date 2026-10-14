@@ -1,26 +1,36 @@
 import Link from "next/link";
 import {
+  Activity,
   ArrowUpRight,
   CircleCheck,
+  CircleDollarSign,
   Gift,
   MessageCircle,
   MessageSquare,
   Receipt,
+  Send,
   ShoppingBag,
   Store as StoreIcon,
   TrendingUp,
+  TriangleAlert,
   UserPlus,
   Wallet,
 } from "lucide-react";
 
 import { StatCard } from "@/components/admin/stat-card";
+import { TelegramTestButton } from "@/components/admin/telegram-test-button";
 import { Badge } from "@/components/ui/badge";
 import { requireSuperAdmin } from "@/lib/auth";
 import { formatUSD } from "@/lib/format";
 import type { Delta } from "@/lib/metrics";
 import { isPro } from "@/lib/plans";
+import {
+  EVENT_GROUP,
+  getRecentEvents,
+  type EventGroup,
+} from "@/lib/platform-events";
 import { createClient } from "@/lib/supabase/server";
-import { agoShort, planBadge, shortDate } from "@/lib/super-format";
+import { agoShort, agoTime, planBadge, shortDate } from "@/lib/super-format";
 import {
   DORMANT_DAYS,
   EXPIRING_DAYS,
@@ -30,6 +40,7 @@ import {
   type StoreStat,
 } from "@/lib/super-segments";
 import { getStoreStats, getSuperOverview } from "@/lib/super-stats";
+import { telegramConfigured } from "@/lib/telegram";
 import { cn } from "@/lib/utils";
 import { whatsappUrl } from "@/lib/whatsapp";
 
@@ -93,6 +104,7 @@ export default async function SuperHomePage({
     { count: pendingSubs },
     { count: pendingReferrals },
     { count: unreadFeedback },
+    events,
   ] = await Promise.all([
     getSuperOverview(days),
     getStoreStats(),
@@ -108,9 +120,11 @@ export default async function SuperHomePage({
       .from("feedback")
       .select("id", { count: "exact", head: true })
       .is("read_at", null),
+    getRecentEvents(10),
   ]);
 
   const now = new Date();
+  const telegramOn = telegramConfigured();
 
   // A quién hay que escribirle. Cada tienda entra una sola vez, por su motivo
   // más urgente: un cobro fallido pesa más que un vencimiento, y los dos más
@@ -292,7 +306,7 @@ export default async function SuperHomePage({
         </section>
       )}
 
-      <div className="grid gap-7 lg:grid-cols-2 lg:gap-5">
+      <div className="grid grid-cols-1 gap-7 lg:grid-cols-2 lg:gap-5">
         <section className="space-y-3">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-sm font-semibold">En riesgo</h2>
@@ -384,53 +398,153 @@ export default async function SuperHomePage({
         )}
       </div>
 
-      <section className="space-y-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-sm font-semibold">Últimas tiendas</h2>
-          <Link
-            href="/super/tiendas"
-            className="inline-flex items-center gap-0.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
-          >
-            Ver todas <ArrowUpRight className="size-3" />
-          </Link>
-        </div>
-        {newest.length === 0 ? (
-          <div className="grid place-items-center rounded-xl border border-dashed bg-card p-8 text-center">
-            <StoreIcon className="mb-2 size-7 text-muted-foreground" />
-            <p className="text-sm font-medium">Todavía no hay tiendas</p>
+      <div className="grid grid-cols-1 gap-7 lg:grid-cols-2 lg:gap-5">
+        <section className="space-y-3">
+          <div className="flex min-h-10 flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">Actividad reciente</h2>
+            {telegramOn ? (
+              <TelegramTestButton />
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                Telegram sin conectar
+              </span>
+            )}
           </div>
-        ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-            {newest.map((s) => {
-              const plan = planBadge(s, now);
-              const origin = originLabel(s);
-              return (
-                <li key={s.id} className="flex items-center gap-3 px-3 py-2.5">
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      href={`/super/tiendas/${s.id}`}
-                      className="block truncate text-sm font-medium hover:underline"
+          {events === null ? (
+            <p className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm">
+              La actividad aparece al correr la migración{" "}
+              <code className="font-mono text-xs">0031_platform_events.sql</code>{" "}
+              en Supabase.
+            </p>
+          ) : events.length === 0 ? (
+            <div className="grid place-items-center rounded-xl border border-dashed bg-card p-8 text-center">
+              <Activity className="mb-2 size-7 text-muted-foreground" />
+              <p className="text-sm font-medium">Todavía no pasó nada</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Acá y en Telegram aparecen pagos, tiendas nuevas, comprobantes y
+                alertas apenas pasan.
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+              {events.map((e) => {
+                const group = EVENT_GROUP[e.type] ?? "clientes";
+                const Icon = EVENT_ICON[group];
+                const body = (
+                  <>
+                    <span
+                      className={cn(
+                        "mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg",
+                        group === "alerta"
+                          ? "bg-destructive-surface text-destructive-text"
+                          : "bg-muted text-ink-500",
+                      )}
                     >
-                      {s.name}
-                    </Link>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {s.owner_name ?? "Sin dueño asignado"}
-                      {origin ? ` · ${origin}` : ""}
-                    </p>
-                  </div>
-                  <Badge variant={plan.variant}>{plan.label}</Badge>
-                  <span className="w-16 shrink-0 text-right text-xs tabular-nums text-ink-500">
-                    {shortDate(s.created_at, now)}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+                      <Icon className="size-3.5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span className="truncate text-sm font-medium">{e.title}</span>
+                        {e.amount != null && (
+                          <span className="shrink-0 text-sm tabular-nums">
+                            {formatUSD(e.amount)}
+                          </span>
+                        )}
+                      </span>
+                      {e.detail && (
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {e.detail}
+                        </span>
+                      )}
+                      <span className="block text-2xs text-ink-400">
+                        {agoTime(e.created_at, now)}
+                      </span>
+                    </span>
+                  </>
+                );
+                const rowClass =
+                  "flex items-start gap-2.5 px-3 py-2.5 transition-colors hover:bg-muted/50";
+                return (
+                  <li key={e.id}>
+                    {!e.url ? (
+                      <div className={rowClass}>{body}</div>
+                    ) : e.url.startsWith("/") ? (
+                      <Link href={e.url} className={rowClass}>
+                        {body}
+                      </Link>
+                    ) : (
+                      <a
+                        href={e.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={rowClass}
+                      >
+                        {body}
+                      </a>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex min-h-10 items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold">Últimas tiendas</h2>
+            <Link
+              href="/super/tiendas"
+              className="inline-flex items-center gap-0.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+            >
+              Ver todas <ArrowUpRight className="size-3" />
+            </Link>
+          </div>
+          {newest.length === 0 ? (
+            <div className="grid place-items-center rounded-xl border border-dashed bg-card p-8 text-center">
+              <StoreIcon className="mb-2 size-7 text-muted-foreground" />
+              <p className="text-sm font-medium">Todavía no hay tiendas</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+              {newest.map((s) => {
+                const plan = planBadge(s, now);
+                const origin = originLabel(s);
+                return (
+                  <li key={s.id} className="flex items-center gap-3 px-3 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/super/tiendas/${s.id}`}
+                        className="block truncate text-sm font-medium hover:underline"
+                      >
+                        {s.name}
+                      </Link>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {s.owner_name ?? "Sin dueño asignado"}
+                        {origin ? ` · ${origin}` : ""}
+                      </p>
+                    </div>
+                    <Badge variant={plan.variant}>{plan.label}</Badge>
+                    <span className="w-16 shrink-0 text-right text-xs tabular-nums text-ink-500">
+                      {shortDate(s.created_at, now)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
+
+const EVENT_ICON: Record<EventGroup, typeof StoreIcon> = {
+  clientes: StoreIcon,
+  dinero: CircleDollarSign,
+  pagos: Send,
+  crecimiento: Gift,
+  alerta: TriangleAlert,
+};
 
 function RiskLink({
   segment,

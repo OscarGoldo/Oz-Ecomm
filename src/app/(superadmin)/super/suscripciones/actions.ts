@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import { getSessionContext } from "@/lib/auth";
 import { extendExpiry } from "@/lib/plans";
+import { recordPlatformEvent } from "@/lib/platform-events";
+import { monthsLabel } from "@/lib/promo";
 import { PAYMENT_PROOFS_BUCKET } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database";
@@ -49,7 +51,7 @@ export async function approveSubscriptionPayment(
     })
     .eq("id", paymentId)
     .eq("status", "pending")
-    .select("store_id, period_months")
+    .select("store_id, period_months, amount")
     .maybeSingle();
 
   if (claimErr) return { ok: false, error: "No se pudo aprobar el pago" };
@@ -57,7 +59,7 @@ export async function approveSubscriptionPayment(
 
   const { data: store } = await db
     .from("stores")
-    .select("plan_expires_at")
+    .select("name, plan_expires_at")
     .eq("id", payment.store_id)
     .maybeSingle();
 
@@ -83,6 +85,17 @@ export async function approveSubscriptionPayment(
     return { ok: false, error: "No se pudo activar el plan. Intenta de nuevo." };
   }
 
+  // Con una cuenta compartida, es la forma de que el otro socio sepa que ese
+  // comprobante ya se revisó y no lo busque.
+  await recordPlatformEvent({
+    type: "plan.proof_approved",
+    storeId: payment.store_id,
+    amount: Number(payment.amount),
+    title: `Comprobante aprobado: ${store?.name ?? "tienda"}`,
+    detail: `${monthsLabel(payment.period_months)} de Pro`,
+    url: `/super/tiendas/${payment.store_id}`,
+  });
+
   // Inicio y el menú también cuentan los comprobantes pendientes.
   revalidatePath("/super", "layout");
   return { ok: true };
@@ -101,7 +114,7 @@ export async function rejectSubscriptionPayment(
   }
 
   const db = createAdminClient();
-  const { error } = await db
+  const { data: payment, error } = await db
     .from("subscription_payments")
     .update({
       status: "rejected",
@@ -110,9 +123,27 @@ export async function rejectSubscriptionPayment(
       reviewed_at: new Date().toISOString(),
     })
     .eq("id", paymentId)
-    .eq("status", "pending");
+    .eq("status", "pending")
+    .select("store_id, amount")
+    .maybeSingle();
 
   if (error) return { ok: false, error: "No se pudo rechazar el pago" };
+
+  if (payment) {
+    const { data: store } = await db
+      .from("stores")
+      .select("name")
+      .eq("id", payment.store_id)
+      .maybeSingle();
+    await recordPlatformEvent({
+      type: "plan.proof_rejected",
+      storeId: payment.store_id,
+      amount: Number(payment.amount),
+      title: `Comprobante rechazado: ${store?.name ?? "tienda"}`,
+      detail: note.trim() || "Sin nota",
+      url: `/super/tiendas/${payment.store_id}`,
+    });
+  }
 
   revalidatePath("/super", "layout");
   return { ok: true };

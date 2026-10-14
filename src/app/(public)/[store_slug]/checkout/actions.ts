@@ -17,6 +17,7 @@ import { buildOrderMessageData } from "@/lib/order-messages";
 import { notifyOwnerNewOrder } from "@/lib/whatsapp-cloud";
 import { evaluateCoupon, findCouponByCode } from "@/lib/coupons";
 import { maybeQualifyReferral } from "@/lib/referrals-server";
+import { recordPlatformEvent } from "@/lib/platform-events";
 import {
   capturePaypalOrder,
   createPaypalOrder,
@@ -751,6 +752,19 @@ async function insertOrder(
   // también. Los que quedan en pending_confirmation se evalúan al confirmarse.
   if (status === "confirmed") {
     await maybeQualifyReferral(store.id);
+  }
+
+  // Una venta con tarjeta es plata que entra a la cuenta de Tiendify y se le
+  // debe a la tienda: por eso avisa a los socios, y un pedido en efectivo no.
+  if (status === "confirmed" && method.type === "stripe") {
+    await recordPlatformEvent({
+      type: "order.card_paid",
+      storeId: store.id,
+      amount: total,
+      title: `Venta con tarjeta en ${store.name}`,
+      detail: `Pedido #${order.order_number} · se le debe a la tienda`,
+      url: "/super/pagos",
+    });
   }
 
   // El visitante compró: su carrito abandonado deja de estar pendiente. Se

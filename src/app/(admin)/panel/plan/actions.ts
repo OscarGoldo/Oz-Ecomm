@@ -14,8 +14,11 @@ import {
   getSubscription,
   subscriptionCreds,
 } from "@/lib/paypal-subscriptions";
+import { PAYMENT_METHOD_META } from "@/lib/constants";
 import { PLAN_PERIODS, extendExpiry, priceFor } from "@/lib/plans";
 import { getPlatformConfig } from "@/lib/platform";
+import { recordPlatformEvent } from "@/lib/platform-events";
+import { monthsLabel } from "@/lib/promo";
 import { reportError } from "@/lib/report-error";
 import { appUrl, getStripe, stripePriceFor, toCents } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -82,20 +85,34 @@ export async function requestProUpgrade(
   }
 
   const { prices } = await getPlatformConfig();
+  const amount = priceFor(d.period_months, prices);
+  const reference = d.reference?.trim() || null;
 
   const { error } = await db.from("subscription_payments").insert({
     store_id: ctx.store.id,
     period_months: d.period_months,
-    amount: priceFor(d.period_months, prices),
+    amount,
     currency: "USD",
     method: d.method,
-    reference: d.reference?.trim() || null,
+    reference,
     proof_url: d.proof_path,
     status: "pending",
   });
   if (error) {
     return { ok: false, error: "No se pudo registrar el pago. Intenta de nuevo." };
   }
+
+  // Hasta que alguien lo apruebe, el comerciante pagó y no tiene su plan.
+  await recordPlatformEvent({
+    type: "plan.proof_submitted",
+    storeId: ctx.store.id,
+    amount,
+    title: `Comprobante por revisar: ${ctx.store.name}`,
+    detail: `${monthsLabel(d.period_months)} por ${PAYMENT_METHOD_META[d.method].label}${
+      reference ? ` · ref ${reference}` : ""
+    }`,
+    url: "/super/suscripciones",
+  });
 
   revalidatePath("/panel/plan");
   revalidatePath("/panel");

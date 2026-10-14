@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { extendExpiry } from "@/lib/plans";
+import { recordPlatformEvent } from "@/lib/platform-events";
 import { monthsLabel } from "@/lib/promo";
 import {
   claimPromoCode,
@@ -278,6 +279,20 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
     requires_proof: false,
     instructions: "Pagas al recibir o retirar el pedido.",
     display_order: 0,
+  });
+
+  await recordPlatformEvent({
+    type: "store.created",
+    storeId: store.id,
+    title: `Tienda nueva: ${d.store_name}`,
+    detail: [
+      d.owner_name,
+      d.owner_email,
+      promo ? `código ${promo.code} (${monthsLabel(promo.months)} de Pro)` : null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    url: `/super/tiendas/${store.id}`,
   });
 
   // Dejarlo adentro. Antes la cuenta se creaba con la API admin y nadie iniciaba

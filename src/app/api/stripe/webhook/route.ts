@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 
 import { finalizeCardOrder } from "@/app/(public)/[store_slug]/checkout/actions";
+import { formatUSD } from "@/lib/format";
 import { notifyPaidOrder } from "@/lib/order-notify";
 import { stockOpsForOrder } from "@/lib/order-stock";
 import {
@@ -11,9 +12,18 @@ import {
   type PlanPrices,
 } from "@/lib/plans";
 import { getPlatformConfig } from "@/lib/platform";
+import { recordPlatformEvent } from "@/lib/platform-events";
+import { monthsLabel } from "@/lib/promo";
 import { maybeQualifyReferral } from "@/lib/referrals-server";
 import { reportError } from "@/lib/report-error";
-import { chargeBreakdown, fromCents, getStripe, stripeWebhookSecret, toCents } from "@/lib/stripe";
+import {
+  chargeBreakdown,
+  fromCents,
+  getStripe,
+  stripeIsTestMode,
+  stripeWebhookSecret,
+  toCents,
+} from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { SubscriptionState } from "@/types/database";
 
@@ -100,6 +110,12 @@ export async function POST(request: Request) {
           subscriptionState(event.data.object.status),
         );
         break;
+      case "charge.dispute.created":
+        await handleDispute(db, event.data.object);
+        break;
+      case "charge.refunded":
+        await handleRefund(db, event.data.object);
+        break;
       default:
         break;
     }
@@ -136,11 +152,19 @@ async function handleSessionCompleted(
 
   const { data: order } = await db
     .from("orders")
-    .select("id, store_id, total, status")
+    .select("id, store_id, total, status, order_number")
     .eq("id", orderId)
     .maybeSingle();
   if (!order) {
     console.warn("[stripe-webhook] cobro sin pedido", orderId);
+    await recordPlatformEvent({
+      type: "stripe.orphan_charge",
+      amount: fromCents(session.amount_total ?? 0),
+      title: "Cobro con tarjeta sin pedido",
+      detail: `La sesión ${session.id} apunta a un pedido que no existe. La plata está en Stripe.`,
+      url: stripeDashboardUrl("payments", paymentIntentId(session.payment_intent)),
+      dedupeKey: `orphan:${session.id}`,
+    });
     return;
   }
   if (order.status !== "pending_payment") return; // ya procesado
@@ -160,6 +184,15 @@ async function handleSessionCompleted(
       orderId,
       charged: session.amount_total,
       expected,
+    });
+    await recordPlatformEvent({
+      type: "stripe.orphan_charge",
+      storeId: order.store_id,
+      amount: fromCents(session.amount_total ?? 0),
+      title: `Cobro que no coincide con el pedido #${order.order_number}`,
+      detail: `Se cobraron ${formatUSD(fromCents(session.amount_total ?? 0))} y el pedido es de ${formatUSD(Number(order.total))}. No se confirmó: hay que revisarlo a mano.`,
+      url: stripeDashboardUrl("payments", paymentIntentId(session.payment_intent)),
+      dedupeKey: `mismatch:${session.id}`,
     });
     return;
   }
@@ -192,6 +225,19 @@ async function handleSessionCompleted(
   if (!claimed) return;
 
   await notifyPaidOrder(db, order.id);
+  const { data: store } = await db
+    .from("stores")
+    .select("name")
+    .eq("id", order.store_id)
+    .maybeSingle();
+  await recordPlatformEvent({
+    type: "order.card_paid",
+    storeId: order.store_id,
+    amount: Number(order.total),
+    title: `Venta con tarjeta en ${store?.name ?? "una tienda"}`,
+    detail: `Pedido #${order.order_number} · se le debe a la tienda`,
+    url: "/super/pagos",
+  });
   // Una venta confirmada es lo que puede activar el referido que trajo a esta
   // tienda; en el checkout normal esto pasa dentro de createOrder.
   await maybeQualifyReferral(order.store_id);
@@ -217,6 +263,15 @@ async function handleCardPayment(db: Db, intent: Stripe.PaymentIntent) {
     console.error("[stripe-webhook] cobro sin pedido", intent.id, res.error);
     reportError("stripe-webhook:card-sin-pedido", new Error(res.error ?? "falló"), {
       paymentIntentId: intent.id,
+    });
+    await recordPlatformEvent({
+      type: "stripe.orphan_charge",
+      storeId: intent.metadata?.store_id ?? null,
+      amount: fromCents(intent.amount_received ?? intent.amount),
+      title: "Cobro con tarjeta sin pedido",
+      detail: `El cliente pagó y el pedido no se pudo crear (${res.error ?? "sin detalle"}). Hay que resolverlo a mano.`,
+      url: stripeDashboardUrl("payments", intent.id),
+      dedupeKey: `orphan:${intent.id}`,
     });
   }
 }
@@ -392,6 +447,110 @@ async function handleSubscriptionState(
       ...(state === "active" ? { stripe_subscription_id: subscription.id } : {}),
     })
     .eq("id", store.id);
+
+  // `customer.subscription.updated` llega por cualquier cambio (una renovación,
+  // la metadata). Solo se avisa cuando el estado de verdad cambió a algo malo.
+  if (state === store.stripe_subscription_status) return;
+  if (state === "suspended") {
+    await recordPlatformEvent({
+      type: "plan.payment_failed",
+      storeId: store.id,
+      title: `Cobro fallido: ${store.name}`,
+      detail:
+        "La tarjeta no pasó. Stripe reintenta solo; el plan corre hasta que venza.",
+      url: `/super/tiendas/${store.id}`,
+    });
+  } else if (state === "cancelled") {
+    await recordPlatformEvent({
+      type: "plan.cancelled",
+      storeId: store.id,
+      title: `Suscripción cancelada: ${store.name}`,
+      detail: store.plan_expires_at
+        ? `Tiene Pro hasta el ${new Date(store.plan_expires_at).toLocaleDateString("es-VE", { timeZone: "America/Caracas" })}`
+        : null,
+      url: `/super/tiendas/${store.id}`,
+    });
+  }
+}
+
+// ── Contracargos y reembolsos ───────────────────────────────────────────────
+//
+// Las ventas con tarjeta de las tiendas entran a la cuenta de Tiendify, así
+// que un contracargo le saca la plata a Tiendify, quizás después de haberle
+// pagado a la tienda. Antes estos eventos ni se escuchaban: se veían solo
+// entrando a Stripe. Acá no se toca nada (ni el pedido ni lo que se le debe a
+// la tienda); se avisa para decidir a mano.
+
+/** El pedido de un cobro, para decir de qué tienda es. */
+async function orderForIntent(db: Db, intentId: string | null) {
+  if (!intentId) return null;
+  const { data } = await db
+    .from("orders")
+    .select("id, store_id, order_number, paid_out_at")
+    .eq("stripe_payment_intent", intentId)
+    .maybeSingle();
+  if (!data) return null;
+  const { data: store } = await db
+    .from("stores")
+    .select("name")
+    .eq("id", data.store_id)
+    .maybeSingle();
+  return { ...data, storeName: store?.name ?? "una tienda" };
+}
+
+async function handleDispute(db: Db, dispute: Stripe.Dispute) {
+  const order = await orderForIntent(db, paymentIntentId(dispute.payment_intent));
+  await recordPlatformEvent({
+    type: "stripe.dispute",
+    storeId: order?.store_id ?? null,
+    amount: fromCents(dispute.amount),
+    title: "Contracargo",
+    detail: [
+      order
+        ? `${order.storeName} · pedido #${order.order_number}${
+            order.paid_out_at ? " · a la tienda ya se le pagó" : ""
+          }`
+        : "No es de un pedido de tienda (puede ser un plan)",
+      `motivo: ${dispute.reason}`,
+      dispute.evidence_details?.due_by
+        ? `hay que responder antes del ${new Date(dispute.evidence_details.due_by * 1000).toLocaleDateString("es-VE", { timeZone: "America/Caracas" })}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    url: stripeDashboardUrl("disputes", dispute.id),
+  });
+}
+
+async function handleRefund(db: Db, charge: Stripe.Charge) {
+  const order = await orderForIntent(db, paymentIntentId(charge.payment_intent));
+  await recordPlatformEvent({
+    type: "stripe.refund",
+    storeId: order?.store_id ?? null,
+    amount: fromCents(charge.amount_refunded),
+    title: charge.refunded ? "Reembolso total" : "Reembolso parcial",
+    detail: order
+      ? `${order.storeName} · pedido #${order.order_number}${
+          order.paid_out_at
+            ? " · a la tienda ya se le pagó"
+            : " · descontarlo de lo que se le debe"
+        }`
+      : "No es de un pedido de tienda (puede ser un plan)",
+    url: stripeDashboardUrl("payments", paymentIntentId(charge.payment_intent)),
+  });
+}
+
+function paymentIntentId(
+  pi: string | Stripe.PaymentIntent | null | undefined,
+): string | null {
+  if (!pi) return null;
+  return typeof pi === "string" ? pi : pi.id;
+}
+
+/** Enlace a algo en el dashboard de Stripe, respetando el modo de prueba. */
+function stripeDashboardUrl(section: "payments" | "disputes", id: string | null) {
+  const base = `https://dashboard.stripe.com${stripeIsTestMode() ? "/test" : ""}/${section}`;
+  return id ? `${base}/${id}` : base;
 }
 
 function subscriptionState(status: Stripe.Subscription.Status): SubscriptionState {
@@ -418,7 +577,7 @@ async function storeForSubscription(
   if (subscriptionId) {
     const { data } = await db
       .from("stores")
-      .select("id, plan_expires_at")
+      .select("id, name, plan_expires_at, stripe_subscription_status")
       .eq("stripe_subscription_id", subscriptionId)
       .maybeSingle();
     if (data) return data;
@@ -428,7 +587,7 @@ async function storeForSubscription(
   if (storeId) {
     const { data } = await db
       .from("stores")
-      .select("id, plan_expires_at")
+      .select("id, name, plan_expires_at, stripe_subscription_status")
       .eq("id", storeId)
       .maybeSingle();
     if (data) return data;
@@ -492,9 +651,22 @@ async function extendPlan(
 
   const { data: store } = await db
     .from("stores")
-    .select("plan_expires_at")
+    .select("name, plan_expires_at")
     .eq("id", storeId)
     .maybeSingle();
+
+  // Después del insert: si el cobro venía repetido ya se cortó arriba, así
+  // que acá cada pago avisa una sola vez.
+  await recordPlatformEvent({
+    type: "plan.paid",
+    storeId,
+    amount: payment.amount,
+    title: `Plan pagado: ${store?.name ?? "tienda"}`,
+    detail: `${monthsLabel(months)} con tarjeta${
+      payment.subscriptionId ? " · se renueva sola" : ""
+    }`,
+    url: `/super/tiendas/${storeId}`,
+  });
 
   await db
     .from("stores")

@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSessionContext } from "@/lib/auth";
+import { recordPlatformEvent } from "@/lib/platform-events";
+import { sendTelegram, telegramConfigured } from "@/lib/telegram";
 import { isReservedSlug, slugify } from "@/lib/slug";
 
 export interface ActionResult {
@@ -134,6 +136,15 @@ export async function createStore(
     display_order: 0,
   });
 
+  // La creó uno de los socios: el aviso es para que el otro se entere.
+  await recordPlatformEvent({
+    type: "store.created",
+    storeId: store.id,
+    title: `Tienda nueva: ${d.store_name}`,
+    detail: `${d.owner_name} · ${d.owner_email} · creada desde el super admin`,
+    url: `/super/tiendas/${store.id}`,
+  });
+
   revalidatePath("/super", "layout");
   return { ok: true, storeId: store.id, slug };
 }
@@ -245,4 +256,32 @@ export async function setStoreActive(
 
   revalidatePath("/super", "layout");
   return { ok: true };
+}
+
+/**
+ * Manda un mensaje de prueba al grupo de Telegram. Es para saber, recién
+ * cargadas las variables en Vercel, que el bot está en el grupo correcto, sin
+ * esperar a que entre un pago de verdad.
+ */
+export async function sendTelegramTest(): Promise<ActionResult> {
+  try {
+    await requireSuperAdmin();
+  } catch {
+    return { ok: false, error: "No autorizado" };
+  }
+  if (!telegramConfigured()) {
+    return {
+      ok: false,
+      error: "Faltan TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID en las variables de Vercel",
+    };
+  }
+  const sent = await sendTelegram(
+    "✅ <b>Tiendify conectado</b>\nDesde ahora los avisos del super admin llegan a este grupo.",
+  );
+  return sent
+    ? { ok: true }
+    : {
+        ok: false,
+        error: "Telegram no aceptó el mensaje. Revisa el token y el id del grupo.",
+      };
 }

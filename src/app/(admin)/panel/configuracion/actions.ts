@@ -10,6 +10,7 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth";
+import { recordPlatformEvent } from "@/lib/platform-events";
 import { storeClosedByOwner } from "@/lib/store-status";
 
 export interface ActionResult {
@@ -226,6 +227,14 @@ export async function closeStore(confirmName: string): Promise<ActionResult> {
   if (error) {
     return { ok: false, error: "No se pudo cerrar la tienda. Intenta de nuevo." };
   }
+
+  await recordPlatformEvent({
+    type: "store.closed",
+    storeId: store.id,
+    title: `Tienda cerrada por su dueño: ${store.name}`,
+    detail: ctx.user.full_name,
+    url: `/super/tiendas/${store.id}`,
+  });
 
   revalidatePath("/panel", "layout");
   revalidatePath(`/${store.slug}`, "layout");

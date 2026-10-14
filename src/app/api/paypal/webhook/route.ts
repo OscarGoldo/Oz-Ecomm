@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { extendExpiry } from "@/lib/plans";
+import { recordPlatformEvent } from "@/lib/platform-events";
+import { monthsLabel } from "@/lib/promo";
 import {
   subscriptionCreds,
   verifyWebhookSignature,
@@ -128,7 +130,7 @@ async function storeForSubscription(
   if (subscriptionId) {
     const { data } = await db
       .from("stores")
-      .select("id, plan_expires_at")
+      .select("id, name, plan_expires_at")
       .eq("paypal_subscription_id", subscriptionId)
       .maybeSingle();
     if (data) return data;
@@ -138,7 +140,7 @@ async function storeForSubscription(
   if (customId) {
     const { data } = await db
       .from("stores")
-      .select("id, plan_expires_at")
+      .select("id, name, plan_expires_at")
       .eq("id", customId)
       .maybeSingle();
     if (data) return data;
@@ -178,6 +180,15 @@ async function handleSaleCompleted(db: Db, event: PaypalEvent) {
     paypal_subscription_id: subscriptionId,
     status: "approved",
     reviewed_at: new Date().toISOString(),
+  });
+
+  await recordPlatformEvent({
+    type: "plan.paid",
+    storeId: store.id,
+    amount,
+    title: `Plan pagado: ${store.name}`,
+    detail: `${monthsLabel(months)} por PayPal · se renueva sola`,
+    url: `/super/tiendas/${store.id}`,
   });
 
   await db

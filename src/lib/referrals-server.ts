@@ -2,6 +2,7 @@ import "server-only";
 
 import { sendEmail, referralRewardEmail } from "@/lib/email";
 import { extendExpiry } from "@/lib/plans";
+import { recordPlatformEvent } from "@/lib/platform-events";
 import {
   QUALIFY_MIN_ORDERS,
   QUALIFY_MIN_PRODUCTS,
@@ -135,7 +136,7 @@ export async function maybeQualifyReferral(referredStoreId: string): Promise<voi
       .gte("rewarded_at", windowStart);
 
     if ((recent ?? 0) >= REWARD_CAP_PER_30D) {
-      await db
+      const { data: parked } = await db
         .from("referrals")
         .update({
           status: "qualified",
@@ -143,7 +144,26 @@ export async function maybeQualifyReferral(referredStoreId: string): Promise<voi
           note: `Superó el tope de ${REWARD_CAP_PER_30D} referidos en ${REWARD_CAP_WINDOW_DAYS} días. Requiere aprobación manual.`,
         })
         .eq("id", referral.id)
-        .eq("status", "pending");
+        .eq("status", "pending")
+        .select("id")
+        .maybeSingle();
+      // Solo quien lo pasó a la cola avisa: dos pedidos casi juntos no
+      // mandan dos avisos.
+      if (parked) {
+        const { data: stores } = await db
+          .from("stores")
+          .select("id, name")
+          .in("id", [referral.referrer_store_id, referredStoreId]);
+        const name = (id: string) =>
+          stores?.find((s) => s.id === id)?.name ?? "una tienda";
+        await recordPlatformEvent({
+          type: "referral.needs_review",
+          storeId: referral.referrer_store_id,
+          title: "Referido por decidir",
+          detail: `${name(referral.referrer_store_id)} trajo a ${name(referredStoreId)} y pasó el tope automático`,
+          url: "/super/referidos",
+        });
+      }
       return;
     }
 

@@ -861,6 +861,38 @@ export interface Database {
         >;
         Relationships: [];
       };
+      platform_events: {
+        Row: {
+          id: string;
+          type: string;
+          store_id: string | null;
+          amount: number | null;
+          title: string;
+          detail: string | null;
+          url: string | null;
+          data: Json;
+          dedupe_key: string | null;
+          notified_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          type: string;
+          store_id?: string | null;
+          amount?: number | null;
+          title: string;
+          detail?: string | null;
+          url?: string | null;
+          data?: Json;
+          dedupe_key?: string | null;
+          notified_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["platform_events"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
