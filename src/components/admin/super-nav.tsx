@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CreditCard,
   Gift,
   LayoutDashboard,
   MessageSquare,
@@ -52,6 +53,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/super/suscripciones", label: "Suscripciones", icon: Receipt },
       { href: "/super/pagos", label: "Pagos a tiendas", icon: Wallet },
+      { href: "/super/stripe", label: "Stripe", icon: CreditCard },
     ],
   },
   {
