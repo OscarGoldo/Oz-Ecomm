@@ -67,7 +67,7 @@ export function StoreOnboardingForm() {
     toast.success("Tienda creada", {
       description: `El dueño puede entrar en /login con su email.`,
     });
-    router.push("/super");
+    router.push("/super/tiendas");
     router.refresh();
   }
 

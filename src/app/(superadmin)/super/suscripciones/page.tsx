@@ -5,6 +5,7 @@ import { formatUSD } from "@/lib/format";
 import { PAYMENT_METHOD_META } from "@/lib/constants";
 import { isPro } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
+import { getSuperOverview } from "@/lib/super-stats";
 import type {
   PaymentMethodType,
   Store,
@@ -25,13 +26,14 @@ function fmtDateTime(iso: string): string {
 export default async function SuperSubscriptionsPage() {
   const supabase = createClient();
 
-  const [{ data: payments }, { data: stores }] = await Promise.all([
+  const [{ data: payments }, { data: stores }, overview] = await Promise.all([
     supabase
       .from("subscription_payments")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(100),
     supabase.from("stores").select("*"),
+    getSuperOverview(),
   ]);
 
   const list = (payments ?? []) as SubscriptionPayment[];
@@ -45,16 +47,30 @@ export default async function SuperSubscriptionsPage() {
   const paying = storeList.filter((s) => isPro(s) && s.plan_source === "paid");
   const comped = storeList.filter((s) => isPro(s) && s.plan_source === "comp");
   const approved = list.filter((p) => p.status === "approved");
-  const collected = approved.reduce((s, p) => s + Number(p.amount), 0);
+
+  // Los totales los calcula la base (migración 0030), sobre todos los pagos.
+  // Lo de abajo es el respaldo para cuando esa migración todavía no se corrió,
+  // y ahí alcanza solo a los últimos 100 que trae esta página.
+  //
+  // El MRR es el ÚLTIMO pago de cada tienda que hoy paga, llevado a un mes.
+  // Antes se sumaban todos los pagos aprobados, así que una tienda con cuatro
+  // meses pagados contaba cuatro veces. La lista viene del más nuevo al más
+  // viejo: el primero que aparece de cada tienda es el último que hizo.
+  const lastPayment = new Map<string, SubscriptionPayment>();
+  for (const p of approved) {
+    if (!lastPayment.has(p.store_id)) lastPayment.set(p.store_id, p);
+  }
+  const mrr =
+    overview?.mrr ??
+    paying.reduce((s, store) => {
+      const p = lastPayment.get(store.id);
+      return p ? s + Number(p.amount) / p.period_months : s;
+    }, 0);
+  const collected =
+    overview?.collectedTotal ?? approved.reduce((s, p) => s + Number(p.amount), 0);
   // Lo que se llevó el procesador de lo cobrado con tarjeta.
-  const processorFees = approved.reduce((s, p) => s + Number(p.fee ?? 0), 0);
-  // Normalizado a mensual para que el anual no infle el número.
-  const mrr = approved
-    .filter((p) => {
-      const store = byId.get(p.store_id);
-      return store ? isPro(store) : false;
-    })
-    .reduce((s, p) => s + Number(p.amount) / p.period_months, 0);
+  const processorFees =
+    overview?.feesTotal ?? approved.reduce((s, p) => s + Number(p.fee ?? 0), 0);
 
   return (
     <div className="space-y-6">
@@ -69,7 +85,7 @@ export default async function SuperSubscriptionsPage() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Metric label="Por revisar" value={String(pending.length)} />
         <Metric label="Tiendas pagando" value={String(paying.length)} />
-        <Metric label="MRR estimado" value={formatUSD(mrr)} />
+        <Metric label="MRR" value={formatUSD(mrr)} />
         <Metric
           label="Cobrado histórico"
           value={formatUSD(collected)}

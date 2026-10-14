@@ -43,6 +43,7 @@ export async function settleStorePayout(
 
   if (error) return { ok: false, error: "No se pudo registrar el pago" };
 
-  revalidatePath("/super/pagos");
+  // Lo que se le debe a las tiendas también sale en Inicio.
+  revalidatePath("/super", "layout");
   return { ok: true };
 }

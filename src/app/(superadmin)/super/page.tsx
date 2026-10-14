@@ -1,242 +1,480 @@
 import Link from "next/link";
 import {
-  ExternalLink,
+  ArrowUpRight,
+  CircleCheck,
+  Gift,
   MessageCircle,
-  Plus,
+  MessageSquare,
+  Receipt,
   ShoppingBag,
   Store as StoreIcon,
+  TrendingUp,
+  UserPlus,
   Wallet,
 } from "lucide-react";
 
-import { StoreActiveSwitch } from "@/components/admin/store-active-switch";
-import { StorePlanControl } from "@/components/admin/store-plan-control";
-import { createClient } from "@/lib/supabase/server";
-import { SALES_STATUSES } from "@/lib/metrics";
+import { StatCard } from "@/components/admin/stat-card";
+import { Badge } from "@/components/ui/badge";
+import { requireSuperAdmin } from "@/lib/auth";
 import { formatUSD } from "@/lib/format";
+import type { Delta } from "@/lib/metrics";
 import { isPro } from "@/lib/plans";
-import { storeClosedByOwner } from "@/lib/store-status";
+import { createClient } from "@/lib/supabase/server";
+import { agoShort, planBadge, shortDate } from "@/lib/super-format";
+import {
+  DORMANT_DAYS,
+  EXPIRING_DAYS,
+  originLabel,
+  segmentsOf,
+  type StoreSegment,
+  type StoreStat,
+} from "@/lib/super-segments";
+import { getStoreStats, getSuperOverview } from "@/lib/super-stats";
+import { cn } from "@/lib/utils";
 import { whatsappUrl } from "@/lib/whatsapp";
-import type { Store } from "@/types/database";
 
-export const metadata = { title: "Tiendas" };
+export const metadata = { title: "Inicio" };
 
-export default async function SuperDashboardPage() {
+/** Los períodos que se pueden comparar. */
+const PERIODS = [7, 30, 90] as const;
+/** Cuántas tiendas entran en cada lista antes de mandar a la tabla. */
+const LIST_LIMIT = 6;
+
+function vsPrevious(
+  current: number,
+  previous: number,
+  previousLabel: string,
+  days: number,
+): Delta {
+  return {
+    previousLabel,
+    periodLabel: `los ${days} d previos`,
+    // Desde cero no hay porcentaje: ver pctChange en metrics.ts.
+    pct: previous > 0 ? ((current - previous) / previous) * 100 : null,
+  };
+}
+
+interface Risk {
+  store: StoreStat;
+  kind: Extract<StoreSegment, "failed" | "expiring" | "dormant">;
+  reason: string;
+}
+
+const RISK_BADGE: Record<
+  Risk["kind"],
+  { label: string; variant: "danger" | "warning" }
+> = {
+  failed: { label: "Cobro fallido", variant: "danger" },
+  expiring: { label: "Vence", variant: "danger" },
+  dormant: { label: "Dormida", variant: "warning" },
+};
+
+/**
+ * La portada del super admin. Responde, en este orden, lo que se pregunta
+ * quien maneja Tiendify al abrirlo: qué me toca hacer, cómo vamos, y a quién
+ * hay que escribirle antes de perderlo.
+ */
+export default async function SuperHomePage({
+  searchParams,
+}: {
+  searchParams: { d?: string | string[] };
+}) {
+  await requireSuperAdmin();
+
+  const requested = Number(
+    Array.isArray(searchParams.d) ? searchParams.d[0] : searchParams.d,
+  );
+  const days = PERIODS.find((p) => p === requested) ?? 30;
+
   const supabase = createClient();
+  const [
+    overview,
+    { stores, complete },
+    { count: pendingSubs },
+    { count: pendingReferrals },
+    { count: unreadFeedback },
+  ] = await Promise.all([
+    getSuperOverview(days),
+    getStoreStats(),
+    supabase
+      .from("subscription_payments")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending"),
+    supabase
+      .from("referrals")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "qualified"),
+    supabase
+      .from("feedback")
+      .select("id", { count: "exact", head: true })
+      .is("read_at", null),
+  ]);
 
-  const [{ data: stores }, { data: sales }, { data: products }, { data: owners }] =
-    await Promise.all([
-      supabase.from("stores").select("*").order("created_at"),
-      supabase.from("orders").select("store_id, total").in("status", SALES_STATUSES),
-      supabase.from("products").select("store_id"),
-      supabase
-        .from("users")
-        .select("store_id, full_name, email")
-        .eq("role", "store_owner")
-        .order("created_at"),
-    ]);
+  const now = new Date();
 
-  // La persona detrás de cada tienda. Si una tienda tuviera más de un dueño,
-  // queda el primero que se registró.
-  const ownerByStore = new Map<string, { full_name: string; email: string }>();
-  for (const o of owners ?? []) {
-    if (o.store_id && !ownerByStore.has(o.store_id)) ownerByStore.set(o.store_id, o);
+  // A quién hay que escribirle. Cada tienda entra una sola vez, por su motivo
+  // más urgente: un cobro fallido pesa más que un vencimiento, y los dos más
+  // que estar dormida.
+  const risks: Risk[] = [];
+  for (const s of stores) {
+    const seg = segmentsOf(s, now.getTime());
+    const plan = planBadge(s, now);
+    if (seg.includes("failed")) {
+      risks.push({ store: s, kind: "failed", reason: "El cobro automático no pasó" });
+    } else if (seg.includes("expiring")) {
+      risks.push({
+        store: s,
+        kind: "expiring",
+        reason: `${plan.label} · ${plan.sub ?? "vence pronto"}`,
+      });
+    } else if (complete && isPro(s) && seg.includes("dormant")) {
+      risks.push({
+        store: s,
+        kind: "dormant",
+        reason: s.last_activity_at
+          ? `${plan.label} · sin actividad ${agoShort(s.last_activity_at, now)}`
+          : `${plan.label} · nunca tuvo actividad`,
+      });
+    }
   }
+  const riskOrder: Record<Risk["kind"], number> = { failed: 0, expiring: 1, dormant: 2 };
+  risks.sort(
+    (a, b) =>
+      riskOrder[a.kind] - riskOrder[b.kind] ||
+      // Dentro de cada grupo, primero la que vence antes o lleva más dormida.
+      (a.kind === "expiring"
+        ? Date.parse(a.store.plan_expires_at ?? "") -
+          Date.parse(b.store.plan_expires_at ?? "")
+        : Date.parse(a.store.last_activity_at ?? a.store.created_at) -
+          Date.parse(b.store.last_activity_at ?? b.store.created_at)),
+  );
 
-  const gmvByStore = new Map<string, number>();
-  const salesByStore = new Map<string, number>();
-  for (const o of sales ?? []) {
-    gmvByStore.set(o.store_id, (gmvByStore.get(o.store_id) ?? 0) + Number(o.total));
-    salesByStore.set(o.store_id, (salesByStore.get(o.store_id) ?? 0) + 1);
-  }
-  const productsByStore = new Map<string, number>();
-  for (const p of products ?? []) {
-    productsByStore.set(p.store_id, (productsByStore.get(p.store_id) ?? 0) + 1);
-  }
-
-  const storeList = (stores ?? []) as Store[];
-  const totalGmv = [...gmvByStore.values()].reduce((s, v) => s + v, 0);
-  const activeCount = storeList.filter((s) => s.active).length;
+  const newest = stores.slice(0, LIST_LIMIT);
+  const net = overview ? overview.collected - overview.fees : 0;
+  const netPrev = overview ? overview.collectedPrev - overview.feesPrev : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+    <div className="space-y-7">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tiendas</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Inicio</h1>
           <p className="text-sm text-muted-foreground">
-            Gestión de todos los tenants de Tiendify.
+            Lo que te toca hoy y cómo va Tiendify.
           </p>
         </div>
-        <Link
-          href="/super/tiendas/nueva"
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+        <nav
+          aria-label="Período"
+          className="flex rounded-lg border border-border bg-card p-0.5"
         >
-          <Plus className="size-4" /> <span className="hidden sm:inline">Nueva tienda</span>
-        </Link>
+          {PERIODS.map((p) => (
+            <Link
+              key={p}
+              href={p === 30 ? "/super" : `/super?d=${p}`}
+              aria-current={p === days ? "true" : undefined}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-[0.8125rem] font-medium transition-colors",
+                p === days
+                  ? "bg-foreground text-background"
+                  : "text-ink-600 hover:text-foreground",
+              )}
+            >
+              {p} días
+            </Link>
+          ))}
+        </nav>
       </div>
 
-      {/* Global metrics */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Metric icon={<StoreIcon className="size-4" />} label="Tiendas activas" value={`${activeCount}/${storeList.length}`} />
-        <Metric icon={<ShoppingBag className="size-4" />} label="Ventas totales" value={String((sales ?? []).length)} />
-        <Metric icon={<Wallet className="size-4" />} label="GMV total" value={formatUSD(totalGmv)} />
-        <Metric icon={<StoreIcon className="size-4" />} label="Productos" value={String((products ?? []).length)} />
+      {!overview && (
+        <p className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm">
+          Faltan los números del negocio (MRR, cobrado, embudo): aparecen al
+          correr la migración{" "}
+          <code className="font-mono text-xs">0030_super_admin_stats.sql</code>{" "}
+          en Supabase. Los pendientes de abajo ya son los reales.
+        </p>
+      )}
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold">Por hacer</h2>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard
+            icon={<Receipt className="size-4" />}
+            label="Comprobantes por aprobar"
+            value={String(pendingSubs ?? 0)}
+            sub={
+              overview && overview.pendingSubsUsd > 0
+                ? `${formatUSD(overview.pendingSubsUsd)} esperando`
+                : undefined
+            }
+            hint={pendingSubs ? "Revisar" : "Al día"}
+            href="/super/suscripciones"
+            highlight={Boolean(pendingSubs)}
+          />
+          <StatCard
+            icon={<Wallet className="size-4" />}
+            label="Por pagar a tiendas"
+            value={overview ? formatUSD(overview.owed) : "—"}
+            sub={
+              overview && overview.owedStores > 0
+                ? `${overview.owedStores} ${overview.owedStores === 1 ? "tienda espera" : "tiendas esperan"}`
+                : undefined
+            }
+            hint={overview && overview.owed > 0 ? "Registrar pagos" : "Ver pagos"}
+            href="/super/pagos"
+            highlight={Boolean(overview && overview.owed > 0)}
+          />
+          <StatCard
+            icon={<Gift className="size-4" />}
+            label="Referidos por decidir"
+            value={String(pendingReferrals ?? 0)}
+            hint={pendingReferrals ? "Decidir" : "Al día"}
+            href="/super/referidos"
+            highlight={Boolean(pendingReferrals)}
+          />
+          <StatCard
+            icon={<MessageSquare className="size-4" />}
+            label="Comentarios sin leer"
+            value={String(unreadFeedback ?? 0)}
+            hint={unreadFeedback ? "Leer" : "Al día"}
+            href="/super/comentarios"
+            highlight={Boolean(unreadFeedback)}
+          />
+        </div>
+      </section>
+
+      {overview && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold">Cómo vamos</h2>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCard
+              icon={<TrendingUp className="size-4" />}
+              label="MRR"
+              value={formatUSD(overview.mrr)}
+              sub={`${overview.paying} ${overview.paying === 1 ? "tienda paga" : "tiendas pagan"}${
+                overview.comped > 0 ? ` · ${overview.comped} de cortesía` : ""
+              }`}
+            />
+            <StatCard
+              icon={<Wallet className="size-4" />}
+              label={`Cobrado neto, ${days} días`}
+              value={formatUSD(net)}
+              sub={
+                overview.fees > 0
+                  ? `${formatUSD(overview.collected)} menos ${formatUSD(overview.fees)} de comisión`
+                  : undefined
+              }
+              delta={vsPrevious(net, netPrev, formatUSD(netPrev), days)}
+            />
+            <StatCard
+              icon={<UserPlus className="size-4" />}
+              label={`Tiendas nuevas, ${days} días`}
+              value={String(overview.newStores)}
+              sub={`${overview.stores} en total`}
+              delta={vsPrevious(
+                overview.newStores,
+                overview.newStoresPrev,
+                String(overview.newStoresPrev),
+                days,
+              )}
+            />
+            <StatCard
+              icon={<ShoppingBag className="size-4" />}
+              label={`Vendido por las tiendas, ${days} días`}
+              value={formatUSD(overview.gmv)}
+              sub={`${formatUSD(overview.gmvTotal)} en ${overview.salesTotal} ventas, histórico`}
+              delta={vsPrevious(
+                overview.gmv,
+                overview.gmvPrev,
+                formatUSD(overview.gmvPrev),
+                days,
+              )}
+            />
+          </div>
+        </section>
+      )}
+
+      <div className="grid gap-7 lg:grid-cols-2 lg:gap-5">
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-sm font-semibold">En riesgo</h2>
+            {risks.length > LIST_LIMIT && (
+              <span className="text-xs text-muted-foreground">
+                {LIST_LIMIT} de {risks.length}
+              </span>
+            )}
+          </div>
+          {risks.length === 0 ? (
+            <div className="grid place-items-center rounded-xl border border-dashed bg-card p-8 text-center">
+              <CircleCheck className="mb-2 size-7 text-muted-foreground" />
+              <p className="text-sm font-medium">Nadie por perderse</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Ningún Pro vence en {EXPIRING_DAYS} días sin cobro automático,
+                tiene un cobro fallido o lleva {DORMANT_DAYS} días sin
+                actividad.
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+              {risks.slice(0, LIST_LIMIT).map(({ store, kind, reason }) => {
+                const wa = whatsappUrl(store.whatsapp);
+                return (
+                  <li key={store.id} className="flex items-center gap-2 px-3 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/super/tiendas/${store.id}`}
+                        className="block truncate text-sm font-medium hover:underline"
+                      >
+                        {store.name}
+                      </Link>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {reason}
+                      </p>
+                    </div>
+                    <Badge variant={RISK_BADGE[kind].variant}>
+                      {RISK_BADGE[kind].label}
+                    </Badge>
+                    {wa && (
+                      <a
+                        href={wa}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="grid size-9 shrink-0 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-muted hover:text-foreground"
+                        aria-label={`Escribirle a ${store.name} por WhatsApp`}
+                      >
+                        <MessageCircle className="size-4" />
+                      </a>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {risks.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Ver en la tabla:{" "}
+              <RiskLink segment="expiring">las que vencen</RiskLink>
+              {" · "}
+              <RiskLink segment="failed">cobros fallidos</RiskLink>
+              {" · "}
+              <RiskLink segment="dormant">dormidas</RiskLink>
+            </p>
+          )}
+        </section>
+
+        {overview && (
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold">De registrarse a pagar</h2>
+            <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+              <FunnelRow label="Se registraron" value={overview.stores} of={overview.stores} />
+              <FunnelRow
+                label="Subieron productos"
+                value={overview.storesWithProducts}
+                of={overview.stores}
+              />
+              <FunnelRow
+                label="Tuvieron una venta"
+                value={overview.storesWithSale}
+                of={overview.stores}
+              />
+              <FunnelRow label="Pagan Pro" value={overview.paying} of={overview.stores} />
+              <p className="border-t border-border pt-3 text-2xs text-ink-400">
+                Sobre todas las tiendas creadas, no solo las del período.
+              </p>
+            </div>
+          </section>
+        )}
       </div>
 
-      {/* Stores */}
-      {storeList.length === 0 ? (
-        <div className="grid place-items-center rounded-xl border border-dashed bg-card p-12 text-center">
-          <StoreIcon className="mb-3 size-9 text-muted-foreground" />
-          <p className="font-medium">Todavía no hay tiendas</p>
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-sm font-semibold">Últimas tiendas</h2>
           <Link
-            href="/super/tiendas/nueva"
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+            href="/super/tiendas"
+            className="inline-flex items-center gap-0.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
           >
-            <Plus className="size-4" /> Crear la primera
+            Ver todas <ArrowUpRight className="size-3" />
           </Link>
         </div>
-      ) : (
-        <ul className="space-y-2">
-          {storeList.map((store) => (
-            <StoreRow
-              key={store.id}
-              store={store}
-              owner={ownerByStore.get(store.id)}
-              products={productsByStore.get(store.id) ?? 0}
-              sales={salesByStore.get(store.id) ?? 0}
-              gmv={gmvByStore.get(store.id) ?? 0}
-            />
-          ))}
-        </ul>
-      )}
+        {newest.length === 0 ? (
+          <div className="grid place-items-center rounded-xl border border-dashed bg-card p-8 text-center">
+            <StoreIcon className="mb-2 size-7 text-muted-foreground" />
+            <p className="text-sm font-medium">Todavía no hay tiendas</p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+            {newest.map((s) => {
+              const plan = planBadge(s, now);
+              const origin = originLabel(s);
+              return (
+                <li key={s.id} className="flex items-center gap-3 px-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/super/tiendas/${s.id}`}
+                      className="block truncate text-sm font-medium hover:underline"
+                    >
+                      {s.name}
+                    </Link>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {s.owner_name ?? "Sin dueño asignado"}
+                      {origin ? ` · ${origin}` : ""}
+                    </p>
+                  </div>
+                  <Badge variant={plan.variant}>{plan.label}</Badge>
+                  <span className="w-16 shrink-0 text-right text-xs tabular-nums text-ink-500">
+                    {shortDate(s.created_at, now)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
 
-/** Una tienda en la lista: quién es, cómo va y los controles de plan. */
-function StoreRow({
-  store,
-  owner,
-  products,
-  sales,
-  gmv,
+function RiskLink({
+  segment,
+  children,
 }: {
-  store: Store;
-  owner: { full_name: string; email: string } | undefined;
-  products: number;
-  sales: number;
-  gmv: number;
+  segment: StoreSegment;
+  children: React.ReactNode;
 }) {
-  const wa = whatsappUrl(store.whatsapp);
   return (
-    <li className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-3">
-      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
-        {store.name.charAt(0).toUpperCase()}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/super/tiendas/${store.id}`}
-            className="truncate font-medium hover:underline"
-          >
-            {store.name}
-          </Link>
-          <PlanBadge store={store} />
-          {!store.active && (
-            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-              {storeClosedByOwner(store) ? "cerrada por el dueño" : "pausada"}
-            </span>
-          )}
-        </div>
-        <p className="truncate text-xs text-muted-foreground">
-          /{store.slug} · {products} prod ·{" "}
-          {sales} ventas ·{" "}
-          {formatUSD(gmv)}
-          {store.plan_note ? ` · ${store.plan_note}` : ""}
-        </p>
-        {/* Quién es: lo primero que hace falta para escribirle. */}
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-          {owner ? (
-            <>
-              <span className="font-medium">{owner.full_name}</span>
-              <a
-                href={`mailto:${owner.email}`}
-                className="text-muted-foreground hover:text-foreground hover:underline"
-              >
-                {owner.email}
-              </a>
-            </>
-          ) : (
-            <span className="text-muted-foreground">Sin dueño asignado</span>
-          )}
-          {wa ? (
-            <a
-              href={wa}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
-            >
-              <MessageCircle className="size-3" /> {store.whatsapp}
-            </a>
-          ) : (
-            <span className="text-muted-foreground">sin WhatsApp</span>
-          )}
-        </p>
-      </div>
-      <Link
-        href={`/${store.slug}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
-        aria-label="Ver tienda"
-      >
-        <ExternalLink className="size-4" />
-      </Link>
-      <StorePlanControl storeId={store.id} note={store.plan_note} />
-      <StoreActiveSwitch storeId={store.id} active={store.active} />
-    </li>
-  );
-}
-
-/** Plan de la tienda de un vistazo: cortesía y pago se distinguen. */
-function PlanBadge({ store }: { store: Store }) {
-  if (!isPro(store)) {
-    return (
-      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-        Gratis
-      </span>
-    );
-  }
-  const comp = store.plan_source === "comp";
-  return (
-    <span
-      className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary"
-      title={
-        store.plan_expires_at
-          ? `Vence el ${new Date(store.plan_expires_at).toLocaleDateString("es-VE")}`
-          : "Sin vencimiento"
-      }
+    <Link
+      href={`/super/tiendas?f=${segment}`}
+      className="font-medium hover:text-foreground hover:underline"
     >
-      {comp ? "Pro · cortesía" : "Pro"}
-    </span>
+      {children}
+    </Link>
   );
 }
 
-function Metric({
-  icon,
+/** Un escalón del embudo: cuántas tiendas llegaron y qué parte del total son. */
+function FunnelRow({
   label,
   value,
+  of,
 }: {
-  icon: React.ReactNode;
   label: string;
-  value: string;
+  value: number;
+  of: number;
 }) {
+  const pct = of > 0 ? Math.min(100, (value / of) * 100) : 0;
   return (
-    <div className="rounded-xl border bg-card p-4">
-      <div className="mb-2 flex items-center gap-1.5 text-muted-foreground">
-        {icon}
-        <span className="text-xs font-medium">{label}</span>
+    <div>
+      <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
+        <span>{label}</span>
+        <span className="tabular-nums">
+          <span className="font-semibold">{value}</span>
+          <span className="ml-1.5 text-xs text-ink-400">{Math.round(pct)}%</span>
+        </span>
       </div>
-      <p className="text-xl font-bold tracking-tight">{value}</p>
+      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-foreground"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </div>
   );
 }

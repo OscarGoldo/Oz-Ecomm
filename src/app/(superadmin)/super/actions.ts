@@ -134,8 +134,93 @@ export async function createStore(
     display_order: 0,
   });
 
-  revalidatePath("/super");
+  revalidatePath("/super", "layout");
   return { ok: true, storeId: store.id, slug };
+}
+
+export interface StoreSearchHit {
+  id: string;
+  name: string;
+  slug: string;
+  ownerName: string | null;
+  ownerEmail: string | null;
+}
+
+/**
+ * El buscador de arriba: una tienda por su nombre, su enlace, su WhatsApp, o
+ * por el nombre o el correo de su dueño.
+ *
+ * Busca en la base y no sobre una lista precargada para que siga andando con
+ * miles de tiendas, y devuelve pocas a propósito: es para llegar a una ficha,
+ * no para listar. Para listar está /super/tiendas.
+ */
+export async function searchStores(query: string): Promise<StoreSearchHit[]> {
+  try {
+    await requireSuperAdmin();
+  } catch {
+    return [];
+  }
+
+  // Los filtros de PostgREST se arman como texto: una coma, un paréntesis o
+  // una comilla del usuario romperían el `or()`. Los comodines se quitan para
+  // que "%" no devuelva la base entera.
+  const q = query
+    .replace(/[,()"\\%*]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 60);
+  if (q.length < 2) return [];
+
+  const db = createAdminClient();
+  const like = `"%${q}%"`;
+
+  const storeFilters = [`name.ilike.${like}`, `slug.ilike.${like}`, `whatsapp.ilike.${like}`];
+  // "0424 123 45 67" tiene que encontrar a "584241234567".
+  const digits = q.replace(/\D/g, "").replace(/^0+/, "");
+  if (digits.length >= 4) storeFilters.push(`whatsapp.ilike."%${digits}%"`);
+
+  const [{ data: byStore }, { data: byOwner }] = await Promise.all([
+    db.from("stores").select("id").or(storeFilters.join(",")).limit(8),
+    db
+      .from("users")
+      .select("store_id")
+      .eq("role", "store_owner")
+      .or(`full_name.ilike.${like},email.ilike.${like}`)
+      .limit(8),
+  ]);
+
+  const ids = [
+    ...new Set([
+      ...(byStore ?? []).map((s) => s.id),
+      ...(byOwner ?? []).flatMap((u) => (u.store_id ? [u.store_id] : [])),
+    ]),
+  ].slice(0, 8);
+  if (ids.length === 0) return [];
+
+  const [{ data: stores }, { data: owners }] = await Promise.all([
+    db.from("stores").select("id, name, slug").in("id", ids),
+    db
+      .from("users")
+      .select("store_id, full_name, email")
+      .eq("role", "store_owner")
+      .in("store_id", ids)
+      .order("created_at"),
+  ]);
+
+  const ownerByStore = new Map<string, { full_name: string; email: string }>();
+  for (const o of owners ?? []) {
+    if (o.store_id && !ownerByStore.has(o.store_id)) ownerByStore.set(o.store_id, o);
+  }
+
+  return (stores ?? [])
+    .sort((a, b) => a.name.localeCompare(b.name, "es"))
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      slug: s.slug,
+      ownerName: ownerByStore.get(s.id)?.full_name ?? null,
+      ownerEmail: ownerByStore.get(s.id)?.email ?? null,
+    }));
 }
 
 export async function setStoreActive(
@@ -158,6 +243,6 @@ export async function setStoreActive(
     .eq("id", storeId);
   if (error) return { ok: false, error: "No se pudo actualizar la tienda" };
 
-  revalidatePath("/super");
+  revalidatePath("/super", "layout");
   return { ok: true };
 }

@@ -16,7 +16,7 @@ async function requireSuperAdmin(): Promise<void> {
 }
 
 function revalidate() {
-  revalidatePath("/super/referidos");
+  revalidatePath("/super", "layout");
 }
 
 /**

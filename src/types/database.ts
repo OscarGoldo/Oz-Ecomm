@@ -900,6 +900,14 @@ export interface Database {
         Args: { p_id: string };
         Returns: undefined;
       };
+      super_store_stats: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      super_overview: {
+        Args: { p_days?: number };
+        Returns: Json;
+      };
     };
     Enums: Record<never, never>;
     CompositeTypes: Record<never, never>;

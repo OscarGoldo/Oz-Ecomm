@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 
+import { SuperBottomNav, SuperSidebarNav } from "@/components/admin/super-nav";
+import { SuperSearch } from "@/components/admin/super-search";
 import { signOut } from "@/lib/auth-actions";
 import { requireSuperAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -35,94 +37,62 @@ export default async function SuperLayout({
     .select("id", { count: "exact", head: true })
     .is("read_at", null);
 
+  const navBadges: Record<string, number> = {
+    ...(pendingSubs ? { "/super/suscripciones": pendingSubs } : {}),
+    ...(pendingReferrals ? { "/super/referidos": pendingReferrals } : {}),
+    ...(unreadFeedback ? { "/super/comentarios": unreadFeedback } : {}),
+  };
+
   return (
     <div className="chrome-admin min-h-dvh bg-surface">
-      <header className="sticky top-0 z-30 border-b border-border bg-surface-raised">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4">
-          <Link
-            href="/super"
-            className="flex shrink-0 items-center gap-2 text-sm font-semibold tracking-[-0.011em]"
-          >
-            <span className="grid size-7 place-items-center rounded-lg bg-ink-900 text-ink-25">
-              <ShieldCheck className="size-4" />
-            </span>
-            Tiendify
-            <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-3xs font-semibold uppercase tracking-[0.06em] text-ink-500">
-              Super Admin
-            </span>
-          </Link>
-          {/* Cinco secciones no entran en un teléfono: el menú se desliza de
-              lado en vez de empujar la página entera. */}
-          <div className="flex min-w-0 items-center gap-3">
-            <nav className="flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap">
-              <Link
-                href="/super"
-                className="rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-foreground"
-              >
-                Tiendas
-              </Link>
-              <Link
-                href="/super/pagos"
-                className="rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-foreground"
-              >
-                Pagos
-              </Link>
-              <Link
-                href="/super/suscripciones"
-                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-foreground"
-              >
-                Suscripciones
-                {pendingSubs ? (
-                  <span className="grid min-w-[1.125rem] place-items-center rounded bg-warning px-1 text-3xs font-bold leading-[1.125rem] tabular-nums text-warning-foreground">
-                    {pendingSubs > 99 ? "99+" : pendingSubs}
-                  </span>
-                ) : null}
-              </Link>
-              <Link
-                href="/super/referidos"
-                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-foreground"
-              >
-                Referidos
-                {pendingReferrals ? (
-                  <span className="grid min-w-[1.125rem] place-items-center rounded bg-warning px-1 text-3xs font-bold leading-[1.125rem] tabular-nums text-warning-foreground">
-                    {pendingReferrals > 99 ? "99+" : pendingReferrals}
-                  </span>
-                ) : null}
-              </Link>
-              <Link
-                href="/super/comentarios"
-                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-foreground"
-              >
-                Comentarios
-                {unreadFeedback ? (
-                  <span className="grid min-w-[1.125rem] place-items-center rounded bg-warning px-1 text-3xs font-bold leading-[1.125rem] tabular-nums text-warning-foreground">
-                    {unreadFeedback > 99 ? "99+" : unreadFeedback}
-                  </span>
-                ) : null}
-              </Link>
-              <Link
-                href="/super/codigos"
-                className="rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-foreground"
-              >
-                Códigos
-              </Link>
-            </nav>
-            {/* Con seis secciones el correo ya no entra al lado del menú: queda
-                como ayuda del botón de salir, que es donde importa saber con
-                qué cuenta se está. */}
-            <form action={signOut}>
-              <button
-                type="submit"
-                title={`Salir (${user.email})`}
-                className="shrink-0 rounded-md border border-input bg-background px-2.5 py-1.5 text-[0.8125rem] font-medium shadow-xs transition-colors hover:bg-muted"
-              >
-                Salir
-              </button>
-            </form>
-          </div>
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-surface-raised px-4">
+        {/* En escritorio la marca ocupa el ancho del menú, así el buscador
+            arranca donde arranca el contenido. */}
+        <Link
+          href="/super"
+          className="flex shrink-0 items-center gap-2 text-sm font-semibold tracking-[-0.011em] md:w-[14rem]"
+        >
+          <span className="grid size-7 place-items-center rounded-lg bg-ink-900 text-ink-25">
+            <ShieldCheck className="size-4" />
+          </span>
+          <span className="hidden sm:inline">Tiendify</span>
+          <span className="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-3xs font-semibold uppercase tracking-[0.06em] text-ink-500 sm:inline">
+            Super Admin
+          </span>
+        </Link>
+
+        <div className="min-w-0 flex-1 md:max-w-md">
+          <SuperSearch />
         </div>
+
+        {/* El correo queda como ayuda del botón de salir, que es donde importa
+            saber con qué cuenta se está. */}
+        <form action={signOut} className="ml-auto">
+          <button
+            type="submit"
+            title={`Salir (${user.email})`}
+            className="shrink-0 rounded-md border border-input bg-background px-2.5 py-1.5 text-[0.8125rem] font-medium shadow-xs transition-colors hover:bg-muted"
+          >
+            Salir
+          </button>
+        </form>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-7">{children}</main>
+
+      <div className="flex w-full">
+        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-[15rem] shrink-0 self-start border-r border-border md:block">
+          <div className="h-full overflow-y-auto">
+            <SuperSidebarNav badges={navBadges} />
+          </div>
+        </aside>
+
+        {/* Más ancho que el panel del comerciante (max-w-5xl): acá hay tablas
+            con ocho columnas. */}
+        <main className="min-w-0 flex-1 px-4 pb-24 pt-5 md:px-8 md:pb-12 md:pt-7">
+          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        </main>
+      </div>
+
+      <SuperBottomNav badges={navBadges} />
     </div>
   );
 }

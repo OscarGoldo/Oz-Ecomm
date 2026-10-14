@@ -83,8 +83,8 @@ export async function approveSubscriptionPayment(
     return { ok: false, error: "No se pudo activar el plan. Intenta de nuevo." };
   }
 
-  revalidatePath("/super/suscripciones");
-  revalidatePath("/super");
+  // Inicio y el menú también cuentan los comprobantes pendientes.
+  revalidatePath("/super", "layout");
   return { ok: true };
 }
 
@@ -114,7 +114,7 @@ export async function rejectSubscriptionPayment(
 
   if (error) return { ok: false, error: "No se pudo rechazar el pago" };
 
-  revalidatePath("/super/suscripciones");
+  revalidatePath("/super", "layout");
   return { ok: true };
 }
 
@@ -169,8 +169,7 @@ export async function setStorePlan(input: SetPlanInput): Promise<ActionResult> {
   const { error } = await db.from("stores").update(patch).eq("id", d.storeId);
   if (error) return { ok: false, error: "No se pudo actualizar el plan" };
 
-  revalidatePath("/super");
-  revalidatePath("/super/suscripciones");
+  revalidatePath("/super", "layout");
   return { ok: true };
 }
 

@@ -10,7 +10,7 @@ export default function NewStorePage() {
     <div className="mx-auto max-w-2xl space-y-5">
       <div>
         <Link
-          href="/super"
+          href="/super/tiendas"
           className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" /> Tiendas
