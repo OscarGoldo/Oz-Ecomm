@@ -28,8 +28,15 @@ function clientIp(): string {
 
 /** Max store signups allowed from one IP per hour. */
 const PER_IP_HOURLY_LIMIT = 5;
-/** Global safety net: only trips on true mass abuse, not organic growth. */
-const GLOBAL_HOURLY_LIMIT = 60;
+/**
+ * Global safety net: only trips on true mass abuse, not organic growth.
+ *
+ * Estaba en 60 y era demasiado bajo para una campaña: con un influencer la
+ * primera hora puede pasar de 60 registros reales, y desde ahí cada persona
+ * que llegaba por el anuncio veía "Estamos recibiendo muchos registros". El
+ * freno real contra el abuso es el tope por IP de arriba.
+ */
+const GLOBAL_HOURLY_LIMIT = 500;
 
 export interface SignupResult {
   ok: boolean;
