@@ -26,8 +26,15 @@ function clientIp(): string {
   return h.get("x-real-ip")?.trim() || "unknown";
 }
 
-/** Max store signups allowed from one IP per hour. */
-const PER_IP_HOURLY_LIMIT = 5;
+/**
+ * Max store signups allowed from one IP per hour.
+ *
+ * Cuenta intentos, no tiendas creadas: un email repetido o un código mal
+ * escrito también suman. Y en Venezuela las operadoras móviles ponen a muchos
+ * clientes detrás de la misma IP pública, así que con 5 la gente que llegaba
+ * junta por una campaña se bloqueaba entre sí.
+ */
+const PER_IP_HOURLY_LIMIT = 20;
 /**
  * Global safety net: only trips on true mass abuse, not organic growth.
  *
