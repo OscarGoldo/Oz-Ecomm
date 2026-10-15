@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSessionContext } from "@/lib/auth";
+import { initialExchangeRate } from "@/lib/bcv";
 import { recordPlatformEvent } from "@/lib/platform-events";
 import { sendTelegram, telegramConfigured } from "@/lib/telegram";
 import { isReservedSlug, slugify } from "@/lib/slug";
@@ -84,7 +85,8 @@ export async function createStore(
     return { ok: false, error: "Ese email ya tiene una cuenta" };
   }
 
-  // Create the store.
+  // Create the store, ya con la tasa del BCV de hoy (ver initialExchangeRate).
+  const rate = await initialExchangeRate();
   const { data: store, error: storeErr } = await db
     .from("stores")
     .insert({
@@ -93,6 +95,7 @@ export async function createStore(
       primary_color: d.primary_color,
       whatsapp: d.whatsapp?.trim() || null,
       active: true,
+      ...rate,
     })
     .select("id")
     .single();

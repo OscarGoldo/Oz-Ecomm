@@ -59,6 +59,37 @@ export async function getPublicUsdRate(): Promise<number | null> {
   }
 }
 
+/**
+ * La tasa con la que nace una tienda nueva: la misma del BCV que el cron ya le
+ * puso a las demás, con la misma fecha.
+ *
+ * Las tiendas nacen con la tasa automática (migración 0023), pero el cron pasa
+ * una vez al día a las 8 AM. Sin esto, una tienda creada a media tarde se
+ * quedaba sin tasa hasta la mañana siguiente: sin precios en bolívares y con el
+ * Pago Móvil pidiéndole al cliente el monto en dólares. Justo el día que más
+ * tiendas se crean es el de una campaña.
+ *
+ * Solo USD, que es la moneda con la que nace toda tienda. Devuelve {} si no hay
+ * tasa guardada: la tienda queda sin tasa, como antes, y el cron la completa.
+ */
+export async function initialExchangeRate(): Promise<{
+  exchange_rate?: number;
+  exchange_rate_updated_at?: string;
+}> {
+  try {
+    const { data } = await createAdminClient()
+      .from("bcv_rates")
+      .select("usd, updated_at")
+      .eq("id", "current")
+      .maybeSingle();
+    const usd = data?.usd != null ? Number(data.usd) : null;
+    if (!data || !usd || usd <= 0) return {};
+    return { exchange_rate: usd, exchange_rate_updated_at: data.updated_at };
+  } catch {
+    return {};
+  }
+}
+
 /** Read the cached BCV rates (refreshed daily by the cron). */
 export async function getCachedBcvRates(): Promise<CachedBcvRates | null> {
   const supabase = createClient();

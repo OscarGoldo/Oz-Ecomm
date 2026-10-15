@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { initialExchangeRate } from "@/lib/bcv";
 import { extendExpiry } from "@/lib/plans";
 import { recordPlatformEvent } from "@/lib/platform-events";
 import { monthsLabel } from "@/lib/promo";
@@ -205,6 +206,8 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
 
   // Create the store. Con código, nace en Pro por los meses que regala: es
   // cortesía ('comp'), no pago, así no infla el número de tiendas que pagan.
+  // Nace ya con la tasa del BCV de hoy (ver initialExchangeRate).
+  const rate = await initialExchangeRate();
   const { data: store, error: storeErr } = await db
     .from("stores")
     .insert({
@@ -213,6 +216,7 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
       primary_color: d.primary_color ?? "#0EA5E9",
       whatsapp: d.whatsapp,
       active: true,
+      ...rate,
       ...(promo
         ? {
             plan: "pro" as const,
