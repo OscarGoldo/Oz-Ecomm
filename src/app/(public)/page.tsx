@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -27,6 +28,16 @@ import { FREE_LAYOUTS, THEME_PRESETS } from "@/lib/theme";
  * para pagar una consulta por visita.
  */
 export const revalidate = 3600;
+
+/**
+ * Es lo que se lee en negrita debajo de la imagen cuando alguien pega el link
+ * en WhatsApp: tiene que decir qué es y que es gratis, no solo "Tiendify".
+ */
+export const metadata: Metadata = {
+  title: { absolute: "Tiendify · Crea tu tienda online gratis" },
+  description:
+    "Tu tienda online lista hoy. Tus clientes pagan con Pago Móvil, Zelle, Binance, efectivo o tarjeta, con precios en dólares y bolívares.",
+};
 
 const features = [
   {

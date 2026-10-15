@@ -169,6 +169,37 @@ export async function loadOgImage(
   return null;
 }
 
+/**
+ * Una fuente de Google Fonts para la tarjeta, recortada a los caracteres que se
+ * van a dibujar (`text`), así pesa unos pocos KB.
+ *
+ * satori solo trae una sans en peso regular: sin esto un titular en 900 sale
+ * igual de delgado que el resto. null ante cualquier problema — la tarjeta se
+ * dibuja igual con la fuente por defecto.
+ */
+export async function loadGoogleFont(
+  family: string,
+  weight: number,
+  text: string,
+): Promise<ArrayBuffer | null> {
+  try {
+    const css = await fetch(
+      `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@${weight}` +
+        `&text=${encodeURIComponent(text)}`,
+      { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
+    ).then((r) => (r.ok ? r.text() : ""));
+    // satori lee TTF/OTF, no WOFF2. Google los sirve así cuando quien pide no
+    // es un navegador.
+    const src = css.match(/src: url\((.+?)\) format\('(opentype|truetype)'\)/)?.[1];
+    if (!src) return null;
+
+    const res = await fetch(src, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    return res.ok ? await res.arrayBuffer() : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Corta en el último espacio antes del límite, para no partir una palabra. */
 export function truncate(text: string, max: number): string {
   const clean = text.trim().replace(/\s+/g, " ");

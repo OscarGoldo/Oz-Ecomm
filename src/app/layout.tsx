@@ -72,6 +72,16 @@ export const metadata: Metadata = {
   },
   description:
     "Plataforma de ecommerce para PYMEs de Venezuela. Tu tienda online con pagos locales y doble moneda.",
+  // Sin título ni descripción a propósito: Next copia los de cada página, así
+  // la preview de /crear-tienda no dice lo mismo que la de la portada. La
+  // imagen sale de src/app/opengraph-image.tsx. Tiendas y productos definen su
+  // propio openGraph y su propia imagen, y esos reemplazan a este.
+  openGraph: {
+    type: "website",
+    siteName: "Tiendify",
+    locale: "es_VE",
+  },
+  twitter: { card: "summary_large_image" },
   icons: {
     icon: [
       { url: "/tiendify-symbol.svg", type: "image/svg+xml" },
