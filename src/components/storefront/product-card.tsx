@@ -8,6 +8,7 @@ import { getImageUrl } from "@/lib/storage";
 import { isAvailable } from "@/lib/storefront";
 import { cn } from "@/lib/utils";
 import type { Product, Store } from "@/types/database";
+import { storeHref } from "@/lib/store-href";
 
 interface ProductCardProps {
   product: Product;
@@ -34,7 +35,7 @@ export function ProductCard({ product, store, cardStyle = "soft" }: ProductCardP
     >
       {/* Click target covering the card (kept below the add button) */}
       <Link
-        href={`/${store.slug}/producto/${product.slug}`}
+        href={storeHref(store.slug, `/producto/${product.slug}`)}
         className="absolute inset-0 z-10"
         aria-label={product.name}
       />
@@ -89,7 +90,7 @@ export function ProductCard({ product, store, cardStyle = "soft" }: ProductCardP
               productName={product.name}
               image={cover}
               hasVariants={Boolean(product.variant_options?.length)}
-              href={`/${store.slug}/producto/${product.slug}`}
+              href={storeHref(store.slug, `/producto/${product.slug}`)}
             />
           ) : (
             <span className="flex h-9 items-center justify-center rounded-lg bg-muted text-xs font-medium text-muted-foreground">

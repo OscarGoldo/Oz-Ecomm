@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { addToCart } from "@/lib/cart-actions";
 import { showCartToast } from "@/components/storefront/cart-toast";
+import { useStoreHref } from "@/components/storefront/store-base";
 
 interface ProductActionsProps {
   storeId: string;
@@ -29,6 +30,7 @@ export function ProductActions({
   maxQty,
 }: ProductActionsProps) {
   const router = useRouter();
+  const link = useStoreHref(storeSlug);
   const [qty, setQty] = useState(1);
   const [pending, startTransition] = useTransition();
   const [buying, setBuying] = useState(false);
@@ -44,7 +46,7 @@ export function ProductActions({
         toast.error("No se pudo agregar");
         return;
       }
-      showCartToast({ name: productName, image, qty, storeSlug });
+      showCartToast({ name: productName, image, qty, cartHref: link("/carrito") });
       router.refresh();
     });
   }
@@ -58,7 +60,7 @@ export function ProductActions({
         toast.error("No se pudo continuar");
         return;
       }
-      router.push(`/${storeSlug}/checkout`);
+      router.push(link("/checkout"));
     });
   }
 

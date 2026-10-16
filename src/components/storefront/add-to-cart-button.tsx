@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { addToCart } from "@/lib/cart-actions";
 import { showCartToast } from "@/components/storefront/cart-toast";
+import { useStoreHref } from "@/components/storefront/store-base";
 import { cn } from "@/lib/utils";
 
 export function AddToCartButton({
@@ -31,6 +32,7 @@ export function AddToCartButton({
   href?: string;
 }) {
   const router = useRouter();
+  const link = useStoreHref(storeSlug ?? "");
   const [pending, startTransition] = useTransition();
 
   const baseClass = cn(
@@ -59,7 +61,7 @@ export function AddToCartButton({
             return;
           }
           if (storeSlug && productName) {
-            showCartToast({ name: productName, image, qty: 1, storeSlug });
+            showCartToast({ name: productName, image, qty: 1, cartHref: link("/carrito") });
           } else {
             toast.success("Agregado al carrito");
           }

@@ -8,6 +8,7 @@ import { getImageUrl } from "@/lib/storage";
 import { isAvailable } from "@/lib/storefront";
 import { cn } from "@/lib/utils";
 import type { Product, Store } from "@/types/database";
+import { storeHref } from "@/lib/store-href";
 
 const COLOR_MAP: Record<string, string> = {
   negro: "#1a1a1a", black: "#1a1a1a",
@@ -61,7 +62,7 @@ export function BeautyMinimalProductCard({
   return (
     <div className="group relative text-center">
       <Link
-        href={`/${store.slug}/producto/${product.slug}`}
+        href={storeHref(store.slug, `/producto/${product.slug}`)}
         className="absolute inset-0 z-10"
         aria-label={product.name}
       />
@@ -133,7 +134,7 @@ export function BeautyMinimalProductCard({
               productName={product.name}
               image={cover}
               hasVariants={Boolean(product.variant_options?.length)}
-              href={`/${store.slug}/producto/${product.slug}`}
+              href={storeHref(store.slug, `/producto/${product.slug}`)}
               className="rounded-full border border-foreground/15 bg-transparent text-foreground hover:bg-foreground hover:text-background"
             />
           </div>

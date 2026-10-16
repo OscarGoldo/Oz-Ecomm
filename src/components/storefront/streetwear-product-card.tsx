@@ -8,6 +8,7 @@ import { getImageUrl } from "@/lib/storage";
 import { isAvailable } from "@/lib/storefront";
 import { cn } from "@/lib/utils";
 import type { Product, Store } from "@/types/database";
+import { storeHref } from "@/lib/store-href";
 
 const COLOR_MAP: Record<string, string> = {
   negro: "#1a1a1a", black: "#1a1a1a",
@@ -59,7 +60,7 @@ export function StreetProductCard({
   return (
     <div className="group relative flex flex-col">
       <Link
-        href={`/${store.slug}/producto/${product.slug}`}
+        href={storeHref(store.slug, `/producto/${product.slug}`)}
         className="absolute inset-0 z-10"
         aria-label={product.name}
       />
@@ -115,7 +116,7 @@ export function StreetProductCard({
               productName={product.name}
               image={cover}
               hasVariants={Boolean(product.variant_options?.length)}
-              href={`/${store.slug}/producto/${product.slug}`}
+              href={storeHref(store.slug, `/producto/${product.slug}`)}
               className="rounded-none font-extrabold uppercase tracking-widest text-white hover:brightness-110"
             />
           </div>

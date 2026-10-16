@@ -7,6 +7,7 @@ import { AddToCartButton } from "@/components/storefront/add-to-cart-button";
 import { getImageUrl } from "@/lib/storage";
 import { isAvailable } from "@/lib/storefront";
 import type { Product, Store } from "@/types/database";
+import { storeHref } from "@/lib/store-href";
 
 /**
  * Sports card: energetic. Skewed/italic offer tag, dynamic low-stock bar,
@@ -37,7 +38,7 @@ export function SportsProductCard({
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-lg border-2 bg-card transition-transform duration-200 hover:-translate-y-1">
       <Link
-        href={`/${store.slug}/producto/${product.slug}`}
+        href={storeHref(store.slug, `/producto/${product.slug}`)}
         className="absolute inset-0 z-10"
         aria-label={product.name}
       />
@@ -104,7 +105,7 @@ export function SportsProductCard({
                 productName={product.name}
                 image={cover}
                 hasVariants={Boolean(product.variant_options?.length)}
-                href={`/${store.slug}/producto/${product.slug}`}
+                href={storeHref(store.slug, `/producto/${product.slug}`)}
               />
             </div>
           ) : (

@@ -19,6 +19,8 @@ import {
   isAvailable,
 } from "@/lib/storefront";
 import { getImageUrl } from "@/lib/storage";
+import { storeHref } from "@/lib/store-href";
+import { storeUrl } from "@/lib/store-url";
 import { whatsappUrl } from "@/lib/whatsapp";
 import { JsonLd } from "@/components/storefront/json-ld";
 import { breadcrumbJsonLd, productJsonLd } from "@/lib/structured-data";
@@ -39,14 +41,14 @@ export async function generateMetadata({
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: `/${store.slug}/producto/${product.slug}` },
+    alternates: { canonical: storeUrl(store, `/producto/${product.slug}`) },
     openGraph: {
       type: "website",
       title,
       description,
       siteName: store.name,
       locale: "es_VE",
-      url: `/${store.slug}/producto/${product.slug}`,
+      url: storeUrl(store, `/producto/${product.slug}`),
     },
     twitter: { card: "summary_large_image", title, description },
   };
@@ -98,7 +100,7 @@ export default async function ProductDetailPage({
       <JsonLd data={breadcrumbJsonLd(store, product)} />
       <ProductViewTracker storeId={store.id} productId={product.id} />
       <Link
-        href={`/${store.slug}`}
+        href={storeHref(store.slug)}
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" /> Volver al catálogo

@@ -345,6 +345,7 @@ export default function LandingPage() {
                 </p>
                 <ul className="mt-6 space-y-3 text-sm">
                   <PlanFeature dark>Productos ilimitados</PlanFeature>
+                  <PlanFeature dark>Tu propia dirección: tutienda.usatiendify.com</PlanFeature>
                   <PlanFeature dark>
                     Las {THEME_PRESETS.length} plantillas
                   </PlanFeature>

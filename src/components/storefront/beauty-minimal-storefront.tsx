@@ -9,6 +9,7 @@ import { HeroSlides } from "@/components/storefront/hero-slides";
 import { getImageUrl } from "@/lib/storage";
 import { getBlock } from "@/lib/theme";
 import type { StorefrontProps } from "@/components/storefront/storefront-props";
+import { storeHref } from "@/lib/store-href";
 
 const SERIF = { fontFamily: "var(--font-heading, var(--font-lora))" } as const;
 
@@ -65,7 +66,7 @@ export function BeautyMinimalStorefront({
               {categories.map((cat) => (
                 <Link
                   key={cat.id}
-                  href={`/${store.slug}?cat=${cat.slug}`}
+                  href={storeHref(store.slug, `?cat=${cat.slug}`)}
                   className="rounded-full border border-foreground/15 px-5 py-2 text-sm font-medium transition-colors hover:bg-foreground hover:text-background"
                 >
                   {cat.name}

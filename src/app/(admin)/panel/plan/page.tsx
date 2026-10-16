@@ -29,6 +29,8 @@ const FEATURES: { label: string; free: string | false; pro: string }[] = [
     pro: `Las ${THEME_PRESETS.length}`,
   },
   { label: "Productos", free: String(FREE_MAX_PRODUCTS), pro: "Ilimitados" },
+  // Ver src/lib/store-url.ts: en Gratis la tienda vive en usatiendify.com/tutienda.
+  { label: "Dirección propia (tutienda.usatiendify.com)", free: false, pro: "Sí" },
   { label: "Pedidos y pagos", free: "Ilimitados", pro: "Ilimitados" },
   { label: "Finanzas y clientes", free: "Sí", pro: "Sí" },
   { label: "Analítica de la tienda", free: false, pro: "Completa" },

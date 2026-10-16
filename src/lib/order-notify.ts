@@ -13,6 +13,7 @@ import {
 } from "@/lib/email";
 import { buildOrderMessageData } from "@/lib/order-messages";
 import { reportError } from "@/lib/report-error";
+import { storeUrl } from "@/lib/store-url";
 import { notifyOwnerNewOrder } from "@/lib/whatsapp-cloud";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
@@ -38,7 +39,7 @@ export async function notifyPaidOrder(db: Db, orderId: string): Promise<void> {
       await Promise.all([
         db
           .from("stores")
-          .select("id, name, slug, whatsapp, pickup_address")
+          .select("id, name, slug, plan, plan_expires_at, whatsapp, pickup_address")
           .eq("id", order.store_id)
           .maybeSingle(),
         db
@@ -82,7 +83,7 @@ export async function notifyPaidOrder(db: Db, orderId: string): Promise<void> {
       items: lines,
       storeName: store.name,
       pickupAddress: store.pickup_address,
-      orderUrl: `${appUrl}/${store.slug}/pedido/${order.id}`,
+      orderUrl: storeUrl(store, `/pedido/${order.id}`),
       panelUrl: `${appUrl}/panel/pedidos/${order.id}`,
     });
 

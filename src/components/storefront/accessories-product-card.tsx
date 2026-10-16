@@ -6,6 +6,7 @@ import { Price } from "@/components/storefront/price";
 import { getImageUrl } from "@/lib/storage";
 import { isAvailable } from "@/lib/storefront";
 import type { Product, Store } from "@/types/database";
+import { storeHref } from "@/lib/store-href";
 
 /**
  * Accessories card: premium & minimalist. Square 1:1 image with generous
@@ -23,7 +24,7 @@ export function AccessoriesProductCard({
 
   return (
     <Link
-      href={`/${store.slug}/producto/${product.slug}`}
+      href={storeHref(store.slug, `/producto/${product.slug}`)}
       className="group block text-center"
     >
       <div className="relative aspect-square overflow-hidden rounded-sm bg-muted/30">

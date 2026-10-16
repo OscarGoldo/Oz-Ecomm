@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useStoreHref } from "@/components/storefront/store-base";
 import { ImageOff, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,6 +23,7 @@ interface CartViewProps {
 
 export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
   const router = useRouter();
+  const link = useStoreHref(storeSlug);
   const [pending, startTransition] = useTransition();
 
   function change(productId: string, variantId: string | null, qty: number) {
@@ -57,7 +59,7 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
             Agrega productos para empezar tu pedido.
           </p>
           <Button asChild className="mt-4">
-            <Link href={`/${storeSlug}`}>Ver productos</Link>
+            <Link href={link()}>Ver productos</Link>
           </Button>
         </div>
       </div>
@@ -78,7 +80,7 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
               className="flex gap-3 rounded-xl border bg-card p-3"
             >
               <Link
-                href={`/${storeSlug}/producto/${line.product.slug}`}
+                href={link(`/producto/${line.product.slug}`)}
                 className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-muted"
               >
                 {cover ? (
@@ -99,7 +101,7 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
               <div className="flex min-w-0 flex-1 flex-col">
                 <div className="flex items-start justify-between gap-2">
                   <Link
-                    href={`/${storeSlug}/producto/${line.product.slug}`}
+                    href={link(`/producto/${line.product.slug}`)}
                     className="line-clamp-2 text-sm font-medium"
                   >
                     {line.product.name}
@@ -176,10 +178,10 @@ export function CartView({ storeId, storeSlug, cart }: CartViewProps) {
           </div>
         </div>
         <Button asChild size="lg" className="mt-4 w-full">
-          <Link href={`/${storeSlug}/checkout`}>Continuar compra</Link>
+          <Link href={link("/checkout")}>Continuar compra</Link>
         </Button>
         <Button asChild variant="ghost" className="mt-2 w-full">
-          <Link href={`/${storeSlug}`}>Seguir comprando</Link>
+          <Link href={link()}>Seguir comprando</Link>
         </Button>
       </div>
     </div>

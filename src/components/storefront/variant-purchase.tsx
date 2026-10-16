@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Price } from "@/components/storefront/price";
 import { addToCart } from "@/lib/cart-actions";
 import { showCartToast } from "@/components/storefront/cart-toast";
+import { useStoreHref } from "@/components/storefront/store-base";
 import { cn } from "@/lib/utils";
 import type { VariantOption } from "@/types/database";
 
@@ -49,6 +50,7 @@ export function VariantPurchase({
   variants,
 }: VariantPurchaseProps) {
   const router = useRouter();
+  const link = useStoreHref(storeSlug);
   const [selected, setSelected] = useState<(string | null)[]>(
     () => options.map(() => null),
   );
@@ -126,7 +128,7 @@ export function VariantPurchase({
         image,
         variant: selectedVariant!.option_values.join(" / "),
         qty,
-        storeSlug,
+        cartHref: link("/carrito"),
       });
       router.refresh();
     });
@@ -142,7 +144,7 @@ export function VariantPurchase({
         toast.error("No se pudo continuar");
         return;
       }
-      router.push(`/${storeSlug}/checkout`);
+      router.push(link("/checkout"));
     });
   }
 

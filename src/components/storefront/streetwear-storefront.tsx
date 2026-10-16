@@ -9,6 +9,7 @@ import { HeroSlides } from "@/components/storefront/hero-slides";
 import { getImageUrl } from "@/lib/storage";
 import { getBlock } from "@/lib/theme";
 import type { StorefrontProps } from "@/components/storefront/storefront-props";
+import { storeHref } from "@/lib/store-href";
 
 /** Bold uppercase section heading with a magenta accent bar. */
 function SectionHead({ title, subtitle }: { title: string; subtitle?: string }) {
@@ -96,7 +97,7 @@ export function StreetStorefront({
                     {cat.name}
                   </h2>
                   <Link
-                    href={`/${store.slug}?cat=${cat.slug}`}
+                    href={storeHref(store.slug, `?cat=${cat.slug}`)}
                     className="text-xs font-extrabold uppercase tracking-widest hover:underline"
                     style={{ color: "hsl(var(--brand-accent))" }}
                   >

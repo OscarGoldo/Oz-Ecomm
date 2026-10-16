@@ -30,6 +30,7 @@ import {
   type ChecklistStep,
 } from "@/components/admin/welcome-checklist";
 import { requireStoreUser } from "@/lib/auth";
+import { storeUrl } from "@/lib/store-url";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardMetrics } from "@/lib/metrics";
 import { formatBs, formatUSD } from "@/lib/format";
@@ -70,7 +71,7 @@ export default async function DashboardPage() {
           <p className="mt-1 text-sm text-ink-500">Resumen de {store.name}</p>
         </div>
         <Link
-          href={`/${store.slug}`}
+          href={storeUrl(store)}
           target="_blank"
           rel="noopener noreferrer"
           className={cn(

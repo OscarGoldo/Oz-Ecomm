@@ -3,6 +3,7 @@ import type { MetadataRoute } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { reportError } from "@/lib/report-error";
 import { publicSiteUrl } from "@/lib/site-url";
+import { storeUrl } from "@/lib/store-url";
 
 /**
  * Se regenera cada hora en vez de quedar congelado en el build.
@@ -45,12 +46,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const { data: stores, error: storesError } = await db
       .from("stores")
-      .select("id, slug, updated_at")
+      .select("id, slug, plan, plan_expires_at, updated_at")
       .eq("active", true)
       .limit(500);
     if (storesError) throw storesError;
 
-    const storeById = new Map((stores ?? []).map((s) => [s.id, s.slug]));
+    // Las URLs van con la dirección canónica de cada tienda: el subdominio si
+    // es Pro. Como el mapa se regenera cada hora, una tienda que pasa a Pro (o
+    // deja de serlo) se corrige sola.
+    const storeById = new Map((stores ?? []).map((s) => [s.id, s]));
 
     const { data: products, error: productsError } = await db
       .from("products")
@@ -62,7 +66,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     for (const s of stores ?? []) {
       entries.push({
-        url: `${base}/${s.slug}`,
+        url: storeUrl(s),
         lastModified: new Date(s.updated_at),
         changeFrequency: "daily",
         priority: 0.8,
@@ -70,10 +74,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
 
     for (const p of products ?? []) {
-      const storeSlug = storeById.get(p.store_id);
-      if (!storeSlug) continue; // inactive store
+      const store = storeById.get(p.store_id);
+      if (!store) continue; // inactive store
       entries.push({
-        url: `${base}/${storeSlug}/producto/${p.slug}`,
+        url: storeUrl(store, `/producto/${p.slug}`),
         lastModified: new Date(p.updated_at),
         changeFrequency: "weekly",
         priority: 0.6,

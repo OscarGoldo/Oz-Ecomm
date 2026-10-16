@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useStoreHref } from "@/components/storefront/store-base";
 import { Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -34,13 +35,14 @@ export function HeaderSearch({
   tone?: SearchTone;
 }) {
   const router = useRouter();
+  const link = useStoreHref(storeSlug);
   const params = useSearchParams();
   const [q, setQ] = useState(params.get("q") ?? "");
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const term = q.trim();
-    router.push(term ? `/${storeSlug}?q=${encodeURIComponent(term)}` : `/${storeSlug}`);
+    router.push(term ? link(`?q=${encodeURIComponent(term)}`) : link());
   }
 
   return (

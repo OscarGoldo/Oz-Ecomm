@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getImageUrl } from "@/lib/storage";
 import { isPro } from "@/lib/plans";
 import { resolveTheme } from "@/lib/theme";
+import { storeUrl } from "@/lib/store-url";
 
 export const metadata = { title: "Personalizar" };
 
@@ -40,7 +41,7 @@ export default async function PersonalizarPage() {
           </p>
         </div>
         <Link
-          href={`/${store.slug}`}
+          href={storeUrl(store)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 rounded-xl border bg-background px-3.5 py-2 text-sm font-medium shadow-sm hover:bg-muted"

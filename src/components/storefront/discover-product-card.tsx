@@ -8,6 +8,7 @@ import { getImageUrl } from "@/lib/storage";
 import { isAvailable } from "@/lib/storefront";
 import { cn } from "@/lib/utils";
 import type { Product, Store } from "@/types/database";
+import { storeHref } from "@/lib/store-href";
 
 /**
  * Discover card (app-like): white rounded tile, product photo on a soft inner
@@ -30,7 +31,7 @@ export function DiscoverProductCard({
   return (
     <div className="group relative flex flex-col rounded-2xl bg-card p-2.5 shadow-sm transition-shadow hover:shadow-md">
       <Link
-        href={`/${store.slug}/producto/${product.slug}`}
+        href={storeHref(store.slug, `/producto/${product.slug}`)}
         className="absolute inset-0 z-10"
         aria-label={product.name}
       />
@@ -86,7 +87,7 @@ export function DiscoverProductCard({
                 productName={product.name}
                 image={cover}
                 hasVariants={Boolean(product.variant_options?.length)}
-                href={`/${store.slug}/producto/${product.slug}`}
+                href={storeHref(store.slug, `/producto/${product.slug}`)}
                 className="rounded-full"
               />
             </div>

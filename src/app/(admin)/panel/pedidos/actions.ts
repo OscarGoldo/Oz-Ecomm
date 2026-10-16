@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { storeUrl } from "@/lib/store-url";
 import { getSessionContext } from "@/lib/auth";
 import { customerOrderStatusEmail, sendEmail } from "@/lib/email";
 import {
@@ -55,13 +56,12 @@ async function notifyCustomerEmail(orderId: string, status: OrderStatus, store: 
       order.order_number,
       store.name,
     );
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
     const { subject, html } = customerOrderStatusEmail({
       storeName: store.name,
       orderNumber: order.order_number,
       statusLabel: ORDER_STATUS_META[status].label,
       message,
-      orderUrl: `${appUrl}/${store.slug}/pedido/${orderId}`,
+      orderUrl: storeUrl(store, `/pedido/${orderId}`),
     });
     await sendEmail({ to: order.customer_email, subject, html });
   } catch {

@@ -8,6 +8,7 @@ import { CheckoutStartTracker } from "@/components/storefront/event-tracker";
 import { getStoreBySlug } from "@/lib/storefront";
 import { getEnrichedCart } from "@/lib/cart";
 import { paypalEnabled } from "@/lib/paypal";
+import { storeHref } from "@/lib/store-href";
 import { createClient } from "@/lib/supabase/server";
 import type { PaymentMethod } from "@/types/database";
 
@@ -23,7 +24,7 @@ export default async function CheckoutPage({
 
   const cart = await getEnrichedCart(store);
   if (cart.lines.length === 0) {
-    redirect(`/${store.slug}/carrito`);
+    redirect(storeHref(store.slug, "/carrito"));
   }
 
   const supabase = createClient();
@@ -59,7 +60,7 @@ export default async function CheckoutPage({
     <main className="container max-w-5xl py-6">
       <CheckoutStartTracker storeId={store.id} />
       <Link
-        href={`/${store.slug}/carrito`}
+        href={storeHref(store.slug, "/carrito")}
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" /> Volver al carrito

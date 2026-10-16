@@ -8,6 +8,7 @@ import { DiscoverProductCard } from "@/components/storefront/discover-product-ca
 import { getImageUrl } from "@/lib/storage";
 import { getBlock } from "@/lib/theme";
 import type { StorefrontProps } from "@/components/storefront/storefront-props";
+import { storeHref } from "@/lib/store-href";
 
 export function DiscoverStorefront({
   store,
@@ -83,7 +84,7 @@ export function DiscoverStorefront({
             {categories.map((c) => (
               <Link
                 key={c.id}
-                href={`/${store.slug}?cat=${c.slug}`}
+                href={storeHref(store.slug, `?cat=${c.slug}`)}
                 className="shrink-0 rounded-full border bg-card px-4 py-2 text-sm font-medium transition-colors hover:border-primary hover:text-primary"
               >
                 {c.name}

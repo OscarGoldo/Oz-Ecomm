@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatUSD } from "@/lib/format";
 import { abandonedCartCutoff } from "@/lib/constants";
 import { whatsappUrl } from "@/lib/whatsapp";
+import { storeUrl } from "@/lib/store-url";
 import { abandonedCartMessage } from "@/lib/order-messages";
 import type { AbandonedCart } from "@/types/database";
 
@@ -28,8 +29,7 @@ export default async function CarritosPage() {
     .limit(100);
   const carts = (data ?? []) as AbandonedCart[];
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const storeUrl = appUrl ? `${appUrl}/${store.slug}` : null;
+  const storeLink = storeUrl(store);
 
   const ago = (iso: string) =>
     formatDistanceToNow(new Date(iso), { addSuffix: true, locale: es });
@@ -67,7 +67,7 @@ export default async function CarritosPage() {
                 subtotal: i.price * i.qty,
               })),
               subtotal: Number(cart.subtotal),
-              storeUrl,
+              storeUrl: storeLink,
             });
 
             return (

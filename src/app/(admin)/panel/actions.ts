@@ -1,6 +1,7 @@
 "use server";
 
 import { DOMAIN_NOTICE_KEY } from "@/lib/domain-notice";
+import { STORE_ADDRESS_NOTICE_KEY } from "@/lib/store-address-notice";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -10,5 +11,12 @@ import { createClient } from "@/lib/supabase/server";
 export async function dismissDomainNotice(): Promise<void> {
   await createClient().auth.updateUser({
     data: { [DOMAIN_NOTICE_KEY]: new Date().toISOString() },
+  });
+}
+
+/** Lo mismo para el aviso de la dirección propia (store-address-notice.ts). */
+export async function dismissStoreAddressNotice(): Promise<void> {
+  await createClient().auth.updateUser({
+    data: { [STORE_ADDRESS_NOTICE_KEY]: new Date().toISOString() },
   });
 }

@@ -4,13 +4,13 @@ import { ImageResponse } from "next/og";
 
 import { isDarkColor } from "@/lib/color";
 import { formatBs, formatUSD, usdToBs } from "@/lib/format";
+import { displayStoreAddress, storeUrl } from "@/lib/store-url";
 import {
   OG_CONTENT_TYPE,
   OG_SIZE,
   eq,
   initialOf,
   loadOgImage,
-  publicHost,
   restGet,
   safeColor,
   truncate,
@@ -34,7 +34,15 @@ export const revalidate = 3600;
 
 type StoreCard = Pick<
   Store,
-  "id" | "name" | "slug" | "logo_url" | "primary_color" | "exchange_rate" | "show_bs_prices"
+  | "id"
+  | "name"
+  | "slug"
+  | "plan"
+  | "plan_expires_at"
+  | "logo_url"
+  | "primary_color"
+  | "exchange_rate"
+  | "show_bs_prices"
 >;
 type ProductCard = Pick<
   Product,
@@ -65,7 +73,7 @@ export default async function Image({
 }) {
   const [store] = await restGet<StoreCard>(
     `stores?slug=eq.${eq(params.store_slug)}&active=is.true` +
-      `&select=id,name,slug,logo_url,primary_color,exchange_rate,show_bs_prices&limit=1`,
+      `&select=id,name,slug,plan,plan_expires_at,logo_url,primary_color,exchange_rate,show_bs_prices&limit=1`,
   );
 
   const [product] = store
@@ -262,7 +270,7 @@ export default async function Image({
           <div
             style={{ display: "flex", marginTop: 34, fontSize: 24, color: FAINT }}
           >
-            {publicHost()}/{store.slug}
+            {displayStoreAddress(storeUrl(store))}
           </div>
         </div>
 

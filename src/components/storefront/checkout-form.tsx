@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useStoreHref } from "@/components/storefront/store-base";
 import { useForm } from "react-hook-form";
 import {
   ArrowLeft,
@@ -102,6 +103,7 @@ export function CheckoutForm({
   cart: EnrichedCart;
 }) {
   const router = useRouter();
+  const link = useStoreHref(store.slug);
   const [step, setStep] = useState<1 | 2>(1);
   /** Contenedor del teléfono: el input vive dentro de PhoneInput, sin id propio. */
   const phoneRef = useRef<HTMLDivElement>(null);
@@ -456,7 +458,7 @@ export function CheckoutForm({
         return;
       }
       clearDraft();
-      router.push(`/${store.slug}/pedido/${res.orderId}`);
+      router.push(link(`/pedido/${res.orderId}`));
     } catch {
       // Se cortó la conexión en pleno envío. El pedido PUEDE haberse creado —
       // por eso el mensaje no dice "falló" y por eso reintentar es seguro: la
@@ -868,7 +870,7 @@ export function CheckoutForm({
               getInput={buildInput}
               onPaid={(orderId) => {
                 clearDraft();
-                router.push(`/${store.slug}/pedido/${orderId}`);
+                router.push(link(`/pedido/${orderId}`));
               }}
             />
           ) : isPaypal ? (
@@ -879,7 +881,7 @@ export function CheckoutForm({
                   getInput={buildInput}
                   onSuccess={(id) => {
                     clearDraft();
-                    router.push(`/${store.slug}/pedido/${id}`);
+                    router.push(link(`/pedido/${id}`));
                   }}
                 />
                 <p className="mt-2 text-center text-xs text-muted-foreground">

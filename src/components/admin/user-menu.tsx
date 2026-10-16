@@ -15,10 +15,11 @@ import { signOut } from "@/lib/auth-actions";
 interface UserMenuProps {
   fullName: string;
   email: string;
-  storeSlug: string;
+  /** La dirección pública de la tienda (subdominio si es Pro). */
+  storeUrl: string;
 }
 
-export function UserMenu({ fullName, email, storeSlug }: UserMenuProps) {
+export function UserMenu({ fullName, email, storeUrl }: UserMenuProps) {
   const initials = fullName
     .split(" ")
     .map((p) => p[0])
@@ -43,7 +44,7 @@ export function UserMenu({ fullName, email, storeSlug }: UserMenuProps) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <a href={`/${storeSlug}`} target="_blank" rel="noopener noreferrer">
+          <a href={storeUrl} target="_blank" rel="noopener noreferrer">
             <ExternalLink className="size-4" />
             Ver mi tienda
           </a>

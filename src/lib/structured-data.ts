@@ -1,4 +1,4 @@
-import { publicSiteUrl } from "@/lib/site-url";
+import { storeUrl, type StoreAddress } from "@/lib/store-url";
 import type { Product, ProductVariant, Store } from "@/types/database";
 
 /**
@@ -18,18 +18,13 @@ import type { Product, ProductVariant, Store } from "@/types/database";
 
 const SCHEMA = "https://schema.org";
 
-function absoluteUrl(path: string): string {
-  const base = publicSiteUrl();
-  return `${base}${path.startsWith("/") ? path : `/${path}`}`;
-}
-
 /** Disponibilidad en el vocabulario de schema.org. */
 function availability(inStock: boolean): string {
   return `${SCHEMA}/${inStock ? "InStock" : "OutOfStock"}`;
 }
 
 export interface ProductJsonLdInput {
-  store: Pick<Store, "name" | "slug">;
+  store: Pick<Store, "name"> & StoreAddress;
   product: Pick<
     Product,
     "name" | "slug" | "description" | "price" | "sku" | "stock" | "track_stock"
@@ -51,7 +46,7 @@ export function productJsonLd({
   images,
   inStock,
 }: ProductJsonLdInput): Record<string, unknown> {
-  const url = absoluteUrl(`/${store.slug}/producto/${product.slug}`);
+  const url = storeUrl(store, `/producto/${product.slug}`);
   const active = variants.filter((v) => v.active);
 
   const prices = active.length
@@ -103,13 +98,11 @@ export function productJsonLd({
  * información con dirección y teléfono.
  */
 export function storeJsonLd(
-  store: Pick<
-    Store,
-    "name" | "slug" | "description" | "address" | "phone" | "email"
-  >,
+  store: Pick<Store, "name" | "description" | "address" | "phone" | "email"> &
+    StoreAddress,
   logoUrl: string | null,
 ): Record<string, unknown> {
-  const url = absoluteUrl(`/${store.slug}`);
+  const url = storeUrl(store);
   return {
     "@context": SCHEMA,
     "@type": "Store",
@@ -133,7 +126,7 @@ export function storeJsonLd(
 
 /** Miga de pan: Tienda › Producto. Google la dibuja arriba del resultado. */
 export function breadcrumbJsonLd(
-  store: Pick<Store, "name" | "slug">,
+  store: Pick<Store, "name"> & StoreAddress,
   product: Pick<Product, "name" | "slug">,
 ): Record<string, unknown> {
   return {
@@ -144,13 +137,13 @@ export function breadcrumbJsonLd(
         "@type": "ListItem",
         position: 1,
         name: store.name,
-        item: absoluteUrl(`/${store.slug}`),
+        item: storeUrl(store),
       },
       {
         "@type": "ListItem",
         position: 2,
         name: product.name,
-        item: absoluteUrl(`/${store.slug}/producto/${product.slug}`),
+        item: storeUrl(store, `/producto/${product.slug}`),
       },
     ],
   };

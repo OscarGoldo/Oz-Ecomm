@@ -4,14 +4,17 @@ import { Store as StoreIcon } from "lucide-react";
 import { DomainNotice } from "@/components/admin/domain-notice";
 import { PanelBottomNav, PanelSidebarNav } from "@/components/admin/panel-nav";
 import { PlanBanner } from "@/components/admin/plan-banner";
+import { StoreAddressNotice } from "@/components/admin/store-address-notice";
 import { UserMenu } from "@/components/admin/user-menu";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { abandonedCartCutoff } from "@/lib/constants";
 import { shouldShowDomainNotice } from "@/lib/domain-notice";
+import { shouldShowStoreAddressNotice } from "@/lib/store-address-notice";
 import { daysUntilExpiry, isPro } from "@/lib/plans";
-import { publicSiteUrl } from "@/lib/site-url";
 import { getImageUrl } from "@/lib/storage";
+import { publicSiteUrl } from "@/lib/site-url";
+import { storeSubdomainOrigin, storeUrl } from "@/lib/store-url";
 
 export default async function PanelLayout({
   children,
@@ -46,6 +49,12 @@ export default async function PanelLayout({
 
   const logo = getImageUrl(store.logo_url);
   const pro = isPro(store);
+
+  // Un aviso por vez: si todavía no vio el del cambio de dominio, va ese
+  // primero y el de la dirección propia le sale la próxima vez que entre.
+  const domainNotice = shouldShowDomainNotice(user, metadata);
+  const addressNotice =
+    !domainNotice && shouldShowStoreAddressNotice(user, metadata, store);
 
   // Comprobante ya enviado y esperando revisión: el banner lo dice para que no
   // vuelva a pagar mientras tanto.
@@ -96,7 +105,7 @@ export default async function PanelLayout({
           <UserMenu
             fullName={user.full_name}
             email={user.email}
-            storeSlug={store.slug}
+            storeUrl={storeUrl(store)}
           />
         </div>
       </header>
@@ -128,8 +137,13 @@ export default async function PanelLayout({
         <PanelBottomNav badges={navBadges} pro={pro} />
       </div>
 
-      {shouldShowDomainNotice(user, metadata) && (
-        <DomainNotice storeUrl={`${publicSiteUrl()}/${store.slug}`} />
+      {domainNotice && <DomainNotice storeUrl={storeUrl(store)} />}
+      {addressNotice && (
+        <StoreAddressNotice
+          pro={pro}
+          subdomainUrl={storeSubdomainOrigin(store.slug)}
+          currentUrl={`${publicSiteUrl()}/${store.slug}`}
+        />
       )}
     </div>
   );

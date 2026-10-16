@@ -14,6 +14,7 @@ import { OrderStatusBadge } from "@/components/admin/status-badge";
 import { OrderPayLater } from "@/components/storefront/order-pay-later";
 import { OrderStripePay } from "@/components/storefront/order-stripe-pay";
 import { getStoreBySlug } from "@/lib/storefront";
+import { storeHref } from "@/lib/store-href";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatBs, formatUSD } from "@/lib/format";
 import { PAYMENT_METHOD_META } from "@/lib/constants";
@@ -254,7 +255,7 @@ export default async function OrderConfirmationPage({
       </div>
 
       <Button asChild variant="ghost" className="mt-6 w-full">
-        <Link href={`/${store.slug}`}>Seguir comprando</Link>
+        <Link href={storeHref(store.slug)}>Seguir comprando</Link>
       </Button>
     </main>
   );

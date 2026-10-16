@@ -15,6 +15,7 @@ import { OrderStatusBadge } from "@/components/admin/status-badge";
 import { OrderActions } from "@/components/admin/order-actions";
 import { ProofViewer } from "@/components/admin/proof-viewer";
 import { requireStoreUser } from "@/lib/auth";
+import { storeUrl } from "@/lib/store-url";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PAYMENT_PROOFS_BUCKET } from "@/lib/storage";
@@ -68,14 +69,13 @@ export default async function OrderDetailPage({
 
   // Recibo de 1 tap para WhatsApp. Se arma aquí (server) y viaja como texto ya
   // listo, así el componente cliente no necesita los ítems ni los totales.
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
   const receiptMessage = orderReceiptCustomerMessage(
     buildOrderMessageData({
       order,
       items,
       storeName: store.name,
       pickupAddress: store.pickup_address,
-      orderUrl: appUrl ? `${appUrl}/${store.slug}/pedido/${order.id}` : null,
+      orderUrl: storeUrl(store, `/pedido/${order.id}`),
     }),
   );
 

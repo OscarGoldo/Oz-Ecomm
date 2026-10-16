@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
+import { storeHref } from "@/lib/store-href";
+
 /**
  * "Ver más productos" del catálogo.
  *
@@ -28,7 +30,7 @@ export function LoadMore({
   return (
     <div className="container flex justify-center py-8">
       <Link
-        href={`/${storeSlug}?${params.toString()}#catalogo`}
+        href={storeHref(storeSlug, `?${params.toString()}#catalogo`)}
         prefetch={false}
         className="inline-flex h-12 items-center gap-2 rounded-xl border-2 px-6 text-sm font-semibold transition-colors hover:border-primary hover:text-primary"
       >

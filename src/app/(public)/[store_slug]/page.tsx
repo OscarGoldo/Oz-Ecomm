@@ -19,6 +19,7 @@ import {
 } from "@/lib/storefront";
 import { getImageUrl } from "@/lib/storage";
 import { rateInfo } from "@/lib/exchange-rate";
+import { storeUrl } from "@/lib/store-url";
 import { resolveTheme, type SectionId } from "@/lib/theme";
 import { LoadMore } from "@/components/storefront/load-more";
 import { LAYOUTS } from "@/components/storefront/layouts";
@@ -36,14 +37,14 @@ export async function generateMetadata({
   return {
     title: { absolute: store.name },
     description,
-    alternates: { canonical: `/${store.slug}` },
+    alternates: { canonical: storeUrl(store) },
     openGraph: {
       type: "website",
       title: store.name,
       description,
       siteName: store.name,
       locale: "es_VE",
-      url: `/${store.slug}`,
+      url: storeUrl(store),
     },
     twitter: { card: "summary_large_image", title: store.name, description },
   };

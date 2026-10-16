@@ -9,14 +9,15 @@ interface CartToastInput {
   image?: string | null;
   variant?: string | null;
   qty?: number;
-  storeSlug: string;
+  /** El carrito en la dirección en que se está viendo la tienda (useStoreHref). */
+  cartHref: string;
 }
 
 /**
  * Small confirmation popup at the bottom of the screen showing the item just
  * added to the cart, with a "Ver carrito" shortcut.
  */
-export function showCartToast({ name, image, variant, qty, storeSlug }: CartToastInput) {
+export function showCartToast({ name, image, variant, qty, cartHref }: CartToastInput) {
   toast.custom(
     (t) => (
       <div className="flex w-[min(92vw,380px)] items-center gap-3 rounded-xl border bg-background p-3 shadow-lg">
@@ -44,7 +45,7 @@ export function showCartToast({ name, image, variant, qty, storeSlug }: CartToas
           )}
         </div>
         <Link
-          href={`/${storeSlug}/carrito`}
+          href={cartHref}
           onClick={() => toast.dismiss(t)}
           className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
         >

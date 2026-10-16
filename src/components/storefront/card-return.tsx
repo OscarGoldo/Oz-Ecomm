@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useStoreHref } from "@/components/storefront/store-base";
 import { AlertTriangle, Loader2 } from "lucide-react";
 
 import { finalizeCardOrder } from "@/app/(public)/[store_slug]/checkout/actions";
@@ -26,6 +27,7 @@ export function CardReturn({
   redirectStatus: string | null;
 }) {
   const router = useRouter();
+  const link = useStoreHref(storeSlug);
   const [failed, setFailed] = useState<string | null>(null);
   const started = useRef(false);
 
@@ -50,7 +52,7 @@ export function CardReturn({
         });
         if (cancelled) return;
         if (res.ok && res.orderId) {
-          router.replace(`/${storeSlug}/pedido/${res.orderId}`);
+          router.replace(link(`/pedido/${res.orderId}`));
           return;
         }
         // Todavía procesando del lado de Stripe: se espera y se reintenta.
@@ -66,7 +68,7 @@ export function CardReturn({
     return () => {
       cancelled = true;
     };
-  }, [paymentIntentId, redirectStatus, router, storeSlug]);
+  }, [paymentIntentId, redirectStatus, router, link]);
 
   if (failed) {
     return (

@@ -18,19 +18,19 @@ import { notifyOwnerNewOrder } from "@/lib/whatsapp-cloud";
 import { evaluateCoupon, findCouponByCode } from "@/lib/coupons";
 import { maybeQualifyReferral } from "@/lib/referrals-server";
 import { recordPlatformEvent } from "@/lib/platform-events";
+import { storeUrl } from "@/lib/store-url";
 import {
   capturePaypalOrder,
   createPaypalOrder,
   paypalCredsFromEnv,
 } from "@/lib/paypal";
 import {
-  appUrl as publicAppUrl,
   chargeBreakdown,
   fromCents,
   getStripe,
   toCents,
 } from "@/lib/stripe";
-import type { Coupon, CouponType, Json, OrderStatus } from "@/types/database";
+import type { Coupon, CouponType, Json, OrderStatus, Store } from "@/types/database";
 
 const checkoutSchema = z.object({
   store_id: z.string().uuid(),
@@ -204,6 +204,9 @@ interface OrderDraft {
     id: string;
     name: string;
     slug: string;
+    /** Para armar el link del pedido con la dirección de la tienda (store-url.ts). */
+    plan: Store["plan"];
+    plan_expires_at: string | null;
     /** Para avisarle al comerciante por WhatsApp cuando entra el pedido. */
     whatsapp: string | null;
     pickup_address: string | null;
@@ -816,7 +819,7 @@ async function insertOrder(
     items: orderItems,
     storeName: store.name,
     pickupAddress: store.pickup_address,
-    orderUrl: `${appUrl}/${store.slug}/pedido/${order.id}`,
+    orderUrl: storeUrl(store, `/pedido/${order.id}`),
     panelUrl: `${appUrl}/panel/pedidos/${order.id}`,
   });
 
@@ -1070,7 +1073,7 @@ async function openStripeSession(
 
   const { data: store } = await db
     .from("stores")
-    .select("slug, name")
+    .select("slug, name, plan, plan_expires_at")
     .eq("id", order.store_id)
     .maybeSingle();
   if (!store) return { ok: false, error: "La tienda no está disponible" };
@@ -1080,7 +1083,7 @@ async function openStripeSession(
     .select("product_name, variant_name, quantity, unit_price")
     .eq("order_id", order.id);
 
-  const orderUrl = `${publicAppUrl()}/${store.slug}/pedido/${order.id}`;
+  const orderUrl = storeUrl(store, `/pedido/${order.id}`);
 
   try {
     const session = await stripe.checkout.sessions.create({

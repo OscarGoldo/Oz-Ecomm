@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AtSign, MapPin, MessageCircle, Phone } from "lucide-react";
 
 import { isPro } from "@/lib/plans";
+import { publicSiteUrl } from "@/lib/site-url";
 import { whatsappUrl } from "@/lib/whatsapp";
 import { LAYOUT_CHROME, type LayoutId } from "@/lib/theme";
 import type { Store } from "@/types/database";
@@ -19,9 +20,12 @@ export function StorefrontFooter({
    * Badge del plan Gratis. Es un link real con `?ref=<slug>`: cada tienda
    * gratis es un canal de adquisición, y el `ref` deja ver de dónde vino cada
    * registro. En Pro desaparece (es parte de lo que se paga).
+   *
+   * Va con el dominio completo: si la tienda se está viendo en su subdominio,
+   * `/` sería la portada de la tienda y no la de Tiendify.
    */
   const badge = isPro(store) ? null : (
-    <Link href={`/?ref=${store.slug}`} className="hover:underline">
+    <Link href={`${publicSiteUrl()}/?ref=${store.slug}`} className="hover:underline">
       Hecho con <span className="font-medium">Tiendify</span>
     </Link>
   );

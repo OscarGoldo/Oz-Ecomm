@@ -7,6 +7,7 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
+import { useStoreHref } from "@/components/storefront/store-base";
 import { loadStripe, type Appearance, type Stripe } from "@stripe/stripe-js";
 import { Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
@@ -154,6 +155,7 @@ function CardForm({
   onPaid: (orderId: string) => void;
 }) {
   const stripe = useStripe();
+  const link = useStoreHref(storeSlug);
   const elements = useElements();
   const [paying, setPaying] = useState(false);
   const [ready, setReady] = useState(false);
@@ -197,7 +199,7 @@ function CardForm({
       confirmParams: {
         // Solo se usa si el banco pide verificación y saca al cliente de la
         // página. Al volver, esa ruta termina de crear el pedido.
-        return_url: `${window.location.origin}/${storeSlug}/checkout/procesando`,
+        return_url: `${window.location.origin}${link("/checkout/procesando")}`,
       },
       redirect: "if_required",
     });

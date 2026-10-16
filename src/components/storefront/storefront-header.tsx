@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useStoreHref } from "@/components/storefront/store-base";
 import { ShoppingCart, Store as StoreIcon } from "lucide-react";
 
 import { HeaderSearch, type SearchTone } from "@/components/storefront/header-search";
@@ -62,6 +63,7 @@ export function StorefrontHeader({
   // The checkout embeds PayPal's tall card form; a sticky header would overlap
   // it, so on checkout the header scrolls away normally.
   const pathname = usePathname();
+  const link = useStoreHref(store.slug);
   const sticky = !(pathname?.endsWith("/checkout") ?? false);
 
   const chrome = LAYOUT_CHROME[layout] ?? LAYOUT_CHROME.classic;
@@ -70,7 +72,7 @@ export function StorefrontHeader({
   return (
     <header className={cn("z-30", v.wrap, sticky && "sticky top-0")}>
       <div className="container flex h-14 items-center gap-3">
-        <Link href={`/${store.slug}`} className="flex min-w-0 items-center gap-2">
+        <Link href={link()} className="flex min-w-0 items-center gap-2">
           <span
             className={cn(
               "grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg",
@@ -106,7 +108,7 @@ export function StorefrontHeader({
         </div>
 
         <Link
-          href={`/${store.slug}/carrito`}
+          href={link("/carrito")}
           className={cn(
             "relative ml-auto inline-flex size-10 items-center justify-center rounded-full transition-colors",
             v.cartHover,

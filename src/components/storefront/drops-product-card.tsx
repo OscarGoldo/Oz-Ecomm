@@ -9,6 +9,7 @@ import { isAvailable } from "@/lib/storefront";
 import { extractDropBadge } from "@/lib/drops";
 import { cn } from "@/lib/utils";
 import type { Product, Store } from "@/types/database";
+import { storeHref } from "@/lib/store-href";
 
 /**
  * Drops card: dark, high-contrast, collector aesthetic. Type badge (PLAYER /
@@ -37,7 +38,7 @@ export function DropsProductCard({
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-lg border border-white/10 bg-neutral-900 transition-colors hover:border-[hsl(var(--brand-accent))]">
       <Link
-        href={`/${store.slug}/producto/${product.slug}`}
+        href={storeHref(store.slug, `/producto/${product.slug}`)}
         className="absolute inset-0 z-10"
         aria-label={product.name}
       />
@@ -113,7 +114,7 @@ export function DropsProductCard({
                 productName={product.name}
                 image={cover}
                 hasVariants={Boolean(product.variant_options?.length)}
-                href={`/${store.slug}/producto/${product.slug}`}
+                href={storeHref(store.slug, `/producto/${product.slug}`)}
                 className="rounded-md bg-[hsl(var(--brand-accent))] font-extrabold uppercase tracking-wide text-neutral-950 hover:bg-[hsl(var(--brand-accent))] hover:brightness-110"
               />
             </div>

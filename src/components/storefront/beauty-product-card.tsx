@@ -8,6 +8,7 @@ import { getImageUrl } from "@/lib/storage";
 import { isAvailable } from "@/lib/storefront";
 import { extractBeautyTags } from "@/lib/beauty";
 import type { Product, Store } from "@/types/database";
+import { storeHref } from "@/lib/store-href";
 
 /**
  * Beauty card: soft, rounded, caring. Visual tags over the photo, a small
@@ -27,7 +28,7 @@ export function BeautyProductCard({
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-3xl border bg-card shadow-sm transition-shadow hover:shadow-lg">
       <Link
-        href={`/${store.slug}/producto/${product.slug}`}
+        href={storeHref(store.slug, `/producto/${product.slug}`)}
         className="absolute inset-0 z-10"
         aria-label={product.name}
       />
@@ -86,7 +87,7 @@ export function BeautyProductCard({
                 productName={product.name}
                 image={cover}
                 hasVariants={Boolean(product.variant_options?.length)}
-                href={`/${store.slug}/producto/${product.slug}`}
+                href={storeHref(store.slug, `/producto/${product.slug}`)}
               />
             </div>
           ) : (

@@ -10,6 +10,7 @@ import { HeroSlides } from "@/components/storefront/hero-slides";
 import { getImageUrl } from "@/lib/storage";
 import { getBlock } from "@/lib/theme";
 import type { StorefrontProps } from "@/components/storefront/storefront-props";
+import { storeHref } from "@/lib/store-href";
 
 /** Two-letter "escudo" initials for a category. */
 function initials(name: string): string {
@@ -60,7 +61,7 @@ export function DropsStorefront({
               {categories.map((cat) => (
                 <Link
                   key={cat.id}
-                  href={`/${store.slug}?cat=${cat.slug}`}
+                  href={storeHref(store.slug, `?cat=${cat.slug}`)}
                   className="group flex w-20 shrink-0 flex-col items-center gap-2"
                 >
                   <span
@@ -104,7 +105,7 @@ export function DropsStorefront({
               store={store}
               title={cat.name}
               items={cat.items}
-              href={`/${store.slug}?cat=${cat.slug}`}
+              href={storeHref(store.slug, `?cat=${cat.slug}`)}
             />
           ))}
         </div>

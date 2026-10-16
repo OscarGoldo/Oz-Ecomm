@@ -3,13 +3,13 @@
 import { ImageResponse } from "next/og";
 
 import { isDarkColor } from "@/lib/color";
+import { displayStoreAddress, storeUrl } from "@/lib/store-url";
 import {
   OG_CONTENT_TYPE,
   OG_SIZE,
   eq,
   initialOf,
   loadOgImage,
-  publicHost,
   restCount,
   restGet,
   safeColor,
@@ -35,7 +35,15 @@ export const revalidate = 3600;
 
 type StoreCard = Pick<
   Store,
-  "id" | "name" | "slug" | "description" | "logo_url" | "banner_url" | "primary_color"
+  | "id"
+  | "name"
+  | "slug"
+  | "plan"
+  | "plan_expires_at"
+  | "description"
+  | "logo_url"
+  | "banner_url"
+  | "primary_color"
 >;
 
 /** Franja del banner. Cuanto más alta, más pesa el PNG (ver src/lib/og.ts). */
@@ -52,7 +60,7 @@ export default async function Image({
 }) {
   const [store] = await restGet<StoreCard>(
     `stores?slug=eq.${eq(params.store_slug)}&active=is.true` +
-      `&select=id,name,slug,description,logo_url,banner_url,primary_color&limit=1`,
+      `&select=id,name,slug,plan,plan_expires_at,description,logo_url,banner_url,primary_color&limit=1`,
   );
 
   if (!store) {
@@ -207,7 +215,7 @@ export default async function Image({
           <div
             style={{ display: "flex", marginTop: 34, fontSize: 26, color: FAINT }}
           >
-            {publicHost()}/{store.slug}
+            {displayStoreAddress(storeUrl(store))}
           </div>
         </div>
 

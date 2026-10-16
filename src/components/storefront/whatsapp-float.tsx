@@ -26,9 +26,12 @@ export function WhatsappFloat({
   const pathname = usePathname();
   const url = whatsappUrl(phone, `Hola! Te escribo desde la tienda ${storeName}.`);
   if (!url) return null;
-  // /<tienda>/checkout y /<tienda>/checkout/procesando (la vuelta del banco).
-  // Por segmento y no por substring: una tienda puede llamarse "checkout-shop".
-  if (pathname?.split("/")[2] === "checkout") return null;
+  // /<tienda>/checkout y /<tienda>/checkout/procesando (la vuelta del banco),
+  // o /checkout a secas en el subdominio de la tienda. Por segmento y no por
+  // substring: una tienda puede llamarse "checkout-shop". "checkout" no puede
+  // ser el slug de una tienda (slug.ts), así que el primer segmento no confunde.
+  const segments = pathname?.split("/").filter(Boolean) ?? [];
+  if (segments[0] === "checkout" || segments[1] === "checkout") return null;
 
   return (
     <a

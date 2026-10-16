@@ -8,6 +8,7 @@ import { getImageUrl } from "@/lib/storage";
 import { isAvailable } from "@/lib/storefront";
 import { extractSpecs } from "@/lib/specs";
 import type { Product, Store } from "@/types/database";
+import { storeHref } from "@/lib/store-href";
 
 /**
  * Tech card: compact, data-dense. Shows key spec chips and high-contrast
@@ -35,7 +36,7 @@ export function TechProductCard({
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-md border-2 bg-card transition-colors hover:border-primary">
       <Link
-        href={`/${store.slug}/producto/${product.slug}`}
+        href={storeHref(store.slug, `/producto/${product.slug}`)}
         className="absolute inset-0 z-10"
         aria-label={product.name}
       />
@@ -113,7 +114,7 @@ export function TechProductCard({
                 productName={product.name}
                 image={cover}
                 hasVariants={Boolean(product.variant_options?.length)}
-                href={`/${store.slug}/producto/${product.slug}`}
+                href={storeHref(store.slug, `/producto/${product.slug}`)}
               />
             </div>
           ) : (

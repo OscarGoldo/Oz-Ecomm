@@ -11,7 +11,7 @@ import { PAYMENT_METHOD_META } from "@/lib/constants";
 import { formatUSD } from "@/lib/format";
 import { SALES_STATUSES } from "@/lib/metrics";
 import { isPro } from "@/lib/plans";
-import { publicSiteUrl } from "@/lib/site-url";
+import { storeUrl as publicStoreUrl } from "@/lib/store-url";
 import { storeClosedByOwner } from "@/lib/store-status";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -130,7 +130,7 @@ export default async function SuperStorePage({
   const pro = isPro(store);
   const closed = storeClosedByOwner(store);
   const wa = whatsappUrl(store.whatsapp);
-  const storeUrl = `${publicSiteUrl()}/${store.slug}`;
+  const storeUrl = publicStoreUrl(store);
   const subscription = store.stripe_subscription_status
     ? { via: "Tarjeta (Stripe)", status: store.stripe_subscription_status }
     : store.paypal_subscription_status
