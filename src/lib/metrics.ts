@@ -1,5 +1,4 @@
 import {
-  addMonths,
   eachDayOfInterval,
   format,
   getDay,
@@ -13,6 +12,7 @@ import { es } from "date-fns/locale";
 import { createClient } from "@/lib/supabase/server";
 import { PAYMENT_METHOD_META } from "@/lib/constants";
 import { formatUSD } from "@/lib/format";
+import type { ReportPeriod } from "@/lib/report-period";
 import type {
   Order,
   OrderStatus,
@@ -366,7 +366,7 @@ export async function getFinanceSummary(
   };
 }
 
-/** Income/cost/expense aggregates for a single date range (one month). */
+/** Income/cost/expense aggregates for a single date range. */
 interface RangeAgg {
   incomeUsd: number;
   incomeBs: number;
@@ -426,9 +426,7 @@ async function computeRange(
   };
 }
 
-export interface MonthlyReport {
-  ym: string; // "2026-05"
-  label: string; // "Mayo 2026"
+export interface PeriodReport {
   // Balance / P&L
   incomeUsd: number;
   incomeBs: number;
@@ -443,45 +441,32 @@ export interface MonthlyReport {
   unitsSold: number;
   avgTicketUsd: number;
   customers: number;
-  topProducts: { name: string; qty: number; revenue: number; profit: number }[];
   byMethod: { type: string; count: number; usd: number }[];
-  // vs previous month
+  // vs el período anterior
   prevIncomeUsd: number;
+  prevSalesCount: number;
+  prevExpensesUsd: number;
   prevNetUsd: number;
   incomeGrowthPct: number | null;
   netGrowthPct: number | null;
 }
 
-function cap(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-/** Full report for a single month ("YYYY-MM"), with vs-previous-month deltas. */
-export async function getMonthlyReport(
+/**
+ * Reporte de un período cualquiera, con su comparación contra el anterior.
+ * El rango y el período de comparación los decide `resolvePeriod()`.
+ */
+export async function getPeriodReport(
   storeId: string,
-  ym: string,
-): Promise<MonthlyReport> {
+  period: Pick<ReportPeriod, "fromISO" | "toISO" | "previous">,
+): Promise<PeriodReport> {
   const supabase = createClient();
-  const [yStr, mStr] = ym.split("-");
-  const year = Number(yStr);
-  const monthIdx = Number(mStr) - 1;
-  const monthStart = new Date(year, monthIdx, 1);
-  const nextStart = addMonths(monthStart, 1);
-  const prevStart = subMonths(monthStart, 1);
-
-
   const [cur, prev] = await Promise.all([
+    computeRange(supabase, storeId, period.fromISO, period.toISO),
     computeRange(
       supabase,
       storeId,
-      monthStart.toISOString(),
-      nextStart.toISOString(),
-    ),
-    computeRange(
-      supabase,
-      storeId,
-      prevStart.toISOString(),
-      monthStart.toISOString(),
+      period.previous.fromISO,
+      period.previous.toISO,
     ),
   ]);
 
@@ -490,8 +475,6 @@ export async function getMonthlyReport(
   const prevNetUsd = prev.incomeUsd - prev.cogsUsd - prev.expensesUsd;
 
   return {
-    ym,
-    label: cap(format(monthStart, "MMMM yyyy", { locale: es })),
     incomeUsd: cur.incomeUsd,
     incomeBs: cur.incomeBs,
     cogsUsd: cur.cogsUsd,
@@ -504,60 +487,14 @@ export async function getMonthlyReport(
     unitsSold: cur.unitsSold,
     avgTicketUsd: cur.salesCount ? cur.incomeUsd / cur.salesCount : 0,
     customers: cur.customers,
-    topProducts: cur.topProducts,
     byMethod: cur.byMethod,
     prevIncomeUsd: prev.incomeUsd,
+    prevSalesCount: prev.salesCount,
+    prevExpensesUsd: prev.expensesUsd,
     prevNetUsd,
-    incomeGrowthPct:
-      prev.incomeUsd > 0
-        ? ((cur.incomeUsd - prev.incomeUsd) / prev.incomeUsd) * 100
-        : null,
-    netGrowthPct:
-      prevNetUsd > 0 ? ((netUsd - prevNetUsd) / prevNetUsd) * 100 : null,
+    incomeGrowthPct: pctChange(cur.incomeUsd, prev.incomeUsd),
+    netGrowthPct: pctChange(netUsd, prevNetUsd),
   };
-}
-
-/** Months (newest first) that have any activity, for the report picker. */
-export async function getAvailableReportMonths(
-  storeId: string,
-): Promise<{ ym: string; label: string }[]> {
-  const supabase = createClient();
-  const [{ data: firstOrder }, { data: firstExpense }] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("created_at")
-      .eq("store_id", storeId)
-      .order("created_at", { ascending: true })
-      .limit(1),
-    supabase
-      .from("expenses")
-      .select("spent_at")
-      .eq("store_id", storeId)
-      .order("spent_at", { ascending: true })
-      .limit(1),
-  ]);
-
-  const dates: Date[] = [];
-  if (firstOrder?.[0]?.created_at) dates.push(new Date(firstOrder[0].created_at));
-  if (firstExpense?.[0]?.spent_at) dates.push(new Date(firstExpense[0].spent_at));
-
-  const now = new Date();
-  const earliest =
-    dates.length > 0
-      ? startOfMonth(new Date(Math.min(...dates.map((d) => d.getTime()))))
-      : startOfMonth(subMonths(now, 1));
-
-  const months: { ym: string; label: string }[] = [];
-  let cursor = startOfMonth(now);
-  // Cap at 36 months to keep the list sane.
-  for (let i = 0; i < 36 && cursor >= earliest; i++) {
-    months.push({
-      ym: format(cursor, "yyyy-MM"),
-      label: cap(format(cursor, "MMMM yyyy", { locale: es })),
-    });
-    cursor = subMonths(cursor, 1);
-  }
-  return months;
 }
 
 /** Recent expenses for the Finanzas page. */

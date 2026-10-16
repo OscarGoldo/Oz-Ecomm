@@ -113,7 +113,7 @@ export default async function FinanzasPage() {
           href="/panel/finanzas/reportes"
           className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted"
         >
-          <FileText className="size-4" /> Reportes mensuales
+          <FileText className="size-4" /> Reportes
         </Link>
       </div>
 
