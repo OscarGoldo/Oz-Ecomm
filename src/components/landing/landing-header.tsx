@@ -17,6 +17,7 @@ const NAV = [
   { label: "Cómo funciona", href: "#como-funciona" },
   { label: "Plantillas", href: "#plantillas" },
   { label: "Precios", href: "#precios" },
+  { label: "Preguntas", href: "#preguntas" },
 ];
 
 export function LandingHeader() {

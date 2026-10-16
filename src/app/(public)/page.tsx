@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   PackageCheck,
   Palette,
+  Plus,
   Smartphone,
   Wallet,
 } from "lucide-react";
@@ -76,6 +77,50 @@ const steps = [
   { n: "1", title: "Regístrate", text: "Crea tu tienda con tu correo en un minuto." },
   { n: "2", title: "Carga productos", text: "Sube fotos, precios y stock desde el panel." },
   { n: "3", title: "Vende", text: "Comparte tu link y recibe pedidos al instante." },
+];
+
+/**
+ * Preguntas frecuentes. Ordenadas por lo que frena el registro: primero si
+ * "gratis" esconde algo, después cómo entra la plata, al final el plan Pro.
+ *
+ * Cada respuesta tiene que ser cierta hoy. Antes de prometer algo nuevo acá
+ * (un aviso, un plazo de pago), verificar que exista y que esté activo en
+ * producción: el aviso por WhatsApp al dueño, por ejemplo, depende de
+ * variables de Meta que todavía no están puestas, y por eso no se menciona.
+ */
+const faqs = [
+  {
+    q: "¿De verdad es gratis? ¿Cuál es la trampa?",
+    a: `No hay trampa. El plan Gratis es para siempre y no pide tarjeta: hasta ${FREE_MAX_PRODUCTS} productos, pedidos ilimitados y precios en dólares y bolívares. Pro es para cuando quieras crecer: más productos, todas las plantillas, cupones y analítica.`,
+  },
+  {
+    q: "¿Tiendify se queda con un porcentaje de mis ventas?",
+    a: "No. Lo que te pagan por Pago Móvil, Zelle, Binance o en efectivo llega directo a tu cuenta. Si cobras con tarjeta, solo se descuenta la comisión de Stripe, que procesa el pago. Tiendify no le suma nada.",
+  },
+  {
+    q: "¿Cómo me pagan mis clientes?",
+    a: "Con Pago Móvil, Zelle, Binance, transferencia o efectivo: el cliente sube su comprobante y tú confirmas el pago desde el panel. Si lo activas, también pueden pagar con tarjeta, Apple Pay o Google Pay.",
+  },
+  {
+    q: "¿Tengo que actualizar la tasa del dólar todos los días?",
+    a: "No. Pones tus precios en dólares y el equivalente en bolívares se calcula con la tasa del BCV, que se actualiza sola cada mañana. Si prefieres, puedes usar tu propia tasa.",
+  },
+  {
+    q: "Ya vendo por Instagram y WhatsApp, ¿para qué quiero una tienda?",
+    a: "Tu tienda no los reemplaza: los ordena. Pones el link en tu bio y tus clientes ven tus productos con sus precios, hacen el pedido y pagan sin tener que escribirte. Se acabó contestar «¿precio?» cincuenta veces al día.",
+  },
+  {
+    q: "¿Necesito saber de diseño o programación?",
+    a: "No. Eliges la plantilla de tu rubro, le pones tu logo y tu color y cargas tus productos. Todo se puede hacer desde el celular.",
+  },
+  {
+    q: "¿Cómo me entero cuando alguien compra?",
+    a: "Te llega un correo con cada pedido y lo ves al momento en tu panel. Al terminar la compra, tu cliente también puede avisarte por WhatsApp con un toque, y recibe el resumen de su pedido por correo. No necesita crear una cuenta para comprar.",
+  },
+  {
+    q: "¿Cómo pago Pro? ¿Puedo cancelarlo?",
+    a: `Cuesta $${DEFAULT_PRO_PRICE_USD} al mes o $${DEFAULT_PRO_PRICE_YEARLY_USD} al año. Si lo pagas por Pago Móvil, Zelle o Binance, no se renueva solo. Con tarjeta se renueva automáticamente y lo cancelas cuando quieras desde tu panel: sigues con Pro hasta el final del período que ya pagaste.`,
+  },
 ];
 
 /**
@@ -364,6 +409,51 @@ export default function LandingPage() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Preguntas frecuentes
+          Va entre Precios y el cierre porque es justo ahí donde aparecen las
+          dudas. Es <details> nativo y no un acordeón con estado: funciona sin
+          JavaScript, se abre con teclado y la página sigue siendo un server
+          component. Se pueden abrir varias a la vez a propósito, para poder
+          comparar respuestas. */}
+      <section
+        id="preguntas"
+        className="scroll-mt-24 border-t border-border bg-surface"
+      >
+        <div className="container grid gap-10 py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.75fr)] lg:gap-16">
+          {/* Fijo en escritorio: con varias respuestas abiertas la lista se
+              alarga y el titular no debería quedarse arriba solo. */}
+          <div className="lg:sticky lg:top-28 lg:self-start">
+            <SectionHeading
+              eyebrow="Preguntas frecuentes"
+              title="Lo que nos preguntan antes de empezar"
+            />
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-border bg-card">
+            {faqs.map((f) => (
+              <details
+                key={f.q}
+                className="group border-b border-border last:border-b-0"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 px-6 py-5 transition-colors hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                  <h3 className="text-pretty font-display text-[1.0625rem] font-semibold tracking-[-0.014em]">
+                    {f.q}
+                  </h3>
+                  <Plus
+                    aria-hidden="true"
+                    className="size-4 shrink-0 text-ink-500 transition-transform duration-200 ease-out group-open:rotate-45 group-open:text-brand-600"
+                    strokeWidth={2}
+                  />
+                </summary>
+                <p className="max-w-prose px-6 pb-6 text-pretty text-sm leading-relaxed text-ink-600 group-open:duration-200 group-open:animate-in group-open:fade-in-0 group-open:slide-in-from-top-1">
+                  {f.a}
+                </p>
+              </details>
+            ))}
           </div>
         </div>
       </section>
