@@ -8,11 +8,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { setStorePlan } from "@/app/(superadmin)/super/suscripciones/actions";
 
 /**
- * Control manual del plan de una tienda. "Pro de cortesía" es la palanca para
- * los amigos: Pro sin vencimiento, con una nota de por qué.
+ * Control manual del plan de una tienda. "Pro de por vida" es la palanca para
+ * los amigos: Pro sin vencimiento, con una nota de por qué. "Regalar" suma
+ * meses que no cuentan como pago y le deja al comerciante un aviso en su panel
+ * con el mensaje de abajo.
  */
 export function StorePlanControl({
   storeId,
@@ -25,14 +28,22 @@ export function StorePlanControl({
   const [open, setOpen] = useState(false);
   const [months, setMonths] = useState(12);
   const [text, setText] = useState(note ?? "");
+  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function run(action: "free" | "months" | "comp") {
+  async function run(action: "free" | "months" | "gift" | "comp") {
     setBusy(true);
-    const res = await setStorePlan({ storeId, action, months, note: text });
+    const res = await setStorePlan({
+      storeId,
+      action,
+      months,
+      note: text,
+      message,
+    });
     setBusy(false);
     if (!res.ok) return toast.error(res.error ?? "Error");
-    toast.success("Plan actualizado");
+    if (res.warning) toast.warning(res.warning);
+    else toast.success(action === "gift" ? "Regalo enviado" : "Plan actualizado");
     setOpen(false);
     router.refresh();
   }
@@ -63,6 +74,19 @@ export function StorePlanControl({
         />
       </div>
 
+      <div className="space-y-1.5">
+        <Label className="text-xs">
+          Mensaje para la tienda (solo al regalar, opcional)
+        </Label>
+        <Textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Ej: Fuiste de las primeras en abrir tu tienda en Tiendify."
+          rows={2}
+          maxLength={400}
+        />
+      </div>
+
       <div className="flex flex-wrap items-end gap-2">
         <div className="space-y-1.5">
           <Label className="text-xs">Meses</Label>
@@ -81,10 +105,18 @@ export function StorePlanControl({
         <Button
           size="sm"
           variant="outline"
+          onClick={() => run("gift")}
+          disabled={busy}
+        >
+          <Gift className="size-4" /> Regalar
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
           onClick={() => run("comp")}
           disabled={busy}
         >
-          <Gift className="size-4" /> Pro de cortesía
+          Pro de por vida
         </Button>
         <Button
           size="sm"

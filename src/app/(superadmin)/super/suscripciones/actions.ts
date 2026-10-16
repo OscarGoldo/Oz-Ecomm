@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getSessionContext } from "@/lib/auth";
-import { extendExpiry } from "@/lib/plans";
+import { PLAN_GIFT_KEY, type PlanGift } from "@/lib/plan-gift";
+import { extendExpiry, isPro } from "@/lib/plans";
 import { recordPlatformEvent } from "@/lib/platform-events";
 import { monthsLabel } from "@/lib/promo";
 import { PAYMENT_PROOFS_BUCKET } from "@/lib/storage";
@@ -14,6 +15,8 @@ import type { Database } from "@/types/database";
 export interface ActionResult {
   ok: boolean;
   error?: string;
+  /** Salió bien, pero hay algo que el super admin tiene que saber. */
+  warning?: string;
 }
 
 async function requireSuperAdminId(): Promise<string> {
@@ -151,10 +154,15 @@ export async function rejectSubscriptionPayment(
 
 const planSchema = z.object({
   storeId: z.string().uuid(),
-  /** 'free' baja a gratis; 'months' suma meses; 'comp' regala Pro sin vencimiento. */
-  action: z.enum(["free", "months", "comp"]),
+  /**
+   * 'free' baja a gratis; 'months' suma meses pagos; 'gift' suma meses de
+   * regalo y se lo avisa al comerciante; 'comp' regala Pro sin vencimiento.
+   */
+  action: z.enum(["free", "months", "gift", "comp"]),
   months: z.coerce.number().int().min(1).max(120).default(12),
   note: z.string().trim().max(200).optional(),
+  /** Solo para 'gift': lo que lee el comerciante en el aviso. */
+  message: z.string().trim().max(400).optional(),
 });
 
 export type SetPlanInput = z.input<typeof planSchema>;
@@ -183,6 +191,25 @@ export async function setStorePlan(input: SetPlanInput): Promise<ActionResult> {
     patch = { plan: "free", plan_source: "free", plan_expires_at: null };
   } else if (d.action === "comp") {
     patch = { plan: "pro", plan_source: "comp", plan_expires_at: null };
+  } else if (d.action === "gift") {
+    const { data: store } = await db
+      .from("stores")
+      .select("plan, plan_expires_at, plan_source")
+      .eq("id", d.storeId)
+      .maybeSingle();
+    if (!store) return { ok: false, error: "No existe esa tienda" };
+    // Igual que el premio por referido: extendExpiry(null) daría hoy + N meses
+    // y le convertiría el Pro de por vida en uno que vence.
+    if (store.plan === "pro" && !store.plan_expires_at) {
+      return { ok: false, error: "Ya tiene Pro de por vida: no hay meses que sumar" };
+    }
+    patch = {
+      plan: "pro",
+      // Quien está pagando sigue figurando como 'paid'; el resto, como
+      // cortesía, para que el regalo no cuente como ingreso.
+      plan_source: isPro(store) && store.plan_source === "paid" ? "paid" : "comp",
+      plan_expires_at: extendExpiry(store.plan_expires_at, d.months),
+    };
   } else {
     const { data: store } = await db
       .from("stores")
@@ -201,7 +228,44 @@ export async function setStorePlan(input: SetPlanInput): Promise<ActionResult> {
   if (error) return { ok: false, error: "No se pudo actualizar el plan" };
 
   revalidatePath("/super", "layout");
+
+  if (d.action === "gift") {
+    const told = await leaveGiftNotice(d.storeId, {
+      months: d.months,
+      message: d.message || null,
+      at: new Date().toISOString(),
+    });
+    if (!told) {
+      return {
+        ok: true,
+        warning: "El regalo quedó hecho, pero no se pudo dejar el aviso en su panel",
+      };
+    }
+  }
   return { ok: true };
+}
+
+/**
+ * Deja el aviso del regalo en el `user_metadata` del dueño (ver plan-gift.ts).
+ * Supabase mezcla las claves, así que no le borra los avisos que ya cerró.
+ */
+async function leaveGiftNotice(storeId: string, gift: PlanGift): Promise<boolean> {
+  const db = createAdminClient();
+  const { data: owners } = await db
+    .from("users")
+    .select("id")
+    .eq("store_id", storeId)
+    .eq("role", "store_owner");
+  if (!owners?.length) return false;
+
+  const results = await Promise.all(
+    owners.map((o) =>
+      db.auth.admin.updateUserById(o.id, {
+        user_metadata: { [PLAN_GIFT_KEY]: gift },
+      }),
+    ),
+  );
+  return results.every((r) => !r.error);
 }
 
 /** URL firmada del comprobante (el bucket es privado). */
