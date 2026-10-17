@@ -111,6 +111,9 @@ export interface Database {
           active: boolean;
           auto_exchange_rate: boolean;
           customization: Json | null;
+          /** Diseño por secciones publicado (migración 0033). Ausente si no corrió. */
+          design?: Json | null;
+          design_published_at?: string | null;
           plan: StorePlan;
           plan_expires_at: string | null;
           plan_source: PlanSource;
@@ -151,6 +154,8 @@ export interface Database {
           active?: boolean;
           auto_exchange_rate?: boolean;
           customization?: Json | null;
+          design?: Json | null;
+          design_published_at?: string | null;
           plan?: StorePlan;
           plan_expires_at?: string | null;
           plan_source?: PlanSource;
@@ -890,6 +895,56 @@ export interface Database {
         };
         Update: Partial<
           Database["public"]["Tables"]["platform_events"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      store_design_drafts: {
+        Row: { store_id: string; design: Json; updated_at: string };
+        Insert: { store_id: string; design: Json; updated_at?: string };
+        Update: Partial<Database["public"]["Tables"]["store_design_drafts"]["Insert"]>;
+        Relationships: [];
+      };
+      store_design_versions: {
+        Row: {
+          id: string;
+          store_id: string;
+          design: Json;
+          published_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          design: Json;
+          published_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["store_design_versions"]["Insert"]>;
+        Relationships: [];
+      };
+      ai_generations: {
+        Row: {
+          id: string;
+          store_id: string;
+          kind: string;
+          model: string;
+          input_tokens: number;
+          output_tokens: number;
+          ok: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          kind?: string;
+          model: string;
+          input_tokens?: number;
+          output_tokens?: number;
+          ok?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["ai_generations"]["Insert"]
         >;
         Relationships: [];
       };

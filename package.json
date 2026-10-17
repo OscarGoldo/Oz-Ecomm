@@ -12,6 +12,7 @@
     "create-superadmin": "tsx scripts/create-superadmin.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
     "@hookform/resolvers": "^5.4.0",
     "@radix-ui/react-alert-dialog": "^1.1.17",
     "@radix-ui/react-dropdown-menu": "^2.1.18",

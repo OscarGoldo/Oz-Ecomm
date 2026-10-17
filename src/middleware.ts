@@ -5,7 +5,7 @@ import { publicSiteUrl } from "@/lib/site-url";
 import { STORE_PATH_HEADER, storeSlugFromHost } from "@/lib/store-url";
 
 /** Routes that require an authenticated session. */
-const PROTECTED_PREFIXES = ["/panel", "/super"];
+const PROTECTED_PREFIXES = ["/panel", "/super", "/vista-previa"];
 
 /**
  * Las rutas que existen dentro de una tienda (src/app/(public)/[store_slug]).

@@ -61,6 +61,12 @@ export default async function DashboardPage() {
       .eq("store_id", store.id),
   ]);
   const steps: ChecklistStep[] = [
+    {
+      label: "Dale tu estilo a la tienda",
+      // Una tienda que nunca guardó un diseño sigue en la plantilla de fábrica.
+      done: store.customization != null,
+      href: "/panel/personalizar",
+    },
     { label: "Sube el logo de tu tienda", done: Boolean(store.logo_url), href: "/panel/configuracion" },
     { label: "Carga tu primer producto", done: (productCount ?? 0) > 0, href: "/panel/productos/nuevo" },
     { label: "Configura un método de pago", done: (paymentCount ?? 0) > 0, href: "/panel/configuracion/pagos" },

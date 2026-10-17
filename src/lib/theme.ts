@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-import { hexToHslTriplet, isDarkColor } from "@/lib/color";
+import { hexToHslTriplet, isDarkColor, prefersWhiteText } from "@/lib/color";
 import { isPro, type PlanFields } from "@/lib/plans";
 import type { Store } from "@/types/database";
 
@@ -622,8 +622,13 @@ function cleanStrArray(v: unknown): string[] {
     : [];
 }
 
-/** CSS custom properties to apply on the storefront root for a theme. */
-export function themeStyle(theme: StoreTheme): CSSProperties {
+/**
+ * CSS custom properties to apply on the storefront root for a theme. Solo usa
+ * los tokens visuales, así sirve igual para el diseño por secciones (v2).
+ */
+export function themeStyle(
+  theme: Pick<StoreTheme, "font" | "buttonStyle" | "layout" | "colors">,
+): CSSProperties {
   const fontVar =
     THEME_FONTS.find((f) => f.id === theme.font)?.cssVar ?? "var(--font-inter)";
   const style: Record<string, string> = {
@@ -649,7 +654,15 @@ export function themeStyle(theme: StoreTheme): CSSProperties {
       ? "0 0% 100%"
       : "222 47% 11%";
   }
-  if (accent) style["--brand-accent"] = accent;
+  if (accent) {
+    style["--brand-accent"] = accent;
+    // Lo mismo para el acento: las secciones nuevas ponen texto encima de él
+    // (banda de "Sobre nosotros", banner de promoción) y un acento lima o
+    // amarillo con texto blanco no se lee.
+    style["--brand-accent-foreground"] = prefersWhiteText(theme.colors.accent)
+      ? "0 0% 100%"
+      : "222 47% 11%";
+  }
   if (surface) style["--background"] = surface;
 
   // When the surface is dark, switch the whole chrome (cards, text, borders,

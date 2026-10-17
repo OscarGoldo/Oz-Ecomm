@@ -39,6 +39,7 @@ const RESERVED_SLUGS = new Set([
   "categoria",
   "categorias",
   "configuracion",
+  "vista-previa", // la vista previa del editor de diseño
   "finanzas",
   "tienda",
   "tiendas",

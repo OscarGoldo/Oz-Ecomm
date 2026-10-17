@@ -24,6 +24,9 @@ import { resolveTheme, type SectionId } from "@/lib/theme";
 import { LoadMore } from "@/components/storefront/load-more";
 import { LAYOUTS } from "@/components/storefront/layouts";
 import type { VerticalLayoutId } from "@/components/storefront/storefront-props";
+import { StoreHome } from "@/components/storefront/sections/store-home";
+import { publishedDesign } from "@/lib/design/design";
+import { designV2Enabled } from "@/lib/design/flag";
 
 export async function generateMetadata({
   params,
@@ -60,6 +63,7 @@ export default async function StorefrontHome({
   const store = await getStoreBySlug(params.store_slug);
   if (!store) notFound();
 
+  const v2 = designV2Enabled(store);
   const theme = resolveTheme(store);
   const q = searchParams.q?.trim() || undefined;
   const catSlug = searchParams.cat || undefined;
@@ -109,6 +113,22 @@ export default async function StorefrontHome({
   const heading = q
     ? `Resultados para “${q}”`
     : activeCategory ?? "Todos los productos";
+
+  // Editor por secciones: la página sale del diseño publicado.
+  if (v2) {
+    return withMore(
+      <StoreHome
+        store={store}
+        design={publishedDesign(store)}
+        categories={categories}
+        products={products}
+        featured={featured}
+        hasFilters={hasFilters}
+        heading={heading}
+        banner={banner}
+      />,
+    );
+  }
 
   const heroHeadline =
     theme.hero.headline || store.description || `Bienvenido a ${store.name}`;

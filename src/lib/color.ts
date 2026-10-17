@@ -62,3 +62,20 @@ export function isDarkColor(hex: string | null | undefined): boolean {
   const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
   return luminance < 0.4;
 }
+
+/**
+ * ¿Texto blanco encima de este color? Sí, mientras el contraste WCAG con
+ * blanco llegue a 3:1 (texto grande y en negrita, que es lo que va sobre un
+ * color de marca). Prefiere blanco a propósito: sobre un magenta o un rojo,
+ * el blanco es lo que espera cualquiera aunque el negro contraste un poco más.
+ */
+export function prefersWhiteText(hex: string | null | undefined): boolean {
+  const value = hex?.trim().replace(/^#/, "") ?? "";
+  if (!/^[0-9a-fA-F]{6}$/.test(value)) return true;
+  const lin = (i: number) => {
+    const c = parseInt(value.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const L = 0.2126 * lin(0) + 0.7152 * lin(2) + 0.0722 * lin(4);
+  return 1.05 / (L + 0.05) >= 3;
+}

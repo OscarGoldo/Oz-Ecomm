@@ -14,6 +14,9 @@ import { publicSiteUrl } from "@/lib/site-url";
 import { onStoreSubdomain, storeBasePath } from "@/lib/store-href";
 import { hasStoreSubdomain, STORE_PATH_HEADER } from "@/lib/store-url";
 import { resolveTheme, themeStyle } from "@/lib/theme";
+import { StoreAnnouncement } from "@/components/storefront/store-announcement";
+import { designStyle, publishedDesign } from "@/lib/design/design";
+import { designV2Enabled } from "@/lib/design/flag";
 
 export default async function StoreLayout({
   children,
@@ -36,6 +39,28 @@ export default async function StoreLayout({
   if (!store) notFound();
 
   const cartCount = getCartCount(store.id);
+
+  // Tiendas con el editor por secciones: estilo, colores y anuncio salen del
+  // diseño publicado. Las demás siguen exactamente como antes.
+  if (designV2Enabled(store)) {
+    const design = publishedDesign(store);
+    const { announcement } = design.header;
+    return (
+      <StoreBaseProvider base={storeBasePath(store.slug)}>
+        <div style={designStyle(design)} className="storefront flex min-h-dvh flex-col bg-background">
+          {announcement.enabled && announcement.text && (
+            <StoreAnnouncement text={announcement.text} look={design.tokens.look} style={announcement.style} />
+          )}
+          <JsonLd data={storeJsonLd(store, getImageUrl(store.logo_url))} />
+          <StorefrontHeader store={store} cartCount={cartCount} layout={design.tokens.look} />
+          <div className="flex-1">{children}</div>
+          <StorefrontFooter store={store} layout={design.tokens.look} />
+          <WhatsappFloat phone={store.whatsapp} storeName={store.name} />
+        </div>
+      </StoreBaseProvider>
+    );
+  }
+
   const theme = resolveTheme(store);
 
   return (
