@@ -78,16 +78,16 @@ interface NavProps {
 }
 
 /**
- * El numerito de pendientes. En el menú lateral va al final del renglón; en
- * el teléfono se monta sobre la esquina del ícono, así que es más chico y
- * redondo para no taparlo.
+ * El numerito de pendientes. En el teléfono se monta sobre la esquina del
+ * ícono, así que es más chico y redondo para no taparlo. Va en amarillo sol:
+ * es lo que espera por un socio.
  */
 function Badge({ count, onIcon = false }: { count: number; onIcon?: boolean }) {
   const max = onIcon ? 9 : 99;
   return (
     <span
       className={cn(
-        "grid shrink-0 place-items-center bg-warning px-1 text-3xs font-bold tabular-nums text-warning-foreground",
+        "grid shrink-0 place-items-center bg-sol px-1 text-3xs font-bold tabular-nums text-noche",
         onIcon
           ? "absolute -right-2 -top-1.5 min-w-4 rounded-full leading-4"
           : "ml-auto min-w-[1.125rem] rounded leading-[1.125rem]",
@@ -98,16 +98,22 @@ function Badge({ count, onIcon = false }: { count: number; onIcon?: boolean }) {
   );
 }
 
-/** Menú lateral (md en adelante). */
+/** Los comprobantes son plata esperando: su número va en sol, el resto no. */
+const URGENT_BADGE_HREF = "/super/suscripciones";
+
+/**
+ * Menú lateral (md en adelante), sobre la barra noche: el mismo trato que el
+ * del panel del comerciante (panel-nav.tsx).
+ */
 export function SuperSidebarNav({ badges = {} }: NavProps) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex h-full flex-col gap-0.5 px-2.5 py-3">
+    <nav aria-label="Secciones del super admin" className="flex flex-col">
       {NAV_GROUPS.map((group, i) => (
-        <div key={group.label ?? "root"} className={cn(i > 0 && "mt-4")}>
+        <div key={group.label ?? "root"} className={cn(i > 0 && "mt-3.5")}>
           {group.label && (
-            <p className="mb-1 px-2.5 text-3xs font-semibold uppercase tracking-[0.08em] text-ink-400">
+            <p className="mb-1 px-2.5 font-landing-mono text-[11px] font-semibold uppercase tracking-[0.09em] text-[#7F93A8]">
               {group.label}
             </p>
           )}
@@ -121,24 +127,34 @@ export function SuperSidebarNav({ badges = {} }: NavProps) {
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "group relative flex items-center gap-2.5 rounded-md py-1.5 pl-2.5 pr-2",
-                    "text-[0.8125rem] font-medium leading-6",
+                    "group relative flex min-h-[34px] items-center gap-2.5 rounded-[9px] px-2.5",
+                    "text-sm font-medium",
                     "transition-colors duration-150 ease-out",
                     active
-                      ? "bg-surface-raised text-foreground shadow-xs"
-                      : "text-ink-600 hover:bg-ink-100/70 hover:text-foreground",
+                      ? "bg-white/[0.11] text-white"
+                      : "text-white/[0.72] hover:bg-white/[0.06] hover:text-white",
                   )}
                 >
                   <item.icon
                     className={cn(
                       "size-[1.0625rem] shrink-0 transition-colors",
-                      active
-                        ? "text-foreground"
-                        : "text-ink-400 group-hover:text-ink-600",
+                      active ? "text-brand-400" : "text-white/50 group-hover:text-white/80",
                     )}
                   />
                   <span className="truncate">{item.label}</span>
-                  {badge ? <Badge count={badge} /> : null}
+                  {badge ? (
+                    <span
+                      className={cn(
+                        "ml-auto grid h-5 min-w-[1.375rem] shrink-0 place-items-center rounded-full px-1.5",
+                        "font-landing-mono text-[11.5px] font-semibold tabular-nums",
+                        item.href === URGENT_BADGE_HREF
+                          ? "bg-sol text-noche"
+                          : "bg-white/[0.14] text-white",
+                      )}
+                    >
+                      {badge > 99 ? "99+" : badge}
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}

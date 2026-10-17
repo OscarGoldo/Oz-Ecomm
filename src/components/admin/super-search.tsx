@@ -121,7 +121,7 @@ export function SuperSearch() {
           placeholder="Buscar tienda, dueño, correo o WhatsApp"
           autoComplete="off"
           className={cn(
-            "h-9 w-full rounded-lg border border-input bg-background pl-8 pr-3 text-base md:text-sm",
+            "h-10 w-full rounded-[10px] border border-border bg-surface pl-8 pr-3 text-base md:text-sm",
             "placeholder:text-muted-foreground/80",
             "outline-none transition-[border-color,box-shadow] duration-150 ease-out",
             "focus-visible:border-ring focus-visible:shadow-[0_0_0_3px_hsl(var(--ring)/0.18)]",
