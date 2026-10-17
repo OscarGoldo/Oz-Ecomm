@@ -86,20 +86,15 @@ export async function getPlatformConfig(): Promise<PlatformConfig> {
         { key: "titular", label: "Titular" },
       ]),
     },
-    {
-      method: "zelle" as const,
-      label: "Zelle",
-      fields: fields(data.zelle, [
-        { key: "email", label: "Email" },
-        { key: "titular", label: "Titular" },
-      ]),
-    },
+    // Zelle ya no se usa para cobrar el plan: no se ofrece aunque la columna
+    // `zelle` todavía tenga datos. Los pagos viejos por Zelle siguen en el
+    // historial tal cual.
     {
       method: "binance" as const,
       label: "Binance",
-      fields: fields(data.binance, [
-        { key: "email_o_id", label: "Email o ID" },
-      ]),
+      // La clave sigue llamándose email_o_id en la base; lo que va ahí ahora
+      // es el Binance ID, que es lo que se pega en Binance Pay.
+      fields: fields(data.binance, [{ key: "email_o_id", label: "Binance ID" }]),
     },
   ].filter((p) => p.fields.length > 0);
 

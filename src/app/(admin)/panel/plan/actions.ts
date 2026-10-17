@@ -33,7 +33,8 @@ const schema = z.object({
     .number()
     .int()
     .refine((v) => (PLAN_PERIODS as readonly number[]).includes(v), "Período inválido"),
-  method: z.enum(["pago_movil", "zelle", "binance", "paypal"]),
+  // Zelle salió de los métodos para pagar el plan (ver lib/platform.ts).
+  method: z.enum(["pago_movil", "binance", "paypal"]),
   reference: z.string().trim().max(120).optional(),
   proof_path: z.string().trim().max(400).nullable().optional(),
 });
