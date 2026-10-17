@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -67,8 +67,14 @@ export function SignupForm({
   referralCode = "",
   promoOffer = null,
   promoUnavailable = null,
+  onPreview,
 }: {
   prefillEmail?: string;
+  /**
+   * Avisa el nombre, el link y el color mientras la persona los elige, para
+   * que la página muestre su tienda armándose al lado del formulario.
+   */
+  onPreview?: (preview: { name: string; slug: string; color: string }) => void;
   /**
    * El nombre que la persona ya escribió en la landing (?nombre=…). Ahí vio
    * su tienda y su link con ese nombre; pedírselo otra vez sería un paso de más.
@@ -121,6 +127,10 @@ export function SignupForm({
   const storeName = watch("store_name");
   const color = watch("primary_color");
   const previewSlug = slugify(storeName) || "mi-tienda";
+
+  useEffect(() => {
+    onPreview?.({ name: storeName, slug: previewSlug, color });
+  }, [storeName, previewSlug, color, onPreview]);
 
   async function onSubmit(values: FormValues) {
     // El teléfono no es un <input> registrado: lo arma PhoneInput y llega por
