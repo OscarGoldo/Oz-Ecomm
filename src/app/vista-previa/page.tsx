@@ -6,6 +6,8 @@ import { StorefrontFooter } from "@/components/storefront/storefront-footer";
 import { StorefrontHeader } from "@/components/storefront/storefront-header";
 import { StoreHome } from "@/components/storefront/sections/store-home";
 import { requireStoreUser } from "@/lib/auth";
+import { getCachedBcvRates } from "@/lib/bcv";
+import { bcvReference } from "@/lib/exchange-rate";
 import { designStyle } from "@/lib/design/design";
 import { designV2Enabled } from "@/lib/design/flag";
 import { loadDraft } from "@/lib/design/store";
@@ -28,10 +30,11 @@ export default async function DesignPreviewPage() {
   const { store } = await requireStoreUser();
   if (!designV2Enabled(store)) notFound();
 
-  const [{ design }, categories, page] = await Promise.all([
+  const [{ design }, categories, page, bcvRates] = await Promise.all([
     loadDraft(store),
     getStoreCategories(store.id),
     getStoreCatalogPage(store.id, {}, CATALOG_PAGE_SIZE),
+    store.show_bs_prices ? getCachedBcvRates() : null,
   ]);
   const products = page.products;
   const featured = products.filter((p) => p.featured && (!p.track_stock || p.stock > 0)).slice(0, 10);
@@ -54,6 +57,7 @@ export default async function DesignPreviewPage() {
             hasFilters={false}
             heading="Todos los productos"
             banner={getImageUrl(store.banner_url)}
+            bcv={bcvReference(store.currency_primary, bcvRates)}
             editing
           />
         </div>

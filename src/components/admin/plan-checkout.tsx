@@ -25,6 +25,7 @@ import {
   requestProUpgrade,
   type UpgradeInput,
 } from "@/app/(admin)/panel/plan/actions";
+import { bcvDateLabel } from "@/lib/exchange-rate";
 import { formatBs, formatUSD, usdToBs } from "@/lib/format";
 import {
   PLAN_PERIODS,
@@ -66,6 +67,7 @@ export function PlanCheckout({
   prices,
   payments,
   bcvRate,
+  bcvDate,
   paypalClientId,
   planIds,
   stripeEnabled,
@@ -78,6 +80,8 @@ export function PlanCheckout({
   payments: PlatformPaymentView[];
   /** Tasa BCV para mostrar el monto en Bs. null = solo USD. */
   bcvRate: number | null;
+  /** Fecha valor de esa tasa: desde qué día rige. */
+  bcvDate: string | null;
   /** Client id público de PayPal. null = PayPal no configurado. */
   paypalClientId: string | null;
   /**
@@ -437,7 +441,8 @@ export function PlanCheckout({
                   </span>
                   {via === "manual" && amountBs !== null && (
                     <span className="mt-1 block font-landing-mono text-xs text-ink-500">
-                      {formatBs(amountBs)} · tasa BCV de hoy
+                      {formatBs(amountBs)} · tasa BCV
+                      {bcvDate && ` del ${bcvDateLabel(bcvDate)}`}
                     </span>
                   )}
                 </dd>

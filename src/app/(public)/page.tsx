@@ -25,8 +25,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * La landing se prerenderiza y se revalida cada hora. Lo único que lee de la
- * base es la tasa BCV, que el cron actualiza una vez al día — no hay razón
- * para pagar una consulta por visita.
+ * base es la tasa BCV, que el cron revisa cada hora en la tarde y cambia una
+ * vez al día — no hay razón para pagar una consulta por visita.
  */
 export const revalidate = 3600;
 

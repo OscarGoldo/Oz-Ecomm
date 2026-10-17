@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/bcv",
-      "schedule": "0 12 * * *"
+      "schedule": "0 0,1,12,19,20,21,22,23 * * *"
     },
     {
       "path": "/api/cron/resumen",

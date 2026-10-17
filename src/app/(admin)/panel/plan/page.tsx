@@ -319,6 +319,7 @@ export default async function PlanPage() {
               prices={prices}
               payments={payments}
               bcvRate={rates?.usd ?? null}
+              bcvDate={rates?.source_date ?? null}
               paypalClientId={paypalEnabled ? paypalClientId() : null}
               stripeEnabled={stripeEnabled}
               stripeRecurringPeriods={PLAN_PERIODS.filter(

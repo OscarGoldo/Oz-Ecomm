@@ -16,11 +16,11 @@ export default async function ConfiguracionPage() {
   const cached = await getCachedBcvRates();
   let bcvRates: BcvDisplay | null =
     cached && (cached.usd || cached.eur)
-      ? { usd: cached.usd, eur: cached.eur, updated_at: cached.updated_at }
+      ? { usd: cached.usd, eur: cached.eur, value_date: cached.source_date }
       : null;
   if (!bcvRates) {
     const live = await fetchBcvRates();
-    if (live) bcvRates = { usd: live.usd, eur: live.eur, updated_at: live.date };
+    if (live) bcvRates = { usd: live.usd, eur: live.eur, value_date: live.date };
   }
 
   return (

@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { Info, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +17,7 @@ import {
   updateStoreSettings,
   type StoreSettingsInput,
 } from "@/app/(admin)/panel/configuracion/actions";
+import { bcvDateLabel } from "@/lib/exchange-rate";
 import type { Store } from "@/types/database";
 
 interface FormValues {
@@ -38,7 +37,8 @@ interface FormValues {
 export interface BcvDisplay {
   usd: number | null;
   eur: number | null;
-  updated_at: string | null;
+  /** Fecha valor: desde qué día rige, que es lo que muestra la web del BCV. */
+  value_date: string | null;
 }
 
 export function StoreSettingsForm({
@@ -80,9 +80,9 @@ export function StoreSettingsForm({
   const autoRate = watch("auto_exchange_rate");
   /**
    * El comerciante escribió su propia tasa y por eso apagamos el automático.
-   * Sin esto la tasa que escribe se la pisa el cron del BCV a la mañana
-   * siguiente y no hay nada que se lo explique: ve su número, guarda, y al otro
-   * día está el del BCV.
+   * Sin esto la tasa que escribe se la pisa el cron del BCV en su próxima
+   * pasada y no hay nada que se lo explique: ve su número, guarda, y al rato
+   * está el del BCV.
    */
   const [autoOffPorEdicion, setAutoOffPorEdicion] = useState(false);
 
@@ -289,7 +289,8 @@ export function StoreSettingsForm({
               <p className="flex items-start gap-1.5 text-xs text-warning-foreground">
                 <Info className="mt-0.5 size-3.5 shrink-0" />
                 Pusiste tu propia tasa, así que apagamos la actualización
-                automática. Si no, mañana se te pondría la del BCV.
+                automática. Si no, en la próxima actualización se te pondría la
+                del BCV.
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">
@@ -302,9 +303,9 @@ export function StoreSettingsForm({
           <div className="rounded-lg border bg-muted/30 p-3">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-sm font-medium">Tasa oficial BCV</p>
-              {bcvRates?.updated_at && (
+              {bcvRates?.value_date && (
                 <span className="text-xs text-muted-foreground">
-                  {format(new Date(bcvRates.updated_at), "d MMM, HH:mm", { locale: es })}
+                  Del {bcvDateLabel(bcvRates.value_date)}
                 </span>
               )}
             </div>
@@ -333,7 +334,7 @@ export function StoreSettingsForm({
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Todavía no hay datos del BCV (se actualizan cada mañana).
+                Todavía no hay datos del BCV (se actualizan cuando el BCV publica).
               </p>
             )}
           </div>
@@ -342,7 +343,8 @@ export function StoreSettingsForm({
             <div className="pr-3">
               <p className="text-sm font-medium">Actualizar con el BCV automáticamente</p>
               <p className="text-xs text-muted-foreground">
-                Cada día a las 8:00 am tu tasa se pone igual a la del BCV.
+                Tu tasa se pone igual a la del BCV apenas la publica, en la
+                tarde.
               </p>
             </div>
             <Switch

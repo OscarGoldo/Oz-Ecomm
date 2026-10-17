@@ -36,6 +36,8 @@ import {
   type ChecklistStep,
 } from "@/components/admin/welcome-checklist";
 import { requireStoreUser } from "@/lib/auth";
+import { getCachedBcvRates } from "@/lib/bcv";
+import { bcvReference } from "@/lib/exchange-rate";
 import { storeUrl } from "@/lib/store-url";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardMetrics } from "@/lib/metrics";
@@ -50,7 +52,7 @@ export default async function DashboardPage() {
 
   // Setup checklist for new stores.
   const supabase = createClient();
-  const [{ count: productCount }, { count: paymentCount }] = await Promise.all([
+  const [{ count: productCount }, { count: paymentCount }, bcvRates] = await Promise.all([
     supabase
       .from("products")
       .select("id", { count: "exact", head: true })
@@ -59,6 +61,7 @@ export default async function DashboardPage() {
       .from("payment_methods")
       .select("id", { count: "exact", head: true })
       .eq("store_id", store.id),
+    store.show_bs_prices ? getCachedBcvRates() : null,
   ]);
   const steps: ChecklistStep[] = [
     {
@@ -247,6 +250,7 @@ export default async function DashboardPage() {
             updatedAt={store.exchange_rate_updated_at}
             auto={store.auto_exchange_rate}
             showBs={store.show_bs_prices}
+            bcv={bcvReference(store.currency_primary, bcvRates)}
           />
 
           {m.lowStock.length > 0 && (

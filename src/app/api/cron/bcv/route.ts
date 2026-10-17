@@ -6,8 +6,14 @@ import { fetchBcvRates } from "@/lib/bcv";
 export const dynamic = "force-dynamic";
 
 /**
- * Daily cron (8:00 AM Venezuela). Fetches the BCV USD/EUR rates, caches them,
- * and updates the exchange_rate of stores that opted into auto-update.
+ * Cron at 8:00 AM and every hour from 3:00 to 9:00 PM Venezuela (vercel.json is
+ * in UTC). Fetches the BCV USD/EUR rates, caches them, and updates the
+ * exchange_rate of stores that opted into auto-update.
+ *
+ * Las de la tarde son las que importan: el BCV publica la tasa del día hábil
+ * siguiente entre las 3 y las 6 más o menos, y desde ahí es la que usa todo el
+ * mundo. La de la mañana queda de red por si la tarde falló.
+ *
  * Protected by CRON_SECRET (Vercel sends it as a Bearer token).
  */
 export async function GET(request: NextRequest) {

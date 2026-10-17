@@ -20,7 +20,7 @@ import type { HomeContext } from "@/components/storefront/sections/context";
 import { HeroSection } from "@/components/storefront/sections/hero";
 import { SECTION_DEFS } from "@/lib/design/sections";
 import type { AnySection, StoreDesign } from "@/lib/design/types";
-import { rateInfo } from "@/lib/exchange-rate";
+import { rateInfo, type BcvReference } from "@/lib/exchange-rate";
 import { storeHref } from "@/lib/store-href";
 import type { Category, Product, Store } from "@/types/database";
 
@@ -69,6 +69,8 @@ export interface StoreHomeProps {
   hasFilters: boolean;
   heading: string;
   banner: string | null;
+  /** La tasa del BCV, para rotular con su fecha valor la de la tienda si es esa. */
+  bcv?: BcvReference | null;
   /** Vista previa del editor. */
   editing?: boolean;
 }
@@ -88,10 +90,13 @@ export function StoreHome({
   hasFilters,
   heading,
   banner,
+  bcv,
   editing = false,
 }: StoreHomeProps) {
   const visible = design.home.filter((s) => !s.hidden);
-  const rate = store.show_bs_prices ? rateInfo(store.exchange_rate, store.exchange_rate_updated_at) : null;
+  const rate = store.show_bs_prices
+    ? rateInfo(store.exchange_rate, store.exchange_rate_updated_at, bcv)
+    : null;
 
   const ctx: HomeContext = {
     store,

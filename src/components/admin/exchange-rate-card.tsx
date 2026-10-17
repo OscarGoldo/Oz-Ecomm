@@ -2,6 +2,7 @@ import Link from "next/link";
 import { differenceInCalendarDays } from "date-fns";
 import { ArrowRight, RefreshCw, TriangleAlert } from "lucide-react";
 
+import { bcvDateLabel, bcvValueDate, type BcvReference } from "@/lib/exchange-rate";
 import { formatBs } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,8 @@ interface ExchangeRateCardProps {
   updatedAt: string | null;
   auto: boolean;
   showBs: boolean;
+  /** La tasa del BCV, para decir si la de la tienda es esa y de qué fecha valor. */
+  bcv?: BcvReference | null;
 }
 
 function daysSince(iso: string | null): number | null {
@@ -51,15 +54,18 @@ export function ExchangeRateCard({
   updatedAt,
   auto,
   showBs,
+  bcv,
 }: ExchangeRateCardProps) {
   // Sin precios en bolívares la tasa no afecta nada de lo que ve el comprador:
   // mostrarla sería ruido en la pantalla que el dueño mira todos los días.
   if (!showBs) return null;
 
   const days = daysSince(updatedAt);
-  // La automática la refresca el cron todos los días: nunca se marca vieja.
-  const stale = !auto && days !== null && days >= STALE_DAYS;
-  const aging = !auto && days !== null && days >= AGING_DAYS && !stale;
+  const bcvDate = bcvValueDate(rate, bcv);
+  // La automática la refresca el cron todos los días, y la que es igual a la
+  // del BCV está al día por definición: ninguna de las dos se marca vieja.
+  const stale = !auto && !bcvDate && days !== null && days >= STALE_DAYS;
+  const aging = !auto && !bcvDate && days !== null && days >= AGING_DAYS && !stale;
   const missing = rate == null || rate <= 0;
 
   if (missing) {
@@ -103,12 +109,17 @@ export function ExchangeRateCard({
             </span>
           )}
         </p>
-        {/* Con el automático encendido no se dice de dónde salió el número: el
-            flag sólo promete que el cron lo va a pisar mañana, no que este
+        {/* "Tasa BCV" solo cuando el número es el del BCV, nunca por el flag:
+            el automático sólo promete que el cron lo va a pisar, no que este
             valor venga del BCV. Entre que se activa y que corre el cron, la
             tienda sigue con la tasa que tenía, y afirmar "tasa del BCV" ahí
-            sería mentira. La pastilla "automática" ya dice lo único cierto. */}
-        {!auto && (
+            sería mentira. En ese rato la pastilla "automática" ya dice lo
+            único cierto. */}
+        {bcvDate ? (
+          <p className="truncate text-xs text-muted-foreground">
+            Tasa BCV del {bcvDateLabel(bcvDate)}
+          </p>
+        ) : !auto && (
           <p
             className={cn(
               "truncate text-xs",

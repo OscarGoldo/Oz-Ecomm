@@ -18,7 +18,8 @@ import {
   CATALOG_PAGE_SIZE,
 } from "@/lib/storefront";
 import { getImageUrl } from "@/lib/storage";
-import { rateInfo } from "@/lib/exchange-rate";
+import { getCachedBcvRates } from "@/lib/bcv";
+import { bcvReference, rateInfo } from "@/lib/exchange-rate";
 import { storeUrl } from "@/lib/store-url";
 import { resolveTheme, type SectionId } from "@/lib/theme";
 import { LoadMore } from "@/components/storefront/load-more";
@@ -76,11 +77,13 @@ export default async function StorefrontHome({
     Math.max(CATALOG_PAGE_SIZE, Number(searchParams.ver) || CATALOG_PAGE_SIZE),
   );
 
-  const [categories, page] = await Promise.all([
+  const [categories, page, bcvRates] = await Promise.all([
     getStoreCategories(store.id),
     getStoreCatalogPage(store.id, { q, categorySlug: catSlug }, shown),
+    store.show_bs_prices ? getCachedBcvRates() : null,
   ]);
   const products = page.products;
+  const bcv = bcvReference(store.currency_primary, bcvRates);
 
   /**
    * Las plantillas verticales arman su propia estructura y devuelven temprano,
@@ -126,6 +129,7 @@ export default async function StorefrontHome({
         hasFilters={hasFilters}
         heading={heading}
         banner={banner}
+        bcv={bcv}
       />,
     );
   }
@@ -137,7 +141,7 @@ export default async function StorefrontHome({
   // Con su fecha real. La tasa completa, para todos los layouts, vive en el
   // footer (ver storefront-footer.tsx).
   const heroRate = store.show_bs_prices
-    ? rateInfo(store.exchange_rate, store.exchange_rate_updated_at)
+    ? rateInfo(store.exchange_rate, store.exchange_rate_updated_at, bcv)
     : null;
 
   /**
