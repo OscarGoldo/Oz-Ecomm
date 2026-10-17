@@ -1,5 +1,6 @@
 import { FREE_MAX_PRODUCTS } from "@/lib/plans";
 import { rateText, wrap } from "@/components/landing/landing-ui";
+import { PaymentLogo, type PaymentLogoId } from "@/components/landing/payment-logos";
 
 /**
  * La cinta de arriba con la tasa del BCV. Es el dato que el comerciante mira
@@ -42,23 +43,26 @@ export function RateTicker({ usdRate }: { usdRate: number | null }) {
   );
 }
 
-/** Lo que de verdad diferencia a Tiendify de un Shopify: cómo se cobra acá. */
-const PAYMENTS = [
-  "Pago Móvil",
-  "Zelle",
-  "Binance",
-  "Transferencia",
-  "Efectivo",
-  "Tarjeta",
-  "Apple Pay",
-  "Google Pay",
+/**
+ * Lo que de verdad diferencia a Tiendify de un Shopify: cómo se cobra acá.
+ * Cada método con su logo; el nombre se escribe al lado cuando el logo solo no
+ * lo dice (Visa y Mastercard ya se leen como tarjeta, Apple Pay y Google Pay
+ * traen su nombre en el logo). Para los lectores de pantalla va siempre.
+ */
+const PAYMENTS: { label: string; logos: PaymentLogoId[]; showLabel: boolean }[] = [
+  { label: "Pago Móvil", logos: ["pagomovil"], showLabel: true },
+  { label: "Zelle", logos: ["zelle"], showLabel: true },
+  { label: "Binance", logos: ["binance"], showLabel: true },
+  { label: "Transferencia", logos: ["transferencia"], showLabel: true },
+  { label: "Efectivo", logos: ["efectivo"], showLabel: true },
+  { label: "Tarjeta (Visa y Mastercard)", logos: ["visa", "mastercard"], showLabel: false },
+  { label: "Apple Pay", logos: ["applepay"], showLabel: false },
+  { label: "Google Pay", logos: ["googlepay"], showLabel: false },
 ];
 
 /**
- * Los métodos de pago, en texto y no en logos: son los nombres que el
- * comerciante busca para saber si esto le sirve. Corren en una cinta; la
- * segunda vuelta es solo para que el bucle no tenga corte y los lectores de
- * pantalla la saltan.
+ * Los métodos de pago corren en una cinta. La segunda vuelta es solo para que
+ * el bucle no tenga corte y los lectores de pantalla la saltan.
  */
 export function PayStrip() {
   return (
@@ -85,10 +89,15 @@ export function PayStrip() {
               >
                 {PAYMENTS.map((p) => (
                   <li
-                    key={p}
+                    key={p.label}
                     className="flex items-center gap-[26px] whitespace-nowrap pr-[26px] font-landing-display text-[clamp(19px,1.6vw,24px)] font-bold leading-none tracking-[-0.02em] [font-stretch:90%] after:size-[9px] after:rounded-full after:bg-brand-500 after:content-['']"
                   >
-                    {p}
+                    <span className="flex items-center gap-2.5">
+                      {p.logos.map((id) => (
+                        <PaymentLogo key={id} id={id} />
+                      ))}
+                      {p.showLabel ? p.label : <span className="sr-only">{p.label}</span>}
+                    </span>
                   </li>
                 ))}
               </ul>
