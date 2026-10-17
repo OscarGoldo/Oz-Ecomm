@@ -72,7 +72,7 @@ export function LoginForm() {
         />
       </div>
       <SubmitButton />
-      <p className="pt-1 text-center text-sm text-ink-500">
+      <p className="pt-1 text-center text-sm text-muted-foreground">
         ¿No tienes cuenta?{" "}
         <Link href="/crear-tienda" className="font-medium text-brand-700 hover:underline">
           Crea tu tienda

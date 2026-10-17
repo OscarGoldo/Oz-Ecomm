@@ -23,7 +23,7 @@ import { FREE_MAX_PRODUCTS } from "@/lib/plans";
  * lo que WhatsApp acepta para mostrar la preview.
  */
 
-export const alt = "Tiendify: crea tu tienda online y vende hoy";
+export const alt = "Tiendify: tu tienda online, en dólares y bolívares";
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 // Ver el comentario de runtime en src/lib/og.ts antes de tocar esto.
@@ -34,10 +34,13 @@ const NOCHE = "#0B1B2B";
 const AZUL = "#0EA5E9";
 const CUERPO = "#C9D5E3";
 
-const TITULAR_1 = "Crea tu tienda online";
-const TITULAR_2 = "y vende";
-const TITULAR_ACENTO = "hoy.";
-const BAJADA = `Gratis hasta ${FREE_MAX_PRODUCTS} productos. Precios en USD y Bs.`;
+// El titular de la portada, en tres líneas: en una sola no cabe a este
+// tamaño, y partido así el azul cae en "bolívares.", que es la promesa.
+const TITULAR_1 = "Tu tienda online,";
+const TITULAR_2 = "en dólares y";
+const TITULAR_ACENTO = "bolívares.";
+// La bajada ya no repite "USD y Bs": eso lo dice el titular.
+const BAJADA = `Gratis hasta ${FREE_MAX_PRODUCTS} productos, con la tasa del BCV.`;
 const PAGOS = ["Pago Móvil", "Zelle", "Binance", "Efectivo", "Tarjeta"];
 
 export default async function Image() {
@@ -102,22 +105,20 @@ export default async function Image() {
               display: "flex",
               flexDirection: "column",
               fontFamily: "Inter",
-              fontSize: 88,
+              fontSize: 84,
               fontWeight: 900,
-              lineHeight: 1,
-              letterSpacing: -5,
+              lineHeight: 0.98,
+              letterSpacing: -4.5,
             }}
           >
             <div style={{ display: "flex" }}>{TITULAR_1}</div>
-            <div style={{ display: "flex" }}>
-              {TITULAR_2}
-              <span style={{ marginLeft: 18, color: AZUL }}>{TITULAR_ACENTO}</span>
-            </div>
+            <div style={{ display: "flex" }}>{TITULAR_2}</div>
+            <div style={{ display: "flex", color: AZUL }}>{TITULAR_ACENTO}</div>
           </div>
           <div
             style={{
               display: "flex",
-              marginTop: 28,
+              marginTop: 24,
               fontSize: 34,
               fontWeight: 500,
               color: CUERPO,

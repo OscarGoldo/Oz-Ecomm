@@ -82,8 +82,12 @@ export const metadata: Metadata = {
     locale: "es_VE",
   },
   twitter: { card: "summary_large_image" },
+  // public/favicon.ico (16, 32 y 48 px) es para quien pide /favicon.ico a
+  // ciegas: navegadores viejos, lectores de RSS, algunos previsualizadores de
+  // links. Va con sizes="32x32" para que Chrome no lo prefiera sobre el SVG.
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
       { url: "/tiendify-symbol.svg", type: "image/svg+xml" },
       { url: "/tiendify-app-icon.png", sizes: "512x512", type: "image/png" },
     ],

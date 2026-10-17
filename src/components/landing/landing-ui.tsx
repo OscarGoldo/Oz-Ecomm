@@ -23,6 +23,31 @@ export const headingXl =
   "text-balance font-landing-display font-extrabold leading-[0.96] tracking-[-0.042em] [font-stretch:84%]";
 
 /**
+ * Los tokens que usan los componentes de formulario (Input, Button,
+ * PhoneInput), con los valores de la portada: botón en noche, bordes fríos,
+ * foco en el azul de marca y esquinas más redondas. Se ponen en el `style` del
+ * contenedor del formulario y todo lo de adentro los toma.
+ *
+ * Vive acá y no en signup-shell porque ese archivo es "use client": lo que
+ * exporta, importado desde un componente de servidor, llega como referencia y
+ * no como el objeto.
+ */
+export const FORM_TOKENS = {
+  "--background": "0 0% 100%",
+  "--foreground": "210 59% 10.6%",
+  "--card": "0 0% 100%",
+  "--card-foreground": "210 59% 10.6%",
+  "--primary": "210 59% 10.6%",
+  "--primary-foreground": "0 0% 100%",
+  "--muted": "210 50% 93.7%",
+  "--muted-foreground": "212 22% 34.5%",
+  "--border": "210 33% 88.2%",
+  "--input": "210 31% 80.8%",
+  "--ring": "199 89% 48%",
+  "--radius": "0.875rem",
+} as React.CSSProperties;
+
+/**
  * Rótulo de sección. En mono y versalitas: es el "encima" del titular y evita
  * que arranque flotando, igual que en el resto de la plataforma.
  */

@@ -1,45 +1,43 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 
-import { TiendifyLogo } from "@/components/landing/tiendify-logo";
+import { Eyebrow, Sticker, wrap } from "@/components/landing/landing-ui";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  BackLink,
+  BarLink,
+  FormCard,
+  PageShell,
+  pageLead,
+  pageTitle,
+} from "@/components/landing/page-shell";
 import { RecoverForm } from "./recover-form";
 
 export const metadata: Metadata = { title: "Recuperar contraseña" };
 
 export default function RecuperarPage() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-muted/40 px-4 py-10">
-      <div className="w-full max-w-sm">
-        <Link href="/" className="mb-6 flex justify-center">
-          <TiendifyLogo className="h-12 w-auto" />
-        </Link>
+    <PageShell
+      action={
+        <BarLink href="/login" hint="¿Ya la recordaste?">
+          Ingresar
+        </BarLink>
+      }
+    >
+      <main className={`${wrap} pb-20 pt-8 sm:pt-12`}>
+        <div className="mx-auto max-w-[34rem]">
+          <BackLink href="/login">Volver a ingresar</BackLink>
+          <Eyebrow>Recuperar contraseña</Eyebrow>
+          <h1 className={pageTitle}>
+            ¿Olvidaste tu <Sticker>contraseña?</Sticker>
+          </h1>
+          <p className={pageLead}>
+            Te enviamos un enlace a tu correo para crear una nueva.
+          </p>
 
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-xl">Recuperar contraseña</CardTitle>
-            <CardDescription>
-              Te enviamos un enlace a tu correo para crear una nueva.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          <FormCard className="mt-8">
             <RecoverForm />
-            <Link
-              href="/login"
-              className="mt-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="size-3.5" /> Volver a ingresar
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+          </FormCard>
+        </div>
+      </main>
+    </PageShell>
   );
 }

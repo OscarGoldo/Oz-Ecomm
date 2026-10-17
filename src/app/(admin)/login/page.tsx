@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AlertCircle, PackageCheck, Receipt, Wallet } from "lucide-react";
 
-import { TiendifyLogo, TiendifyLogoMark } from "@/components/landing/tiendify-logo";
+import { Eyebrow, Sticker, TagOutline, wrap } from "@/components/landing/landing-ui";
+import {
+  BackLink,
+  BarLink,
+  FormCard,
+  PageShell,
+  pageLead,
+  pageTitle,
+} from "@/components/landing/page-shell";
 import { getSessionContext } from "@/lib/auth";
 import { LoginForm } from "./login-form";
 
@@ -37,93 +44,81 @@ export default async function LoginPage({
         : null;
 
   /**
-   * Dos columnas en escritorio en vez de la tarjeta centrada sobre gris. La
-   * tarjeta flotando en el medio de la pantalla es la plantilla de acceso por
-   * defecto de todo el mundo; partir la pantalla y darle a la marca su propio
-   * lado cuesta lo mismo y hace que el producto se presente antes de que el
-   * dueño escriba una sola letra. En móvil se colapsa a la columna del form.
+   * Con la cara del registro: el formulario a un lado y, desde lg, el panel
+   * azul de la marca con lo que el dueño encuentra adentro. La tarjeta
+   * centrada sobre gris es la plantilla de acceso de todo el mundo; así el
+   * producto se presenta antes de que la persona escriba una letra. En el
+   * teléfono queda solo el formulario, que es lo que vino a hacer.
    */
   return (
-    <main className="chrome-admin grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
-      {/* Columna del formulario */}
-      <div className="flex flex-col justify-center px-5 py-10 sm:px-10 lg:px-14">
-        <div className="mx-auto w-full max-w-[24rem]">
-          <Link href="/" className="inline-flex" aria-label="Ir al inicio">
-            <TiendifyLogo className="h-7 w-auto" />
-          </Link>
-
-          <h1 className="mt-9 font-display text-display-sm font-semibold text-balance">
-            Entra a tu tienda
-          </h1>
-          <p className="mt-2 text-[0.9375rem] leading-relaxed text-ink-500">
-            Gestiona pedidos, productos y pagos desde un solo panel.
-          </p>
-
-          {error && (
-            <p
-              role="alert"
-              className="mt-6 flex items-start gap-2 rounded-lg border border-destructive-border bg-destructive-surface p-3 text-sm text-destructive-text"
-            >
-              <AlertCircle className="mt-px size-4 shrink-0" />
-              {error}
+    <PageShell
+      action={
+        <BarLink href="/crear-tienda" hint="¿No tienes cuenta?">
+          Crear tienda
+        </BarLink>
+      }
+    >
+      <main className={`${wrap} pb-20 pt-8 sm:pt-12`}>
+        <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:gap-14">
+          <div className="min-w-0 max-w-[34rem]">
+            <BackLink href="/">Volver al inicio</BackLink>
+            <Eyebrow>Tu panel</Eyebrow>
+            <h1 className={pageTitle}>
+              Entra a tu <Sticker>tienda.</Sticker>
+            </h1>
+            <p className={pageLead}>
+              Gestiona pedidos, productos y pagos desde un solo panel.
             </p>
-          )}
 
-          <div className="mt-7">
-            <LoginForm />
+            {error && (
+              <p
+                role="alert"
+                className="mt-6 flex items-start gap-2 rounded-xl border border-destructive-border bg-destructive-surface p-3 text-sm text-destructive-text"
+              >
+                <AlertCircle className="mt-px size-4 shrink-0" />
+                {error}
+              </p>
+            )}
+
+            <FormCard className="mt-8">
+              <LoginForm />
+            </FormCard>
           </div>
+
+          {/* Panel de marca. Solo desde lg: por debajo le robaría la pantalla
+              al formulario. */}
+          <aside
+            className="sticky top-6 hidden lg:block"
+            aria-label="Lo que encuentras en tu panel"
+          >
+            <div className="relative isolate overflow-hidden rounded-[28px] bg-brand-500 p-9 text-noche">
+              <TagOutline className="pointer-events-none absolute -right-[30%] -top-[20%] -z-10 w-[130%] text-white/30" />
+              <p className="font-landing-mono text-xs font-semibold uppercase tracking-[0.08em]">
+                Del otro lado
+              </p>
+              <p className="mt-3 max-w-[16ch] text-balance font-landing-display text-[2.1rem] font-extrabold leading-[0.95] tracking-[-0.04em] [font-stretch:84%]">
+                Tu catálogo en línea, sin complicaciones.
+              </p>
+              <ul className="mt-6 grid gap-3">
+                {HIGHLIGHTS.map(({ icon: Icon, text }) => (
+                  <li
+                    key={text}
+                    className="flex items-start gap-3 text-[15px] font-medium leading-snug"
+                  >
+                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white text-noche">
+                      <Icon className="size-4" />
+                    </span>
+                    <span className="max-w-[34ch] pt-1.5">{text}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-12 text-sm font-medium text-noche/70">
+                Un producto de OzAI · Hecho en Venezuela
+              </p>
+            </div>
+          </aside>
         </div>
-      </div>
-
-      {/* Panel de marca. Solo desde lg: por debajo le robaría la pantalla al
-          formulario, que es lo único que la persona vino a hacer acá. */}
-      <aside className="relative hidden overflow-hidden bg-ink-950 lg:flex lg:flex-col lg:justify-between lg:p-14">
-        {/* Halo de marca. Dos radiales muy abiertos en lugar de un degradado
-            lineal de esquina a esquina: el degradado diagonal es el fondo de
-            plantilla por excelencia. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-[0.55]"
-          style={{
-            background:
-              "radial-gradient(60% 55% at 78% 12%, hsl(var(--brand-500) / 0.5), transparent 70%), radial-gradient(55% 50% at 8% 92%, hsl(var(--brand-700) / 0.55), transparent 72%)",
-          }}
-        />
-        {/* Retícula tenue: le da escala a un fondo que si no queda plano. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-[0.07]"
-          style={{
-            backgroundImage:
-              "linear-gradient(hsl(0 0% 100%) 1px, transparent 1px), linear-gradient(90deg, hsl(0 0% 100%) 1px, transparent 1px)",
-            backgroundSize: "56px 56px",
-          }}
-        />
-
-        <TiendifyLogoMark className="relative h-9 w-auto" />
-
-        <div className="relative">
-          <p className="max-w-[22ch] font-display text-display-md font-semibold text-ink-0 text-balance">
-            Tu catálogo en línea, sin complicaciones.
-          </p>
-          <ul className="mt-9 space-y-4">
-            {HIGHLIGHTS.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-start gap-3">
-                <span className="mt-px grid size-7 shrink-0 place-items-center rounded-lg bg-white/10 text-brand-300 ring-1 ring-inset ring-white/15">
-                  <Icon className="size-3.5" />
-                </span>
-                <span className="max-w-[34ch] text-[0.9375rem] leading-relaxed text-ink-300">
-                  {text}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <p className="relative text-2xs text-ink-400">
-          Un producto de OzAI · Hecho en Venezuela
-        </p>
-      </aside>
-    </main>
+      </main>
+    </PageShell>
   );
 }

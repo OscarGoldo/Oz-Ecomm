@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { Check } from "lucide-react";
 
-import { SAMPLE, TagOutline } from "@/components/landing/landing-ui";
+import { FORM_TOKENS, SAMPLE, TagOutline } from "@/components/landing/landing-ui";
 import { PhoneFrame, ShowcaseScreen, type ExampleStore } from "@/components/landing/store-screens";
 import { SignupForm } from "@/components/storefront/signup-form";
 
@@ -16,26 +16,6 @@ import { SignupForm } from "@/components/storefront/signup-form";
  * por los de la portada (variables del sistema de diseño) y se escucha su
  * vista previa.
  */
-
-/**
- * Los tokens que usan los componentes del formulario (Input, Button,
- * PhoneInput), con los valores de la portada: botón en noche, bordes fríos,
- * foco en el azul de marca y esquinas más redondas.
- */
-const FORM_TOKENS = {
-  "--background": "0 0% 100%",
-  "--foreground": "210 59% 10.6%",
-  "--card": "0 0% 100%",
-  "--card-foreground": "210 59% 10.6%",
-  "--primary": "210 59% 10.6%",
-  "--primary-foreground": "0 0% 100%",
-  "--muted": "210 50% 93.7%",
-  "--muted-foreground": "212 22% 34.5%",
-  "--border": "210 33% 88.2%",
-  "--input": "210 31% 80.8%",
-  "--ring": "199 89% 48%",
-  "--radius": "0.875rem",
-} as React.CSSProperties;
 
 /** Solo lo que es cierto hoy y está en marketing/GUIA.md. */
 const INCLUDED = [
