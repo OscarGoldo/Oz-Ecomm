@@ -11,15 +11,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "@/lib/auth-actions";
+import { cn } from "@/lib/utils";
 
 interface UserMenuProps {
   fullName: string;
   email: string;
   /** La dirección pública de la tienda (subdominio si es Pro). */
   storeUrl: string;
+  /** "dark" para cuando va sobre la barra noche del teléfono. */
+  tone?: "light" | "dark";
 }
 
-export function UserMenu({ fullName, email, storeUrl }: UserMenuProps) {
+export function UserMenu({ fullName, email, storeUrl, tone = "light" }: UserMenuProps) {
   const initials = fullName
     .split(" ")
     .map((p) => p[0])
@@ -29,11 +32,23 @@ export function UserMenu({ fullName, email, storeUrl }: UserMenuProps) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-2 rounded-full p-1 pr-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <span className="grid size-8 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+      <DropdownMenuTrigger
+        className={cn(
+          "flex items-center gap-1.5 rounded-full p-1 pr-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          tone === "dark" ? "hover:bg-white/10" : "hover:bg-muted",
+        )}
+      >
+        <span
+          className={cn(
+            "grid size-8 place-items-center rounded-full text-xs font-bold",
+            tone === "dark" ? "bg-brand-600 text-white" : "bg-brand-700 text-white",
+          )}
+        >
           {initials || "?"}
         </span>
-        <ChevronDown className="size-4 text-muted-foreground" />
+        <ChevronDown
+          className={cn("size-4", tone === "dark" ? "text-white/70" : "text-muted-foreground")}
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="flex flex-col">

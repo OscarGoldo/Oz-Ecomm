@@ -10,7 +10,7 @@ import {
 import { es } from "date-fns/locale";
 
 import { createClient } from "@/lib/supabase/server";
-import { PAYMENT_METHOD_META } from "@/lib/constants";
+import { PAYMENT_METHOD_META, abandonedCartCutoff } from "@/lib/constants";
 import { formatUSD } from "@/lib/format";
 import type { ReportPeriod } from "@/lib/report-period";
 import type {
@@ -73,6 +73,14 @@ export interface Delta {
 export interface DashboardMetrics {
   todayOrders: number;
   pendingConfirmation: number;
+  /** Cuándo llegó el comprobante más viejo que sigue sin revisar. */
+  oldestPendingAt: string | null;
+  /** Pedidos de clientes que eligieron pagar por fuera y no mandaron nada. */
+  pendingPayment: number;
+  /** Carritos abandonados sin recuperar ni descartar, y lo que suman. */
+  abandonedCarts: { count: number; usd: number };
+  /** Pedidos del mes en curso contra el mes anterior completo. */
+  monthOrdersDelta: Delta;
   lowStock: Pick<Product, "id" | "name" | "stock" | "low_stock_threshold">[];
   monthSalesUsd: number;
   monthSalesBs: number;
@@ -110,24 +118,30 @@ export async function getDashboardMetrics(
 
   const [
     { count: todayOrders },
-    { count: pendingConfirmation },
+    { count: pendingConfirmation, data: oldestPending },
     { data: lowStockRaw },
     { data: monthSales },
     { data: recentOrders },
     { count: completedThisMonth },
     { count: cancelledThisMonth },
     { count: yesterdayOrders },
+    { count: pendingPayment },
+    { data: abandoned },
   ] = await Promise.all([
     supabase
       .from("orders")
       .select("id", { count: "exact", head: true })
       .eq("store_id", storeId)
       .gte("created_at", dayStart),
+    // El conteo y, de una vez, el más viejo: el Resumen dice cuánto lleva
+    // esperando el primer comprobante de la fila.
     supabase
       .from("orders")
-      .select("id", { count: "exact", head: true })
+      .select("created_at", { count: "exact" })
       .eq("store_id", storeId)
-      .eq("status", "pending_confirmation"),
+      .eq("status", "pending_confirmation")
+      .order("created_at", { ascending: true })
+      .limit(1),
     supabase
       .from("products")
       .select("id, name, stock, low_stock_threshold")
@@ -169,6 +183,20 @@ export async function getDashboardMetrics(
       .eq("store_id", storeId)
       .gte("created_at", yesterdayStart)
       .lt("created_at", dayStart),
+    supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId)
+      .eq("status", "pending_payment"),
+    // Mismo criterio que /panel/carritos: solo cuentan los que ya pasaron la
+    // ventana de gracia y nadie recuperó ni descartó.
+    supabase
+      .from("abandoned_carts")
+      .select("subtotal")
+      .eq("store_id", storeId)
+      .is("recovered_at", null)
+      .is("dismissed_at", null)
+      .lt("updated_at", abandonedCartCutoff()),
   ]);
 
   const lowStock = (lowStockRaw ?? [])
@@ -245,10 +273,24 @@ export async function getDashboardMetrics(
     periodLabel: "mes anterior",
     pct: pctChange(monthSalesUsd, prevMonthSalesUsd),
   };
+  const monthOrdersDelta: Delta = {
+    previousLabel: String(prevSales.length),
+    periodLabel: "mes anterior",
+    pct: pctChange(sales.length, prevSales.length),
+  };
+
+  const carts = abandoned ?? [];
 
   return {
     todayOrders: todayOrders ?? 0,
     pendingConfirmation: pendingConfirmation ?? 0,
+    oldestPendingAt: oldestPending?.[0]?.created_at ?? null,
+    pendingPayment: pendingPayment ?? 0,
+    abandonedCarts: {
+      count: carts.length,
+      usd: carts.reduce((s, c) => s + Number(c.subtotal), 0),
+    },
+    monthOrdersDelta,
     lowStock,
     monthSalesUsd,
     monthSalesBs,

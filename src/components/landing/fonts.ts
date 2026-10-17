@@ -1,8 +1,9 @@
 import { Bricolage_Grotesque, Figtree, IBM_Plex_Mono } from "next/font/google";
 
 /**
- * Las tipografías de la landing. Viven acá y no en el layout raíz para que el
- * panel y las tiendas no las descarguen: solo la portada las usa.
+ * Las tipografías de la landing y del panel del vendedor. Viven acá y no en
+ * el layout raíz para que las tiendas públicas no las descarguen: las usan la
+ * portada, las páginas sueltas (registro, ingreso, legales) y /panel.
  *
  * - Bricolage Grotesque, con el eje de ancho: los titulares van comprimidos
  *   (`[font-stretch:82%]`) y negros, como los de los posts de Instagram.

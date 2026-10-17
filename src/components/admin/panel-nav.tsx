@@ -79,10 +79,16 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/panel/finanzas", label: "Finanzas", icon: Wallet },
       { href: "/panel/referidos", label: "Referidos", icon: Gift },
-      { href: "/panel/plan", label: "Plan", icon: Sparkles },
     ],
   },
 ];
+
+/**
+ * En escritorio el plan no es un ítem más: va como tarjeta abajo de la barra
+ * lateral, con el cupo de productos a la vista (ver PanelPlanCard). En móvil
+ * no hay tarjeta, así que sigue apareciendo dentro de "Más".
+ */
+const PLAN_ITEM: NavItem = { href: "/panel/plan", label: "Plan", icon: Sparkles };
 
 /**
  * Ajustes vive abajo, separado del resto: es configuración, no una sección
@@ -99,8 +105,12 @@ const FOOTER_ITEMS: NavItem[] = [
 /** Orden plano, para la barra inferior de móvil. */
 const NAV_ITEMS: NavItem[] = [
   ...NAV_GROUPS.flatMap((g) => g.items),
+  PLAN_ITEM,
   ...FOOTER_ITEMS,
 ];
+
+/** El único pendiente que va en amarillo: pagos por revisar o por llegar. */
+const URGENT_BADGE_HREF = "/panel/pedidos";
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/panel") return pathname === "/panel";
@@ -114,8 +124,17 @@ interface NavProps {
   pro?: boolean;
 }
 
-/** Desktop sidebar navigation (md and up). */
-export function PanelSidebarNav({ badges = {}, pro = false }: NavProps) {
+/**
+ * Desktop sidebar navigation (md and up). Va sobre la barra noche: texto
+ * blanco atenuado, la sección activa con un fondo apenas más claro y el ícono
+ * en el azul de marca. `plan` es la tarjeta del plan, que va abajo, antes de
+ * Comentarios y Ajustes.
+ */
+export function PanelSidebarNav({
+  badges = {},
+  pro = false,
+  plan,
+}: NavProps & { plan?: React.ReactNode }) {
   const pathname = usePathname();
 
   const renderItem = (item: NavItem) => {
@@ -128,33 +147,37 @@ export function PanelSidebarNav({ badges = {}, pro = false }: NavProps) {
         href={item.href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "group relative flex items-center gap-2.5 rounded-md py-1.5 pl-2.5 pr-2",
-          "text-[0.8125rem] font-medium leading-6",
+          "group relative flex min-h-[34px] items-center gap-2.5 rounded-[9px] px-2.5",
+          "text-sm font-medium",
           "transition-colors duration-150 ease-out",
           active
-            ? // Estado activo neutro: superficie blanca elevada y texto tinta.
-              // El pill teñido con el color de marca en cada sección activa es
-              // justo lo que hace que un panel se lea como plantilla.
-              "bg-surface-raised text-foreground shadow-xs"
-            : "text-ink-600 hover:bg-ink-100/70 hover:text-foreground",
+            ? "bg-white/[0.11] text-white"
+            : "text-white/[0.72] hover:bg-white/[0.06] hover:text-white",
         )}
       >
         <item.icon
           className={cn(
             "size-[1.0625rem] shrink-0 transition-colors",
-            active ? "text-foreground" : "text-ink-400 group-hover:text-ink-600",
+            active ? "text-brand-400" : "text-white/50 group-hover:text-white/80",
           )}
         />
         <span className="truncate">{item.label}</span>
         {locked && (
-          <Lock className="size-3 shrink-0 text-ink-400" aria-label="Requiere Pro" />
+          <span
+            className="ml-auto rounded-[5px] border border-white/20 px-1 py-px font-landing-mono text-[10px] font-semibold tracking-[0.06em] text-niebla"
+            aria-label="Requiere Pro"
+          >
+            PRO
+          </span>
         )}
         {badge ? (
           <span
             className={cn(
-              "ml-auto grid min-w-[1.125rem] shrink-0 place-items-center rounded px-1",
-              "text-3xs font-bold leading-[1.125rem] tabular-nums",
-              "bg-warning text-warning-foreground",
+              "ml-auto grid h-5 min-w-[1.375rem] shrink-0 place-items-center rounded-full px-1.5",
+              "font-landing-mono text-[11.5px] font-semibold tabular-nums",
+              item.href === URGENT_BADGE_HREF
+                ? "bg-sol text-noche"
+                : "bg-white/[0.14] text-white",
             )}
           >
             {badge > 99 ? "99+" : badge}
@@ -165,19 +188,20 @@ export function PanelSidebarNav({ badges = {}, pro = false }: NavProps) {
   };
 
   return (
-    <nav className="flex h-full flex-col gap-0.5 px-2.5 py-3">
+    <nav aria-label="Secciones del panel" className="flex flex-1 flex-col">
       {NAV_GROUPS.map((group, i) => (
-        <div key={group.label ?? "root"} className={cn(i > 0 && "mt-4")}>
+        <div key={group.label ?? "root"} className={cn(i > 0 && "mt-3.5")}>
           {group.label && (
-            <p className="mb-1 px-2.5 text-3xs font-semibold uppercase tracking-[0.08em] text-ink-400">
+            <p className="mb-1 px-2.5 font-landing-mono text-[11px] font-semibold uppercase tracking-[0.09em] text-[#7F93A8]">
               {group.label}
             </p>
           )}
           <div className="flex flex-col gap-0.5">{group.items.map(renderItem)}</div>
         </div>
       ))}
-      <div className="mt-auto flex flex-col gap-0.5 border-t border-border pt-2">
-        {FOOTER_ITEMS.map(renderItem)}
+      <div className="mt-auto flex flex-col gap-2.5 pt-5">
+        {plan}
+        <div className="flex flex-col gap-0.5">{FOOTER_ITEMS.map(renderItem)}</div>
       </div>
     </nav>
   );
@@ -270,7 +294,7 @@ export function PanelBottomNav({ badges = {}, pro = false }: NavProps) {
                     </span>
                   )}
                   {badge ? (
-                    <span className="absolute -right-2 -top-1.5 grid min-w-4 place-items-center rounded-full bg-warning px-1 text-3xs font-bold leading-4 tabular-nums text-warning-foreground">
+                    <span className="absolute -right-2 -top-1.5 grid min-w-4 place-items-center rounded-full bg-sol px-1 text-3xs font-bold leading-4 tabular-nums text-noche">
                       {badge > 9 ? "9+" : badge}
                     </span>
                   ) : null}
@@ -306,7 +330,7 @@ export function PanelBottomNav({ badges = {}, pro = false }: NavProps) {
               <span className="relative">
                 <item.icon className="size-5" />
                 {badge ? (
-                  <span className="absolute -right-2 -top-1.5 grid min-w-4 place-items-center rounded-full bg-warning px-1 text-3xs font-bold leading-4 tabular-nums text-warning-foreground">
+                  <span className="absolute -right-2 -top-1.5 grid min-w-4 place-items-center rounded-full bg-sol px-1 text-3xs font-bold leading-4 tabular-nums text-noche">
                     {badge > 9 ? "9+" : badge}
                   </span>
                 ) : null}
@@ -336,7 +360,7 @@ export function PanelBottomNav({ badges = {}, pro = false }: NavProps) {
           <span className="relative">
             <MoreHorizontal className="size-5" />
             {restBadge > 0 && !sheetOpen ? (
-              <span className="absolute -right-2 -top-1.5 grid min-w-4 place-items-center rounded-full bg-warning px-1 text-3xs font-bold leading-4 tabular-nums text-warning-foreground">
+              <span className="absolute -right-2 -top-1.5 grid min-w-4 place-items-center rounded-full bg-sol px-1 text-3xs font-bold leading-4 tabular-nums text-noche">
                 {restBadge > 9 ? "9+" : restBadge}
               </span>
             ) : null}

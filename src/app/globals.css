@@ -178,6 +178,67 @@
     --primary-foreground: var(--ink-25);
     --ring: var(--brand-500);
   }
+
+  /* -----------------------------------------------------------------------
+     Panel del vendedor, con la cara de la portada en versión de trabajo.
+     La rampa de tinta pasa de cálida a los neutros fríos de la landing
+     (claro, línea, pizarra, noche), así que todo lo que el panel pinta con
+     ink-*, surface, border o muted cambia junto, pantalla por pantalla, sin
+     tocar cada componente. El primario de .chrome-admin queda en noche.
+
+     Va también sobre :root mientras el panel está montado: los diálogos y
+     menús de Radix se dibujan en <body>, fuera del panel, y sin esto salían
+     con la tinta cálida. Envuelto en :is() porque un navegador sin :has()
+     descartaría la regla entera; así se queda al menos con el panel.
+     Las variables derivadas se repiten porque en :root ya se resolvieron con
+     la tinta cálida y el panel las heredaría así.
+  ----------------------------------------------------------------------- */
+  :is(:root:has(.chrome-panel), .chrome-panel) {
+    --ink-0: 210 50% 99%;
+    --ink-25: 210 50% 98.2%;
+    --ink-50: 210 50% 96.9%;
+    --ink-100: 210 50% 93.7%;
+    --ink-200: 210 33% 88.2%;
+    --ink-300: 210 31% 80.8%;
+    --ink-400: 211 20% 60%;
+    --ink-500: 213 17% 43.5%;
+    --ink-600: 212 22% 34.5%;
+    --ink-700: 211 30% 25%;
+    --ink-800: 211 45% 17%;
+    --ink-900: 210 59% 10.6%;
+    --ink-950: 210 64% 7%;
+
+    --surface: var(--ink-50);
+    --surface-sunken: var(--ink-100);
+    --foreground: var(--ink-900);
+    --card-foreground: var(--ink-900);
+    --popover-foreground: var(--ink-900);
+    --secondary: var(--ink-100);
+    --secondary-foreground: var(--ink-800);
+    --muted: var(--ink-100);
+    --muted-foreground: var(--ink-500);
+    --accent: var(--ink-100);
+    --accent-foreground: var(--ink-800);
+    --border: var(--ink-200);
+    --input: var(--ink-300);
+
+    --shadow-xs: 0 1px 2px 0 hsl(210 59% 10.6% / 0.05);
+    --shadow-sm: 0 1px 2px -1px hsl(210 59% 10.6% / 0.07), 0 1px 3px 0 hsl(210 59% 10.6% / 0.06);
+    --shadow-md: 0 2px 4px -2px hsl(210 59% 10.6% / 0.07), 0 6px 12px -2px hsl(210 59% 10.6% / 0.08);
+    --shadow-lg: 0 4px 8px -4px hsl(210 59% 10.6% / 0.08), 0 16px 32px -8px hsl(210 59% 10.6% / 0.12);
+    --shadow-pop: 0 8px 16px -6px hsl(210 59% 10.6% / 0.12), 0 24px 48px -12px hsl(210 59% 10.6% / 0.16);
+  }
+
+  /* Los titulares del panel van con la display de la portada, pero menos
+     apretados: es una herramienta, no un afiche. Las variables de la fuente
+     las pone `landingFonts` en el mismo contenedor. */
+  .chrome-panel {
+    --font-display: var(--font-landing-display, var(--font-inter));
+  }
+
+  .chrome-panel :is(h1, h2, h3, .font-display) {
+    font-stretch: 92%;
+  }
 }
 
 @layer base {
