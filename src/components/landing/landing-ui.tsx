@@ -70,6 +70,20 @@ export function Eyebrow({
   );
 }
 
+/**
+ * Atributos para que un elemento entre al bajar (ver ScrollReveal y las
+ * reglas `data-reveal` de globals.css). `delay` escalona los de un mismo grupo;
+ * `pop` entra con una leve escala, `wipe` se descubre de arriba hacia abajo y
+ * `fly` llega volando (solo Pana).
+ */
+export function reveal(delay = 0, kind?: "pop" | "wipe" | "fly") {
+  return {
+    "data-reveal": "",
+    ...(kind ? { "data-reveal-kind": kind } : {}),
+    style: delay ? ({ "--reveal-delay": `${delay}ms` } as React.CSSProperties) : undefined,
+  };
+}
+
 /** Rótulo, titular y bajada: el mismo ritmo en todas las secciones. */
 export function SectionHeading({
   eyebrow,
@@ -84,14 +98,19 @@ export function SectionHeading({
 }) {
   return (
     <div className={cn("grid max-w-[780px] gap-4", className)}>
-      <Eyebrow>{eyebrow}</Eyebrow>
+      <div {...reveal()}>
+        <Eyebrow>{eyebrow}</Eyebrow>
+      </div>
       {/* El tamaño va antes que headingXl: tailwind-merge descarta un
           interlineado que venga antes de un tamaño de letra. */}
-      <h2 className={cn("text-[clamp(2.2rem,1.3rem+3vw,3.75rem)]", headingXl)}>
+      <h2 {...reveal(60, "wipe")} className={cn("text-[clamp(2.2rem,1.3rem+3vw,3.75rem)]", headingXl)}>
         {title}
       </h2>
       {text && (
-        <p className="max-w-[58ch] text-pretty text-[clamp(1.05rem,1rem+0.25vw,1.2rem)] leading-relaxed text-pizarra">
+        <p
+          {...reveal(180)}
+          className="max-w-[58ch] text-pretty text-[clamp(1.05rem,1rem+0.25vw,1.2rem)] leading-relaxed text-pizarra"
+        >
           {text}
         </p>
       )}

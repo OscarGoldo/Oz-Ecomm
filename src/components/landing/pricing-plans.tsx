@@ -9,6 +9,7 @@ import {
   bs,
   headingXl,
   pill,
+  reveal,
   sectionY,
   wrap,
 } from "@/components/landing/landing-ui";
@@ -96,7 +97,7 @@ export function PricingPlans({
 
         <div className="mt-12 grid gap-[18px] md:grid-cols-2">
           {/* Gratis */}
-          <article className="flex min-w-0 flex-col gap-[22px] rounded-[30px] border border-linea bg-white p-[26px] sm:p-[34px]">
+          <article {...reveal()} className="flex min-w-0 flex-col gap-[22px] rounded-[30px] border border-linea bg-white p-[26px] sm:p-[34px]">
             <span className="font-landing-mono text-[13px] font-semibold uppercase tracking-[0.08em] text-gris">
               Gratis
             </span>
@@ -125,7 +126,7 @@ export function PricingPlans({
           </article>
 
           {/* Pro */}
-          <article className="relative flex min-w-0 flex-col gap-[22px] overflow-hidden rounded-[30px] bg-noche p-[26px] text-claro shadow-[0_2px_4px_hsl(var(--noche)/0.06),0_28px_56px_-22px_hsl(var(--noche)/0.32)] sm:p-[34px]">
+          <article {...reveal(140)} className="relative flex min-w-0 flex-col gap-[22px] overflow-hidden rounded-[30px] bg-noche p-[26px] text-claro shadow-[0_2px_4px_hsl(var(--noche)/0.06),0_28px_56px_-22px_hsl(var(--noche)/0.32)] sm:p-[34px]">
             {/* La etiqueta del logo, girada, como marca de agua */}
             <span
               aria-hidden="true"
@@ -179,7 +180,7 @@ export function PricingPlans({
 
         {/* Lo que nunca se cobra: es la duda que frena el registro. "Sin
             comisiones" no se puede decir (la tarjeta lleva la de Stripe); esto sí. */}
-        <div className="mt-[18px] flex gap-4 rounded-[22px] border-[1.5px] border-dashed border-linea-fuerte px-6 py-5 max-sm:flex-col max-sm:gap-2">
+        <div {...reveal(220)} className="mt-[18px] flex gap-4 rounded-[22px] border-[1.5px] border-dashed border-linea-fuerte px-6 py-5 max-sm:flex-col max-sm:gap-2">
           <span
             aria-hidden="true"
             className="shrink-0 font-landing-display text-[44px] font-extrabold leading-[0.9] tracking-[-0.05em] text-brand-700 [font-stretch:78%]"

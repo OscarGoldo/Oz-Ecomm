@@ -12,6 +12,7 @@ import { LandingHero } from "@/components/landing/landing-hero";
 import { LandingSteps } from "@/components/landing/landing-steps";
 import { PayStrip, RateTicker } from "@/components/landing/landing-strips";
 import { PricingPlans } from "@/components/landing/pricing-plans";
+import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { StoreNameProvider } from "@/components/landing/store-name";
 import { getPublicUsdRate } from "@/lib/bcv";
 import {
@@ -57,7 +58,11 @@ export default async function LandingPage() {
   const usdRate = await getPublicUsdRate();
 
   return (
-    <div className={cn(landingFonts, "min-h-dvh bg-claro font-landing-body text-noche antialiased")}>
+    <div
+      data-landing
+      className={cn(landingFonts, "min-h-dvh bg-claro font-landing-body text-noche antialiased")}
+    >
+      <ScrollReveal />
       <RateTicker usdRate={usdRate} />
       <StoreNameProvider>
         <LandingHeader />

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { PHOTO, SectionHeading, sectionY, wrap } from "@/components/landing/landing-ui";
+import { PHOTO, SectionHeading, reveal, sectionY, wrap } from "@/components/landing/landing-ui";
 import {
   CartScreen,
   CheckoutScreen,
@@ -146,7 +146,7 @@ export function ExampleStores({ usdRate }: { usdRate: number | null }) {
           text="Cinco pantallas con los mismos pasos que recorre tu cliente hoy. Las tiendas son inventadas: cambia de tienda y mira el mismo camino con otros productos y otros colores."
         />
 
-        <div className="mt-10 flex flex-wrap gap-2.5" role="group" aria-label="Elegir una tienda de ejemplo">
+        <div {...reveal(120)} className="mt-10 flex flex-wrap gap-2.5" role="group" aria-label="Elegir una tienda de ejemplo">
           {STORES.map((s, i) => {
             const on = i === current;
             return (
@@ -200,7 +200,7 @@ export function ExampleStores({ usdRate }: { usdRate: number | null }) {
         >
           <ol className="relative grid auto-cols-[216px] grid-flow-col justify-between gap-[clamp(18px,2.2vw,32px)] before:absolute before:inset-x-[60px] before:top-[210px] before:border-t-2 before:border-dashed before:border-linea-fuerte before:content-[''] min-[1101px]:max-[1320px]:[zoom:0.86]">
             {screens.map((screen, i) => (
-              <li key={STEPS[i]} className="relative grid snap-start content-start gap-[18px] even:pt-9">
+              <li key={STEPS[i]} {...reveal(i * 90)} className="relative grid snap-start content-start gap-[18px] even:pt-9">
                 <div
                   ref={(el) => {
                     phones.current[i] = el;

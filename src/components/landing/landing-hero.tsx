@@ -84,6 +84,12 @@ const HERO_THEME: StoreTheme = {
 };
 
 const HERO_PRODUCTS = [SAMPLE.franela, SAMPLE.gorra, SAMPLE.tote, SAMPLE.lentes];
+/**
+ * Cuánto sube cada pieza del hero al bajar (ver .hero-drift en globals.css):
+ * la tienda poco, el teléfono más y el aviso más todavía, así se leen en capas.
+ */
+const drift = (px: number) => ({ "--drift": px + "px" }) as React.CSSProperties;
+
 /** El pedido del aviso y del checkout: franela + gorra. */
 const HERO_ORDER = SAMPLE.franela.usd + SAMPLE.gorra.usd;
 
@@ -100,7 +106,7 @@ function HeroStage({ rate }: { rate: number | null }) {
       className="relative h-[440px] w-full max-w-[420px] justify-self-center sm:h-[560px] sm:max-w-[600px] lg:justify-self-end"
     >
       {/* La tienda en el navegador */}
-      <div className="absolute left-0 top-[58px] w-full sm:top-16 sm:w-[90%]">
+      <div className="hero-drift absolute left-0 top-[58px] w-full sm:top-16 sm:w-[90%]" style={drift(-24)}>
         <div className="overflow-hidden rounded-2xl bg-white text-noche shadow-[0_2px_6px_hsl(var(--noche)/0.12),0_44px_70px_-30px_hsl(var(--noche)/0.6)] motion-safe:animate-landing-rise">
           <div className="flex h-9 items-center gap-3 border-b border-[#E1E8EF] bg-[#EEF3F8] px-3">
             <span className="flex shrink-0 gap-1.5">
@@ -185,7 +191,7 @@ function HeroStage({ rate }: { rate: number | null }) {
       </div>
 
       {/* El checkout en el teléfono */}
-      <div className="absolute -right-1.5 bottom-0 z-[2] [scale:0.66] [transform-origin:100%_100%] sm:right-0 sm:[scale:1]">
+      <div className="hero-drift absolute -right-1.5 bottom-0 z-[2] [scale:0.66] [transform-origin:100%_100%] sm:right-0 sm:[scale:1]" style={drift(-72)}>
         <div className="motion-safe:animate-landing-rise" style={{ animationDelay: "200ms" }}>
           <PhoneFrame theme={HERO_THEME}>
             <CheckoutScreen
@@ -200,7 +206,7 @@ function HeroStage({ rate }: { rate: number | null }) {
       </div>
 
       {/* El aviso: un pedido concreto dice más que "¡Nueva venta!" */}
-      <div className="absolute right-0 top-0 z-[3] [scale:0.84] [transform-origin:100%_0] sm:right-[14%] sm:[scale:1]">
+      <div className="hero-drift absolute right-0 top-0 z-[3] [scale:0.84] [transform-origin:100%_0] sm:right-[14%] sm:[scale:1]" style={drift(-110)}>
         <div className="flex items-center gap-2.5 rounded-2xl bg-white py-2.5 pl-2.5 pr-4 text-noche shadow-[0_2px_6px_hsl(var(--noche)/0.1),0_30px_50px_-18px_hsl(var(--noche)/0.45)] [rotate:2deg] motion-safe:animate-landing-pop">
           <span className="grid size-8 shrink-0 place-items-center rounded-full bg-success-surface text-success-text">
             <Check className="size-[17px]" strokeWidth={2.6} />

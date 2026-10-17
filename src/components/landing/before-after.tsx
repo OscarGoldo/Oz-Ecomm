@@ -7,6 +7,7 @@ import {
   SectionHeading,
   bs,
   rateText,
+  reveal,
   usd,
   wrap,
   sectionY,
@@ -80,15 +81,21 @@ export function BeforeAfter({ usdRate }: { usdRate: number | null }) {
 
         <div className="mt-[60px] grid items-center gap-7 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1.15fr)]">
           {/* Hoy */}
-          <article className={cn(card, "shadow-[0_1px_2px_hsl(var(--noche)/0.05),0_6px_16px_-6px_hsl(var(--noche)/0.1)] lg:[rotate:-1.2deg]")}>
+          {/* Los mensajes van llegando uno por uno a la bandeja, y del otro
+              lado los pedidos se ordenan solos: la historia se cuenta al bajar. */}
+          <article
+            {...reveal()}
+            className={cn(card, "shadow-[0_1px_2px_hsl(var(--noche)/0.05),0_6px_16px_-6px_hsl(var(--noche)/0.1)] lg:[rotate:-1.2deg]")}
+          >
             <div className="mb-2.5 flex items-center justify-between gap-3">
               <span className={cn(chip, "bg-claro-hondo text-pizarra")}>Hoy</span>
               <span className="text-[13.5px] font-semibold text-gris">37 chats sin leer</span>
             </div>
             <ul>
-              {INBOX.map((m) => (
+              {INBOX.map((m, i) => (
                 <li
                   key={m.who}
+                  {...reveal(250 + i * 110)}
                   className="grid grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-3 border-t border-linea px-0.5 py-2.5"
                 >
                   <Avatar initial={m.who.charAt(0).toUpperCase()} color={m.color} />
@@ -113,7 +120,9 @@ export function BeforeAfter({ usdRate }: { usdRate: number | null }) {
               Sacas la cuenta en bolívares a mano y buscas cada capture en la galería.
             </p>
             {usdRate && (
-              <div className="mt-4 max-w-[230px] rounded bg-sol px-[15px] py-3 font-landing-mono text-[13px] leading-normal text-noche shadow-[0_28px_56px_-22px_hsl(var(--noche)/0.32)] [rotate:-1.5deg] sm:absolute sm:-bottom-[34px] sm:right-3 sm:mt-0 sm:[rotate:4deg] lg:-right-4">
+              <div
+                {...reveal(950, "pop")}
+                className="mt-4 max-w-[230px] rounded bg-sol px-[15px] py-3 font-landing-mono text-[13px] leading-normal text-noche shadow-[0_28px_56px_-22px_hsl(var(--noche)/0.32)] [rotate:-1.5deg] sm:absolute sm:-bottom-[34px] sm:right-3 sm:mt-0 sm:[rotate:4deg] lg:-right-4">
                 {franela} × {rateText(usdRate)} =
                 <b className="block text-[15px] font-semibold">{bs(franela, usdRate).replace("Bs ", "")} Bs</b>
                 ¿y si mañana cambia la tasa?
@@ -123,21 +132,26 @@ export function BeforeAfter({ usdRate }: { usdRate: number | null }) {
 
           <div
             aria-hidden="true"
+            {...reveal(200, "pop")}
             className="grid size-[58px] place-items-center justify-self-center rounded-full bg-noche text-white max-lg:rotate-90"
           >
             <ArrowRight className="size-6" />
           </div>
 
           {/* Con Tiendify */}
-          <article className={cn(card, "shadow-[0_2px_4px_hsl(var(--noche)/0.06),0_28px_56px_-22px_hsl(var(--noche)/0.32)]")}>
+          <article
+            {...reveal(300)}
+            className={cn(card, "shadow-[0_2px_4px_hsl(var(--noche)/0.06),0_28px_56px_-22px_hsl(var(--noche)/0.32)]")}
+          >
             <div className="mb-2.5 flex items-center justify-between gap-3">
               <span className={cn(chip, "bg-sol text-noche")}>Con Tiendify</span>
               <span className="text-[13.5px] font-semibold text-gris">Pedidos de hoy</span>
             </div>
             <ul>
-              {ORDERS.map((o) => (
+              {ORDERS.map((o, i) => (
                 <li
                   key={o.id}
+                  {...reveal(500 + i * 140)}
                   className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 border-t border-linea py-[13px]"
                 >
                   <div className="min-w-0">
@@ -165,7 +179,10 @@ export function BeforeAfter({ usdRate }: { usdRate: number | null }) {
                 </li>
               ))}
             </ul>
-            <div className="mt-1.5 flex flex-wrap items-center gap-3 rounded-2xl bg-claro-hondo px-3.5 py-3">
+            <div
+              {...reveal(950, "pop")}
+              className="mt-1.5 flex flex-wrap items-center gap-3 rounded-2xl bg-claro-hondo px-3.5 py-3"
+            >
               <Avatar initial="J" color={AVATAR.rosa} className="size-8 text-xs" />
               <p className="min-w-[180px] flex-1 text-sm leading-snug">
                 <b>José R.</b> dejó 2 productos en el carrito

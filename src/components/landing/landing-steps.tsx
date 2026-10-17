@@ -3,6 +3,7 @@ import {
   ProductPhoto,
   SAMPLE,
   SectionHeading,
+  reveal,
   sectionY,
   usd,
   wrap,
@@ -104,7 +105,7 @@ function Step({
   children: React.ReactNode;
 }) {
   return (
-    <li className={card}>
+    <li {...reveal((n - 1) * 110)} className={card}>
       {/* Número calado: el orden ya lo dice la <ol>, esto es solo para el ojo. */}
       <span
         aria-hidden="true"

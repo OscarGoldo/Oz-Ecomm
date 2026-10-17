@@ -6,6 +6,7 @@ import {
   Eyebrow,
   SAMPLE,
   SectionHeading,
+  reveal,
   sectionY,
   usd,
   wrap,
@@ -52,6 +53,7 @@ export function FeatureBento({ usdRate }: { usdRate: number | null }) {
         <div className="mt-[60px] grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
           {/* Doble moneda: la celda grande, en noche */}
           <article
+            {...reveal()}
             className={cn(
               tile,
               "grid items-center gap-7 border-noche-suave bg-noche text-claro sm:col-span-2 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:col-span-4",
@@ -69,7 +71,7 @@ export function FeatureBento({ usdRate }: { usdRate: number | null }) {
             {usdRate && <RateConverter rate={usdRate} />}
           </article>
 
-          <article className={cn(tile, "lg:col-span-2")}>
+          <article {...reveal(90)} className={cn(tile, "lg:col-span-2")}>
             <h3 className={tileTitle}>Cobra como se cobra aquí.</h3>
             <p className={tileText}>
               Tu cliente sube su comprobante desde el teléfono y tú confirmas el
@@ -87,7 +89,7 @@ export function FeatureBento({ usdRate }: { usdRate: number | null }) {
             </ul>
           </article>
 
-          <article className={cn(tile, "lg:col-span-2")}>
+          <article {...reveal(0)} className={cn(tile, "lg:col-span-2")}>
             <h3 className={tileTitle}>Carritos que no se pierden.</h3>
             <p className={tileText}>
               Ves quién dejó productos en el carrito y le escribes por WhatsApp
@@ -109,7 +111,7 @@ export function FeatureBento({ usdRate }: { usdRate: number | null }) {
             </div>
           </article>
 
-          <article className={cn(tile, "lg:col-span-2")}>
+          <article {...reveal(90)} className={cn(tile, "lg:col-span-2")}>
             <h3 className={tileTitle}>Tallas y colores con su propio stock.</h3>
             <p className={tileText}>Cada variante lleva su inventario, en todos los planes.</p>
             <div className={mini} aria-hidden="true">
@@ -145,7 +147,7 @@ export function FeatureBento({ usdRate }: { usdRate: number | null }) {
             </div>
           </article>
 
-          <article className={cn(tile, "lg:col-span-2")}>
+          <article {...reveal(180)} className={cn(tile, "lg:col-span-2")}>
             <h3 className={tileTitle}>Te enteras de cada pedido.</h3>
             <p className={tileText}>
               Te llega un correo con cada pedido y lo ves al momento en tu panel.
@@ -162,7 +164,7 @@ export function FeatureBento({ usdRate }: { usdRate: number | null }) {
             </div>
           </article>
 
-          <article className={cn(tile, "lg:col-span-3")}>
+          <article {...reveal(0)} className={cn(tile, "lg:col-span-3")}>
             <span className="self-start rounded-md bg-noche px-[9px] py-1.5 font-landing-mono text-[11px] font-bold uppercase leading-none tracking-[0.08em] text-claro">
               Pro
             </span>
@@ -192,7 +194,7 @@ export function FeatureBento({ usdRate }: { usdRate: number | null }) {
             </div>
           </article>
 
-          <article className={cn(tile, "lg:col-span-3")}>
+          <article {...reveal(90)} className={cn(tile, "lg:col-span-3")}>
             <h3 className={tileTitle}>Todo desde el celular.</h3>
             <p className={tileText}>
               Cargas productos, confirmas pagos y revisas tus finanzas desde el
@@ -207,7 +209,7 @@ export function FeatureBento({ usdRate }: { usdRate: number | null }) {
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-linea">
                 <div
-                  className="h-full rounded-full bg-brand-500"
+                  className="reveal-fill h-full rounded-full bg-brand-500"
                   style={{ width: `${(24 / FREE_MAX_PRODUCTS) * 100}%` }}
                 />
               </div>

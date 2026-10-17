@@ -67,8 +67,7 @@ export function PayStrip() {
         className={`${wrap} flex items-center gap-7 py-5 max-sm:flex-col max-sm:items-start max-sm:gap-3`}
       >
         <p className="shrink-0 font-landing-mono text-xs font-semibold uppercase leading-snug tracking-[0.08em] text-niebla">
-          Cobra como
-          <br className="max-sm:hidden" /> se cobra aquí
+          Cobras con
         </p>
         <div className="min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_7%,#000_93%,transparent)] max-sm:w-full motion-reduce:[mask-image:none]">
           {/* Con "reducir movimiento" no corre: queda una lista que se parte en

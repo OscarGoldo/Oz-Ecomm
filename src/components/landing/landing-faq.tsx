@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Plus } from "lucide-react";
 
-import { SectionHeading, sectionY, wrap } from "@/components/landing/landing-ui";
+import { SectionHeading, reveal, sectionY, wrap } from "@/components/landing/landing-ui";
 import {
   DEFAULT_PRO_PRICE_USD,
   DEFAULT_PRO_PRICE_YEARLY_USD,
@@ -68,6 +68,7 @@ export function LandingFaq() {
             alarga y el titular no debería quedarse arriba solo. */}
         <div className="grid gap-[22px] lg:sticky lg:top-28">
           <Image
+            {...reveal(0, "pop")}
             src="/pana-curiosa.svg"
             alt=""
             width={260}
@@ -81,6 +82,7 @@ export function LandingFaq() {
           {faqs.map((f, i) => (
             <details
               key={f.q}
+              {...reveal(i * 60)}
               open={i === 0}
               className="group border-t border-linea last:border-b"
             >

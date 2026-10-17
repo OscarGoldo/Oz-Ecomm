@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { wrap } from "@/components/landing/landing-ui";
+import { reveal, wrap } from "@/components/landing/landing-ui";
 import { TiendifyLogo } from "@/components/landing/tiendify-logo";
 
 const LINKS = [
@@ -35,6 +35,7 @@ export function LandingFooter() {
         {/* La marca enorme y apenas visible cierra la página como un sello. */}
         <p
           aria-hidden="true"
+          {...reveal()}
           className="mb-[-0.14em] mt-[18px] select-none whitespace-nowrap text-center font-landing-display text-[clamp(5rem,25vw,23rem)] font-extrabold leading-[0.8] tracking-[-0.06em] text-claro-hondo [font-stretch:76%]"
         >
           tiendify
