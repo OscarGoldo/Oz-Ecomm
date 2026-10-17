@@ -6,7 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth";
 import { isPro } from "@/lib/plans";
-import { isFreeLayout } from "@/lib/theme";
+import { isFreeLayout, THEME_FONTS, type ThemeFont } from "@/lib/theme";
 import type { Json } from "@/types/database";
 
 export interface ActionResult {
@@ -22,7 +22,8 @@ const themeSchema = z.object({
     .enum(["classic", "fashion", "fashion-athletic", "fashion-streetwear", "accessories", "beauty", "beauty-minimal", "tech", "tech-discover", "sports", "sports-drops"])
     .default("classic"),
   colors: z.object({ primary: hex, accent: hex, surface: hex }),
-  font: z.enum(["inter", "poppins", "montserrat", "lora"]),
+  // Del catálogo de fuentes: una fuente nueva sirve sin tocar esto.
+  font: z.enum(THEME_FONTS.map((f) => f.id) as [ThemeFont, ...ThemeFont[]]),
   buttonStyle: z.enum(["rounded", "square"]),
   cardStyle: z.enum(["soft", "bordered"]),
   announcement: z.object({

@@ -4,7 +4,14 @@ import { hexToHslTriplet, isDarkColor, prefersWhiteText } from "@/lib/color";
 import { isPro, type PlanFields } from "@/lib/plans";
 import type { Store } from "@/types/database";
 
-export type ThemeFont = "inter" | "poppins" | "montserrat" | "lora";
+export type ThemeFont =
+  | "inter"
+  | "poppins"
+  | "montserrat"
+  | "lora"
+  | "dmsans"
+  | "nunito"
+  | "outfit";
 export type ButtonStyle = "rounded" | "square";
 export type CardStyle = "soft" | "bordered";
 export type SectionId = "featured" | "catalog" | "about";
@@ -185,6 +192,9 @@ export const THEME_FONTS: { id: ThemeFont; label: string; cssVar: string }[] = [
   { id: "poppins", label: "Poppins", cssVar: "var(--font-poppins)" },
   { id: "montserrat", label: "Montserrat", cssVar: "var(--font-montserrat)" },
   { id: "lora", label: "Lora (serif)", cssVar: "var(--font-lora)" },
+  { id: "dmsans", label: "DM Sans (limpia)", cssVar: "var(--font-dmsans)" },
+  { id: "nunito", label: "Nunito (redondeada)", cssVar: "var(--font-nunito)" },
+  { id: "outfit", label: "Outfit (moderna)", cssVar: "var(--font-outfit)" },
 ];
 
 export const SECTION_LABELS: Record<SectionId, string> = {

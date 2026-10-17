@@ -1,5 +1,5 @@
 import type { CardStyle } from "@/lib/theme";
-import type { LookId } from "@/lib/design/types";
+import type { Density, LookId } from "@/lib/design/types";
 import type { Category, Product, Store } from "@/types/database";
 
 /**
@@ -9,7 +9,13 @@ import type { Category, Product, Store } from "@/types/database";
  */
 export interface HomeContext {
   store: Store;
+  /** El estilo de la tienda: marca el marco de cada sección y la portada por defecto. */
   look: LookId;
+  /** De qué estilo es la tarjeta de producto (y su grilla). */
+  cardLook: LookId;
+  /** De qué estilo son los títulos de sección. */
+  headingLook: LookId;
+  density: Density;
   cardStyle: CardStyle;
   categories: Pick<Category, "id" | "name" | "slug">[];
   categoryNames: Map<string, string>;

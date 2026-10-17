@@ -21,7 +21,9 @@ import {
   generateAiDesign,
 } from "@/app/(admin)/panel/personalizar/ia/actions";
 import type { ThemeInput } from "@/app/(admin)/panel/personalizar/actions";
-import type { AiDesignQuota, DesignProposal } from "@/lib/ai-design";
+import type { AiDesignQuota, DesignProposal, SeenProposal } from "@/lib/ai-design";
+import { encodePatch, getBase } from "@/lib/design/bases";
+import { HEADING_FONTS } from "@/lib/design/design";
 import { THEME_FONTS, THEME_PRESETS } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -49,7 +51,66 @@ const LOADING_STEPS = [
   "Armando las tres propuestas…",
 ];
 
+/** Cuántas propuestas vistas se recuerdan para no repetirlas. */
+const SEEN_KEPT = 9;
+
+function readSeen(key: string): SeenProposal[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(key) ?? "[]");
+    return Array.isArray(raw) ? raw.slice(-SEEN_KEPT) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSeen(key: string, seen: SeenProposal[]) {
+  try {
+    localStorage.setItem(key, JSON.stringify(seen.slice(-SEEN_KEPT)));
+  } catch {
+    // Sin almacenamiento (modo privado): la IA igual sortea direcciones nuevas.
+  }
+}
+
+/** El nombre del diseño de una propuesta: diseño base (editor nuevo) o plantilla. */
+function designLabel(p: DesignProposal): string {
+  const base = getBase(p.design);
+  if (base) return `Diseño ${base.name}`;
+  return `Plantilla ${THEME_PRESETS.find((t) => t.id === p.design)?.label ?? p.design}`;
+}
+
+function fontLabel(p: DesignProposal): string {
+  const body = p.patch?.tokens?.font ?? p.theme?.font;
+  const heading = p.patch?.tokens?.headingFont;
+  const headingName = HEADING_FONTS.find((f) => f.id === heading && f.id !== "auto")?.label.split(" (")[0];
+  const bodyName = THEME_FONTS.find((f) => f.id === body)?.label.split(" (")[0] ?? body ?? "";
+  return headingName && headingName !== bodyName ? `${headingName} + ${bodyName}` : bodyName;
+}
+
+/** Los textos de una propuesta, vengan del tema viejo o del cambio nuevo. */
+function proposalTexts(p: DesignProposal) {
+  if (p.theme) {
+    return {
+      headline: p.theme.hero.headline,
+      subtext: p.theme.hero.subtext,
+      ctaText: p.theme.hero.ctaText,
+      announcement: p.theme.announcement.enabled ? p.theme.announcement.text : "",
+      aboutTitle: p.theme.about.title,
+      aboutText: p.theme.about.text,
+    };
+  }
+  const t = p.patch?.texts ?? {};
+  return {
+    headline: t.headline ?? "",
+    subtext: t.subtext ?? "",
+    ctaText: t.ctaText ?? "",
+    announcement: t.announcement ?? "",
+    aboutTitle: t.aboutTitle ?? "",
+    aboutText: t.aboutText ?? "",
+  };
+}
+
 export function AiDesigner({
+  storeId,
   storeName,
   logoUrl,
   sampleProducts,
@@ -57,6 +118,8 @@ export function AiDesigner({
   dailyLimit,
   hasDescription,
 }: {
+  /** Para recordar en este navegador lo que ya le mostró la IA. */
+  storeId: string;
   storeName: string;
   logoUrl: string | null;
   sampleProducts: SampleProduct[];
@@ -90,10 +153,12 @@ export function AiDesigner({
     return () => clearInterval(id);
   }, [loading]);
 
+  const seenKey = `tiendify-ia-vistas-${storeId}`;
+
   async function generate() {
     setLoading(true);
     try {
-      const res = await generateAiDesign({ brief });
+      const res = await generateAiDesign({ brief, seen: readSeen(seenKey) });
       if (res.quota) setQuota(res.quota);
       if (!res.ok) {
         toast.error(res.error);
@@ -101,6 +166,11 @@ export function AiDesigner({
       }
       setProposals(res.proposals);
       setSelected(0);
+      // Lo que vio queda anotado: el próximo intento no lo repite.
+      writeSeen(seenKey, [
+        ...readSeen(seenKey),
+        ...res.proposals.map((p) => ({ name: p.name, design: p.design, colors: p.colors, direction: p.direction })),
+      ]);
     } catch {
       toast.error("Se cortó la conexión. Intenta de nuevo.");
     } finally {
@@ -113,7 +183,8 @@ export function AiDesigner({
     if (!proposal) return;
     setApplying(true);
     const res = await applyAiDesign({
-      theme: proposal.theme as ThemeInput,
+      theme: proposal.theme as ThemeInput | undefined,
+      patch: proposal.patch,
       description: useDescription ? proposal.description : null,
     });
     setApplying(false);
@@ -134,6 +205,9 @@ export function AiDesigner({
   }
 
   const current = proposals?.[selected];
+  const texts = current
+    ? proposalTexts(current)
+    : { headline: "", subtext: "", ctaText: "", announcement: "", aboutTitle: "", aboutText: "" };
   const canGenerate = brief.trim().length >= 15 && quota.remaining > 0 && !loading;
 
   return (
@@ -232,8 +306,6 @@ export function AiDesigner({
             </CardHeader>
             <CardContent className="grid gap-3">
               {proposals.map((p, i) => {
-                const template = THEME_PRESETS.find((t) => t.id === p.theme.layout);
-                const font = THEME_FONTS.find((f) => f.id === p.theme.font);
                 const active = i === selected;
                 return (
                   <button
@@ -247,7 +319,7 @@ export function AiDesigner({
                     )}
                   >
                     <span className="mt-0.5 flex shrink-0 -space-x-1.5">
-                      {[p.theme.colors.primary, p.theme.colors.accent, p.theme.colors.surface].map(
+                      {[p.colors.primary, p.colors.accent, p.colors.surface].map(
                         (c, j) => (
                           <span
                             key={j}
@@ -267,7 +339,7 @@ export function AiDesigner({
                         )}
                       </span>
                       <span className="block text-xs text-muted-foreground">
-                        Plantilla {template?.label ?? p.theme.layout} · {font?.label ?? p.theme.font}
+                        {designLabel(p)} · {fontLabel(p)}
                       </span>
                       <span className="mt-1 block text-xs">{p.rationale}</span>
                     </span>
@@ -283,12 +355,22 @@ export function AiDesigner({
               <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
                 <Check className="size-4" /> Vista previa
               </div>
-              <StorePreview
-                theme={current.theme}
-                storeName={storeName}
-                logoUrl={logoUrl}
-                products={sampleProducts}
-              />
+              {current.patch ? (
+                // Editor por secciones: la tienda de verdad con la propuesta encima, sin guardar nada.
+                <iframe
+                  key={selected}
+                  src={`/vista-previa?vitrina=1&p=${encodePatch(current.patch)}`}
+                  title={`Vista previa de ${current.name}`}
+                  className="h-[600px] w-full rounded-2xl border bg-background shadow-sm"
+                />
+              ) : current.theme ? (
+                <StorePreview
+                  theme={current.theme}
+                  storeName={storeName}
+                  logoUrl={logoUrl}
+                  products={sampleProducts}
+                />
+              ) : null}
               <Button onClick={apply} disabled={applying} className="w-full" size="lg">
                 {applying ? <Loader2 className="animate-spin" /> : <Check />}
                 Usar este diseño
@@ -323,18 +405,11 @@ export function AiDesigner({
               <CardTitle className="text-base">Textos de esta propuesta</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <TextRow label="Titular" value={current.theme.hero.headline} />
-              <TextRow label="Subtítulo" value={current.theme.hero.subtext} />
-              <TextRow label="Botón" value={current.theme.hero.ctaText} />
-              {current.theme.announcement.enabled && (
-                <TextRow label="Barra de anuncio" value={current.theme.announcement.text} />
-              )}
-              {current.theme.about.text && (
-                <TextRow
-                  label={current.theme.about.title || "Sobre nosotros"}
-                  value={current.theme.about.text}
-                />
-              )}
+              <TextRow label="Titular" value={texts.headline} />
+              <TextRow label="Subtítulo" value={texts.subtext} />
+              <TextRow label="Botón" value={texts.ctaText} />
+              <TextRow label="Barra de anuncio" value={texts.announcement} />
+              <TextRow label={texts.aboutTitle || "Sobre nosotros"} value={texts.aboutText} />
               {current.description && (
                 <div className="space-y-2 rounded-lg border p-3">
                   <TextRow label="Descripción de la tienda" value={current.description} />

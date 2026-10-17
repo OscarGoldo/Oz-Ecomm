@@ -30,15 +30,38 @@ export type HeadingFont =
   | "lora"
   | "playfair"
   | "space"
-  | "bebas";
+  | "bebas"
+  | "dmsans"
+  | "nunito"
+  | "outfit"
+  | "fraunces";
 
-export interface DesignTokens {
+/** Cuánto aire lleva cada sección. */
+export type Density = "compacta" | "normal" | "amplia";
+
+/**
+ * Las piezas sueltas del diseño. Cada una se toma "prestada" de un estilo: la
+ * tarjeta de Moda con los títulos de Streetwear y el encabezado de Tecnología.
+ * Sin valor, la pieza es la del estilo de la tienda. Así se arman diseños
+ * nuevos combinando lo que ya existe, sin escribir componentes nuevos.
+ */
+export interface DesignPieces {
+  card?: LookId;
+  heading?: LookId;
+  header?: LookId;
+  footer?: LookId;
+  density?: Density;
+}
+
+export interface DesignTokens extends DesignPieces {
   look: LookId;
   colors: { primary: string; accent: string; surface: string };
   font: ThemeFont;
   headingFont: HeadingFont;
   buttonStyle: ButtonStyle;
   cardStyle: CardStyle;
+  /** El diseño base del que salió (vitrina o IA). Solo para mostrarlo. */
+  base?: string;
 }
 
 export type AnnouncementStyle = "auto" | "fija" | "movimiento";

@@ -12,6 +12,7 @@ import {
 import type {
   AboutStyle,
   AnySection,
+  Density,
   DesignTokens,
   HeadingFont,
   HeroStyle,
@@ -53,7 +54,25 @@ export const HEADING_FONTS: { id: HeadingFont; label: string; cssVar?: string }[
   { id: "playfair", label: "Playfair (serif elegante)", cssVar: "var(--font-playfair)" },
   { id: "space", label: "Space Grotesk (moderna)", cssVar: "var(--font-space)" },
   { id: "bebas", label: "Bebas (condensada)", cssVar: "var(--font-bebas)" },
+  { id: "fraunces", label: "Fraunces (serif con carácter)", cssVar: "var(--font-fraunces)" },
+  { id: "dmsans", label: "DM Sans (limpia)", cssVar: "var(--font-dmsans)" },
+  { id: "nunito", label: "Nunito (redondeada)", cssVar: "var(--font-nunito)" },
+  { id: "outfit", label: "Outfit (moderna)", cssVar: "var(--font-outfit)" },
 ];
+
+const PIECE_KEYS = ["card", "heading", "header", "footer"] as const;
+
+/** Las piezas que el diseño toma de un estilo Pro. */
+function proPieces(tokens: DesignTokens): (typeof PIECE_KEYS)[number][] {
+  return PIECE_KEYS.filter((k) => tokens[k] && !isFreeLayout(tokens[k]!));
+}
+
+const PIECE_LABEL: Record<(typeof PIECE_KEYS)[number], string> = {
+  card: "las tarjetas",
+  heading: "los títulos",
+  header: "el encabezado",
+  footer: "el pie",
+};
 
 // ─── Plan ──────────────────────────────────────────────────────────────────
 
@@ -75,6 +94,10 @@ export function proFeaturesUsed(design: StoreDesign): string[] {
     const label = THEME_PRESETS.find((p) => p.id === design.tokens.look)?.label;
     used.push(`el estilo ${label ?? design.tokens.look}`);
   }
+  for (const k of proPieces(design.tokens)) {
+    const label = THEME_PRESETS.find((p) => p.id === design.tokens[k])?.label;
+    used.push(`${PIECE_LABEL[k]} de ${label ?? design.tokens[k]}`);
+  }
   for (const s of design.home) {
     if (!s.hidden && sectionNeedsPro(s)) used.push(SECTION_DEFS[s.type].label.toLowerCase());
   }
@@ -89,9 +112,12 @@ export function proFeaturesUsed(design: StoreDesign): string[] {
  */
 export function applyPlan(design: StoreDesign, pro: boolean): StoreDesign {
   if (pro) return design;
+  const tokens = { ...design.tokens, look: standardLayoutFor(design.tokens.look) };
+  // Una pieza prestada de un estilo Pro vuelve a la del estilo.
+  for (const k of proPieces(design.tokens)) delete tokens[k];
   return {
     ...design,
-    tokens: { ...design.tokens, look: standardLayoutFor(design.tokens.look) },
+    tokens,
     home: design.home.map((s) => {
       if (SECTION_DEFS[s.type].pro) return { ...s, hidden: true };
       if (s.type === "hero" && PRO_HERO_STYLES.has(s.settings.style)) {
@@ -113,7 +139,9 @@ export function designStyle(design: StoreDesign): CSSProperties {
   const style = themeStyle({
     font: t.font,
     buttonStyle: t.buttonStyle,
-    layout: t.look,
+    // La fuente de títulos "del estilo" es la de la pieza de títulos: si los
+    // títulos son los de Streetwear, van con su Bebas.
+    layout: t.heading ?? t.look,
     colors: t.colors,
   }) as Record<string, string>;
   const heading = HEADING_FONTS.find((f) => f.id === t.headingFont)?.cssVar;
@@ -357,10 +385,10 @@ export function templateDesign(look: LookId): StoreDesign {
  */
 export function switchLook(design: StoreDesign, look: LookId): StoreDesign {
   const preset = THEME_PRESETS.find((p) => p.id === look)!.theme;
+  // Las piezas sueltas y el diseño base se sueltan: el estilo nuevo se ve entero.
   return {
     ...design,
     tokens: {
-      ...design.tokens,
       look,
       colors: preset.colors,
       font: preset.font,
@@ -374,6 +402,18 @@ export function switchLook(design: StoreDesign, look: LookId): StoreDesign {
 // ─── Leer y validar ────────────────────────────────────────────────────────
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
+const DENSITIES: Density[] = ["compacta", "normal", "amplia"];
+
+/** Las piezas sueltas y el diseño base guardados, descartando lo que no reconoce. */
+function parsePieces(t: Partial<DesignTokens>): Partial<DesignTokens> {
+  const out: Partial<DesignTokens> = {};
+  for (const k of PIECE_KEYS) {
+    if (LAYOUT_IDS.includes(t[k] as LookId)) out[k] = t[k];
+  }
+  if (DENSITIES.includes(t.density as Density)) out.density = t.density;
+  if (typeof t.base === "string" && t.base.length <= 40) out.base = t.base;
+  return out;
+}
 
 /**
  * Lee un diseño guardado (JSON de la base) completando lo que falte. null si
@@ -408,6 +448,7 @@ export function parseDesign(raw: Json | null | undefined): StoreDesign | null {
       headingFont: HEADING_FONTS.some((f) => f.id === t.headingFont) ? t.headingFont! : "auto",
       buttonStyle: t.buttonStyle === "square" ? "square" : t.buttonStyle === "rounded" ? "rounded" : preset.buttonStyle,
       cardStyle: t.cardStyle === "bordered" ? "bordered" : t.cardStyle === "soft" ? "soft" : preset.cardStyle,
+      ...parsePieces(t),
     },
     header: {
       announcement: {
@@ -432,6 +473,12 @@ export const designSchema = z.object({
     headingFont: z.enum(HEADING_FONTS.map((f) => f.id) as [string, ...string[]]),
     buttonStyle: z.enum(["rounded", "square"]),
     cardStyle: z.enum(["soft", "bordered"]),
+    card: z.enum(LAYOUT_IDS as [LookId, ...LookId[]]).optional(),
+    heading: z.enum(LAYOUT_IDS as [LookId, ...LookId[]]).optional(),
+    header: z.enum(LAYOUT_IDS as [LookId, ...LookId[]]).optional(),
+    footer: z.enum(LAYOUT_IDS as [LookId, ...LookId[]]).optional(),
+    density: z.enum(["compacta", "normal", "amplia"]).optional(),
+    base: z.string().max(40).optional(),
   }),
   header: z.object({
     announcement: z.object({

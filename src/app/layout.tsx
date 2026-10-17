@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import {
   Bebas_Neue,
+  DM_Sans,
+  Fraunces,
   Instrument_Sans,
   Inter,
   Lora,
   Montserrat,
+  Nunito,
+  Outfit,
   Playfair_Display,
   Poppins,
   Space_Grotesk,
@@ -61,6 +65,32 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-space",
   display: "swap",
 });
+// Fuentes de los diseños base de las tiendas. Sin precarga: el navegador solo
+// las baja si la tienda que se está viendo las usa, así no pesan en las demás.
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dmsans",
+  display: "swap",
+  preload: false,
+});
+const nunito = Nunito({
+  subsets: ["latin"],
+  variable: "--font-nunito",
+  display: "swap",
+  preload: false,
+});
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
+  preload: false,
+});
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
+  preload: false,
+});
 
 export const metadata: Metadata = {
   // Sin esto Next emite `og:image` como ruta relativa y WhatsApp la descarta:
@@ -103,7 +133,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${instrumentSans.variable} ${poppins.variable} ${montserrat.variable} ${lora.variable} ${bebas.variable} ${playfair.variable} ${spaceGrotesk.variable}`}
+      className={`${inter.variable} ${instrumentSans.variable} ${poppins.variable} ${montserrat.variable} ${lora.variable} ${bebas.variable} ${playfair.variable} ${spaceGrotesk.variable} ${dmSans.variable} ${nunito.variable} ${outfit.variable} ${fraunces.variable}`}
     >
       <body className="font-sans">
         {children}

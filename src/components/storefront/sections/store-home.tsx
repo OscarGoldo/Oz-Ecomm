@@ -101,6 +101,9 @@ export function StoreHome({
   const ctx: HomeContext = {
     store,
     look: design.tokens.look,
+    cardLook: design.tokens.card ?? design.tokens.look,
+    headingLook: design.tokens.heading ?? design.tokens.look,
+    density: design.tokens.density ?? "normal",
     cardStyle: design.tokens.cardStyle,
     categories,
     categoryNames: new Map(categories.map((c) => [c.id, c.name])),
@@ -117,8 +120,11 @@ export function StoreHome({
   };
 
   const sections = hasFilters ? visible.filter((s) => s.type === "catalog") : visible;
-  const main =
-    ctx.look === "classic" ? "pb-4" : ctx.look === "tech-discover" ? "pb-10" : "pb-6";
+  // text-foreground explícito: sin esto el texto hereda el color del <body> (el
+  // del panel, oscuro) y en una tienda de fondo oscuro quedaba oscuro sobre oscuro.
+  const main = `text-foreground ${
+    ctx.look === "classic" ? "pb-4" : ctx.look === "tech-discover" ? "pb-10" : "pb-6"
+  }`;
 
   return (
     <main className={main}>

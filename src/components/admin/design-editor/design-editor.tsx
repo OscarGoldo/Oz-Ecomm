@@ -21,6 +21,7 @@ import {
   Images,
   LayoutGrid,
   LayoutList,
+  LayoutTemplate,
   Loader2,
   MapPin,
   Megaphone,
@@ -392,6 +393,11 @@ export function DesignEditor({
               <Monitor className="size-4" />
             </button>
           </div>
+          <Button size="sm" variant="outline" asChild>
+            <Link href="/panel/personalizar/disenos">
+              <LayoutTemplate className="size-4" /> Diseños
+            </Link>
+          </Button>
           <Button variant="outline" size="sm" onClick={openHistory}>
             <History className="size-4" /> Historial
           </Button>

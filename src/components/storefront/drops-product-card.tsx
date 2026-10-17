@@ -36,7 +36,13 @@ export function DropsProductCard({
     product.stock <= product.low_stock_threshold;
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-lg border border-white/10 bg-neutral-900 transition-colors hover:border-[hsl(var(--brand-accent))]">
+    <div
+      className="group relative flex flex-col overflow-hidden rounded-lg border border-white/10 bg-neutral-900 transition-colors hover:border-[hsl(var(--brand-accent))]"
+      // La tarjeta es oscura siempre: trae sus propios colores de texto para
+      // que el precio se lea también en una tienda de fondo claro (las piezas
+      // sueltas del editor permiten usar esta tarjeta en cualquier estilo).
+      style={{ "--foreground": "0 0% 98%", "--muted-foreground": "0 0% 64%" } as React.CSSProperties}
+    >
       <Link
         href={storeHref(store.slug, `/producto/${product.slug}`)}
         className="absolute inset-0 z-10"

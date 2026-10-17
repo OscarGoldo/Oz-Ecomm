@@ -47,14 +47,14 @@ export default async function StoreLayout({
     const { announcement } = design.header;
     return (
       <StoreBaseProvider base={storeBasePath(store.slug)}>
-        <div style={designStyle(design)} className="storefront flex min-h-dvh flex-col bg-background">
+        <div style={designStyle(design)} className="storefront flex min-h-dvh flex-col bg-background text-foreground">
           {announcement.enabled && announcement.text && (
             <StoreAnnouncement text={announcement.text} look={design.tokens.look} style={announcement.style} />
           )}
           <JsonLd data={storeJsonLd(store, getImageUrl(store.logo_url))} />
-          <StorefrontHeader store={store} cartCount={cartCount} layout={design.tokens.look} />
+          <StorefrontHeader store={store} cartCount={cartCount} layout={design.tokens.header ?? design.tokens.look} />
           <div className="flex-1">{children}</div>
-          <StorefrontFooter store={store} layout={design.tokens.look} />
+          <StorefrontFooter store={store} layout={design.tokens.footer ?? design.tokens.look} />
           <WhatsappFloat phone={store.whatsapp} storeName={store.name} />
         </div>
       </StoreBaseProvider>

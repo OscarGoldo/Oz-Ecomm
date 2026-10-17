@@ -8,6 +8,7 @@ import { StoreHome } from "@/components/storefront/sections/store-home";
 import { requireStoreUser } from "@/lib/auth";
 import { getCachedBcvRates } from "@/lib/bcv";
 import { bcvReference } from "@/lib/exchange-rate";
+import { applyPatch, decodePatch } from "@/lib/design/bases";
 import { designStyle } from "@/lib/design/design";
 import { designV2Enabled } from "@/lib/design/flag";
 import { loadDraft } from "@/lib/design/store";
@@ -25,28 +26,39 @@ export const dynamic = "force-dynamic";
  * Vive fuera de la tienda a propósito: solo la ve el dueño con su sesión, y
  * el layout de la tienda no puede saber si está en modo vista previa (los
  * layouts no reciben la URL).
+ *
+ * `?p=` trae un cambio sin guardar (un diseño de la vitrina, una propuesta de
+ * la IA) que se aplica encima del borrador solo para mirarlo. `?vitrina=1`
+ * esconde los recuadros de "esta sección está vacía", que sirven al editar
+ * pero ensucian cuando solo se está mirando.
  */
-export default async function DesignPreviewPage() {
+export default async function DesignPreviewPage({
+  searchParams,
+}: {
+  searchParams: { p?: string; vitrina?: string };
+}) {
   const { store } = await requireStoreUser();
   if (!designV2Enabled(store)) notFound();
 
-  const [{ design }, categories, page, bcvRates] = await Promise.all([
+  const patch = decodePatch(searchParams.p);
+  const [{ design: draft }, categories, page, bcvRates] = await Promise.all([
     loadDraft(store),
     getStoreCategories(store.id),
     getStoreCatalogPage(store.id, {}, CATALOG_PAGE_SIZE),
     store.show_bs_prices ? getCachedBcvRates() : null,
   ]);
+  const design = patch ? applyPatch(draft, patch) : draft;
   const products = page.products;
   const featured = products.filter((p) => p.featured && (!p.track_stock || p.stock > 0)).slice(0, 10);
   const { announcement } = design.header;
 
   return (
     <StoreBaseProvider base={`/${store.slug}`}>
-      <div style={designStyle(design)} className="storefront flex min-h-dvh flex-col bg-background">
+      <div style={designStyle(design)} className="storefront flex min-h-dvh flex-col bg-background text-foreground">
         {announcement.enabled && announcement.text && (
           <StoreAnnouncement text={announcement.text} look={design.tokens.look} style={announcement.style} />
         )}
-        <StorefrontHeader store={store} cartCount={0} layout={design.tokens.look} />
+        <StorefrontHeader store={store} cartCount={0} layout={design.tokens.header ?? design.tokens.look} />
         <div className="flex-1">
           <StoreHome
             store={store}
@@ -58,10 +70,10 @@ export default async function DesignPreviewPage() {
             heading="Todos los productos"
             banner={getImageUrl(store.banner_url)}
             bcv={bcvReference(store.currency_primary, bcvRates)}
-            editing
+            editing={searchParams.vitrina !== "1"}
           />
         </div>
-        <StorefrontFooter store={store} layout={design.tokens.look} />
+        <StorefrontFooter store={store} layout={design.tokens.footer ?? design.tokens.look} />
       </div>
       <PreviewBridge />
     </StoreBaseProvider>

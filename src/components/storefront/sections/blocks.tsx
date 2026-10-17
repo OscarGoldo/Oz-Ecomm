@@ -97,8 +97,8 @@ export function ProductsSection({ section, ctx }: { section: Section<"products">
     : undefined;
   const few = items.length <= 4;
   const grid = few
-    ? cn("grid grid-cols-2 sm:grid-cols-4", ctx.look === "beauty-minimal" ? "gap-x-5 gap-y-10" : "gap-3 sm:gap-4")
-    : lookGrid(ctx.look);
+    ? cn("grid grid-cols-2 sm:grid-cols-4", ctx.cardLook === "beauty-minimal" ? "gap-x-5 gap-y-10" : "gap-3 sm:gap-4")
+    : lookGrid(ctx.cardLook);
 
   const body = (
     <>
@@ -206,7 +206,7 @@ export function CategoriesSection({ section, ctx }: { section: Section<"categori
     );
   }
 
-  const centered = lookCentered(ctx.look);
+  const centered = lookCentered(ctx.headingLook);
   return (
     <Shell ctx={ctx}>
       <SectionHeading ctx={ctx} title={s.title} />
@@ -262,7 +262,7 @@ export function CatalogSection({ section, ctx }: { section: Section<"catalog">; 
   return (
     <Shell ctx={ctx} id="catalogo" className="scroll-mt-20">
       {showChips && (
-        <div className={cn("mb-4", lookCentered(ctx.look) && "flex justify-center")}>
+        <div className={cn("mb-4", lookCentered(ctx.headingLook) && "flex justify-center")}>
           <CategoryChips categories={ctx.categories} />
         </div>
       )}
@@ -274,7 +274,7 @@ export function CatalogSection({ section, ctx }: { section: Section<"catalog">; 
           {empty.text && <p className="mt-1 text-sm text-muted-foreground">{empty.text}</p>}
         </div>
       ) : (
-        <div className={lookGrid(ctx.look)}>
+        <div className={lookGrid(ctx.cardLook)}>
           {ctx.products.map((p) => (
             <LookCard key={p.id} product={p} ctx={ctx} />
           ))}
@@ -454,7 +454,7 @@ export function AboutSection({ section, ctx }: { section: Section<"about">; ctx:
           ? "archivo"
           : ctx.look === "beauty-minimal"
             ? "dividido"
-            : lookCentered(ctx.look)
+            : lookCentered(ctx.headingLook)
               ? "centrado"
               : "tarjeta";
 

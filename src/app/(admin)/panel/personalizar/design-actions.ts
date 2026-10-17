@@ -3,11 +3,13 @@
 import { revalidatePath } from "next/cache";
 
 import { getSessionContext } from "@/lib/auth";
+import { applyPatch, patchSchema } from "@/lib/design/bases";
 import { designSchema, parseDesign, proFeaturesUsed, savedDesign } from "@/lib/design/design";
 import { designV2Enabled } from "@/lib/design/flag";
 import {
   discardDraft,
   listVersions,
+  loadDraft,
   loadVersion,
   publishDesign,
   saveDraft,
@@ -95,4 +97,21 @@ export async function restoreDesignVersion(versionId: string): Promise<DesignAct
   if (!design) return { ok: false, error: "No se encontró esa versión" };
   const saved = await saveDraft(session.store.id, design);
   return saved ? { ok: true, design } : { ok: false, error: "No se pudo restaurar" };
+}
+
+/**
+ * Lleva al borrador un diseño de la vitrina (o un cambio de la IA). Igual que
+ * el resto del editor: queda como borrador, se revisa y se publica. Se puede
+ * probar un diseño Pro; el candado está al publicar.
+ */
+export async function applyDesignPatch(input: unknown): Promise<DesignActionResult> {
+  const session = await editorStore();
+  if (!session) return { ok: false, error: "No autorizado" };
+  const patch = patchSchema.safeParse(input);
+  if (!patch.success) return { ok: false, error: "Diseño inválido" };
+  const { design: draft } = await loadDraft(session.store);
+  const design = validDesign(applyPatch(draft, patch.data));
+  if ("error" in design) return { ok: false, error: design.error };
+  const saved = await saveDraft(session.store.id, design);
+  return saved ? { ok: true, design } : { ok: false, error: "No se pudo guardar el diseño" };
 }

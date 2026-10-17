@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
+  ArrowRight,
   Cpu,
   Dumbbell,
   Flame,
   Flower,
   Gem,
+  LayoutTemplate,
   Lock,
   Medal,
   Shirt,
@@ -21,8 +24,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ProChip } from "@/components/admin/pro-lock";
+import { getBase } from "@/lib/design/bases";
 import { HEADING_FONTS } from "@/lib/design/design";
-import type { AnnouncementStyle, HeadingFont, LookId, StoreDesign } from "@/lib/design/types";
+import type { AnnouncementStyle, Density, HeadingFont, LookId, StoreDesign } from "@/lib/design/types";
 import {
   TEMPLATE_CATEGORIES,
   THEME_FONTS,
@@ -109,6 +113,38 @@ function Choice<T extends string>({
   );
 }
 
+/** Una pieza suelta: "la del estilo" o la de cualquier otro estilo. */
+function PieceSelect({
+  label,
+  value,
+  pro,
+  onChange,
+}: {
+  label: string;
+  value: LookId | undefined;
+  pro: boolean;
+  onChange: (v: LookId | undefined) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs">{label}</Label>
+      <select
+        className={selectClass}
+        value={value ?? ""}
+        onChange={(e) => onChange((e.target.value || undefined) as LookId | undefined)}
+      >
+        <option value="">Las del estilo de la tienda</option>
+        {THEME_PRESETS.map((p) => (
+          <option key={p.id} value={p.id}>
+            Como {p.label}
+            {!pro && !isFreeLayout(p.id as LookId) ? " · Pro" : ""}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 /**
  * La pestaña "Estilo": el look de la tienda (lo que antes era la plantilla),
  * colores, fuentes, botones, tarjetas y la barra de anuncio.
@@ -134,9 +170,27 @@ export function StylePanel({
   );
   const current = THEME_PRESETS.find((p) => p.id === t.look);
   const ann = design.header.announcement;
+  const base = getBase(t.base);
 
   return (
     <div className="space-y-5">
+      <Link
+        href="/panel/personalizar/disenos"
+        className="group flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3 transition-colors hover:bg-primary/10"
+      >
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
+          <LayoutTemplate className="size-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Vitrina de diseños</span>
+          <span className="block text-xs text-muted-foreground">
+            {base ? `Usas ${base.name} (${base.tagline.toLowerCase()}). ` : ""}
+            Prueba otros con tus productos.
+          </span>
+        </span>
+        <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+      </Link>
+
       <Group
         title="Estilo de la tienda"
         hint="Cambia cómo se ven las tarjetas, los títulos, el encabezado y el pie. Tus secciones y textos se quedan."
@@ -199,6 +253,28 @@ export function StylePanel({
             Empezar de cero con las secciones de {current.label}
           </button>
         )}
+      </Group>
+
+      <Group
+        title="Ajustes finos"
+        hint="Mezcla piezas de distintos estilos: por ejemplo, las tarjetas de Moda con los títulos de Streetwear."
+      >
+        <PieceSelect label="Tarjetas de producto" value={t.card} pro={pro} onChange={(v) => onTokens({ card: v })} />
+        <PieceSelect label="Títulos de sección" value={t.heading} pro={pro} onChange={(v) => onTokens({ heading: v })} />
+        <PieceSelect label="Encabezado" value={t.header} pro={pro} onChange={(v) => onTokens({ header: v })} />
+        <PieceSelect label="Pie de página" value={t.footer} pro={pro} onChange={(v) => onTokens({ footer: v })} />
+        <div className="space-y-1.5">
+          <Label className="text-xs">Espacio entre secciones</Label>
+          <Choice<Density>
+            value={t.density ?? "normal"}
+            onChange={(v) => onTokens({ density: v })}
+            options={[
+              { id: "compacta", label: "Compacto" },
+              { id: "normal", label: "Normal" },
+              { id: "amplia", label: "Amplio" },
+            ]}
+          />
+        </div>
       </Group>
 
       <Group title="Colores">

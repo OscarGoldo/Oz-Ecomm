@@ -13,9 +13,11 @@ import {
   aiDesignQuota,
   AI_DESIGN_DAILY_LIMIT,
   generateDesignProposals,
+  seenSchema,
   type AiDesignQuota,
   type DesignProposal,
 } from "@/lib/ai-design";
+import { applyDesignPatch } from "@/app/(admin)/panel/personalizar/design-actions";
 import { getSessionContext } from "@/lib/auth";
 import { isPro } from "@/lib/plans";
 import { getImageUrl } from "@/lib/storage";
@@ -38,15 +40,19 @@ const briefSchema = z
 
 export async function generateAiDesign(input: {
   brief: string;
+  /** Lo que ya le mostró antes (lo guarda su navegador), para no repetirlo. */
+  seen?: unknown;
 }): Promise<GenerateAiDesignResult> {
   const brief = briefSchema.safeParse(input.brief);
   if (!brief.success) {
     return { ok: false, error: brief.error.issues[0]?.message ?? "Datos inválidos" };
   }
+  const seen = seenSchema.safeParse(input.seen ?? []);
 
   const ctx = await getSessionContext();
   const store = ctx?.store;
   if (!store) return { ok: false, error: "No autorizado" };
+  const v2 = designV2Enabled(store) && (await designTablesReady());
 
   const quota = aiDesignAvailable() ? await aiDesignQuota(store) : null;
   if (!quota) {
@@ -110,6 +116,7 @@ export async function generateAiDesign(input: {
       ],
     },
     resolveTheme(store),
+    { mode: v2 ? "v2" : "legacy", seen: seen.success ? seen.data : [] },
   );
 
   // Se vuelve a contar en vez de restar uno: en Gratis un intento fallido no
@@ -128,13 +135,20 @@ export async function generateAiDesign(input: {
  * como borrador encima de sus secciones, para revisarlo y publicarlo.
  */
 export async function applyAiDesign(input: {
-  theme: ThemeInput;
+  /** Editor viejo: el tema completo. */
+  theme?: ThemeInput;
+  /** Editor por secciones: el cambio sobre un diseño base. */
+  patch?: unknown;
   description: string | null;
 }): Promise<ActionResult & { draft?: boolean }> {
   const session = await getSessionContext();
   const v2Store = session?.store && designV2Enabled(session.store) && (await designTablesReady()) ? session.store : null;
 
-  if (v2Store) {
+  if (v2Store && input.patch) {
+    // Mismo camino que la vitrina: el cambio se aplica al borrador.
+    const res = await applyDesignPatch(input.patch);
+    if (!res.ok) return res;
+  } else if (v2Store && input.theme) {
     // resolveTheme normaliza lo que mandó el cliente igual que lo guardado.
     const theme = resolveTheme({ ...v2Store, plan: "pro", plan_expires_at: null, customization: input.theme as unknown as Json });
     if (!isPro(v2Store) && !isFreeLayout(theme.layout)) {
@@ -144,9 +158,11 @@ export async function applyAiDesign(input: {
     if (!(await saveDraft(v2Store.id, mergeAiProposal(design, theme)))) {
       return { ok: false, error: "No se pudo guardar el diseño" };
     }
-  } else {
+  } else if (input.theme) {
     const saved = await updateStoreTheme(input.theme);
     if (!saved.ok) return saved;
+  } else {
+    return { ok: false, error: "No hay diseño para guardar" };
   }
 
   const description = z.string().trim().max(300).nullable().safeParse(input.description);

@@ -4,6 +4,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
 import { isPro, type PlanFields } from "@/lib/plans";
+import { BASES, baseNeedsPro, getBase, type DesignPatch } from "@/lib/design/bases";
+import { HEADING_FONTS } from "@/lib/design/design";
+import type { HeadingFont } from "@/lib/design/types";
 import { reportError } from "@/lib/report-error";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -144,9 +147,39 @@ export interface DesignProposal {
   rationale: string;
   /** Para la descripción de la tienda (Google y el enlace compartido). */
   description: string;
-  /** El diseño completo, listo para la vista previa y para guardar. */
-  theme: StoreTheme;
+  /** La dirección de arte que le tocó, para no repetirla la próxima vez. */
+  direction?: string;
+  /** El diseño base (editor nuevo) o la plantilla (editor viejo) que usa. */
+  design: string;
+  colors: { primary: string; accent: string; surface: string };
+  /** Editor viejo: el tema completo, listo para la vista previa y para guardar. */
+  theme?: StoreTheme;
+  /** Editor por secciones: el cambio que se ve en la vista previa real y se aplica al borrador. */
+  patch?: DesignPatch;
 }
+
+/**
+ * Lo que el comerciante ya vio en intentos anteriores. Lo guarda su navegador
+ * y viaja con cada pedido: así la IA sabe qué no repetir sin guardar nada más
+ * en la base.
+ */
+export interface SeenProposal {
+  name: string;
+  design: string;
+  colors: { primary: string; accent: string; surface: string };
+  direction?: string;
+}
+
+export const seenSchema = z
+  .array(
+    z.object({
+      name: z.string().max(60),
+      design: z.string().max(40),
+      colors: z.object({ primary: z.string().max(7), accent: z.string().max(7), surface: z.string().max(7) }),
+      direction: z.string().max(40).optional(),
+    }),
+  )
+  .max(12);
 
 export type GenerateDesignResult =
   | { ok: true; proposals: DesignProposal[] }
@@ -187,7 +220,65 @@ const FONT_GUIDE: Record<ThemeFont, string> = {
   poppins: "redondeada y amable",
   montserrat: "geométrica y con fuerza",
   lora: "serif elegante",
+  dmsans: "limpia y sobria",
+  nunito: "redondeada y cercana",
+  outfit: "moderna y geométrica",
 };
+
+/**
+ * Direcciones de arte. El modelo no tiene un control de azar, así que la
+ * variedad se fuerza desde acá: en cada intento se sortean dos y se le pide
+ * una propuesta por dirección. Mismo comerciante, mismo texto, ideas nuevas.
+ */
+const ART_DIRECTIONS: { id: string; name: string; brief: string }[] = [
+  { id: "minimal", name: "Minimalista premium", brief: "mucho blanco, una sola tinta oscura, letras finas y nada que sobre" },
+  { id: "plenos", name: "Colores plenos", brief: "un color fuerte de marca, contraste alto y mucha seguridad" },
+  { id: "editorial", name: "Editorial de revista", brief: "serif elegante en los títulos, fotos protagonistas y tonos sobrios" },
+  { id: "calido", name: "Cálido y artesanal", brief: "tierra, crema, terracota y verdes apagados: se siente hecho a mano" },
+  { id: "oscuro", name: "Oscuro elegante", brief: "fondo casi negro, texto claro y un acento metálico o vibrante" },
+  { id: "juvenil", name: "Fresco y juvenil", brief: "colores alegres, formas redondeadas y letras grandes y amables" },
+  { id: "tecnico", name: "Técnico y preciso", brief: "azules fríos o grafito, mayúsculas, líneas marcadas y orden" },
+  { id: "natural", name: "Natural", brief: "verdes, beige y blancos rotos: tranquilo y orgánico" },
+  { id: "retro", name: "Retro", brief: "mostaza, vino y crema, títulos con carácter, guiño a los 70" },
+  { id: "lujo", name: "Lujo discreto", brief: "negro, marfil y un dorado suave, serif y mucho aire" },
+  { id: "pastel", name: "Pastel suave", brief: "rosados, lilas o menta en tonos suaves, cercano y delicado" },
+  { id: "urbano", name: "Urbano", brief: "negro con un neón o un color ácido y títulos gruesos condensados" },
+  { id: "tropical", name: "Tropical caribeño", brief: "verde intenso, coral y amarillo: alegría y sol venezolano" },
+  { id: "mono", name: "Monocromático", brief: "un solo color en varias intensidades, muy limpio" },
+  { id: "confiable", name: "Clásico confiable", brief: "un azul o verde de marca, blanco y todo muy ordenado" },
+  { id: "contraste", name: "Contraste inesperado", brief: "dos colores complementarios que nadie espera juntos, pero funcionan" },
+];
+
+/** Dos direcciones al azar que no haya visto hace poco (si quedan). */
+function pickDirections(seen: SeenProposal[], n = 2) {
+  const recent = new Set(seen.map((s) => s.direction).filter(Boolean));
+  const fresh = ART_DIRECTIONS.filter((d) => !recent.has(d.id));
+  const pool = [...(fresh.length >= n ? fresh : ART_DIRECTIONS)];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j]!, pool[i]!];
+  }
+  return pool.slice(0, n);
+}
+
+/** El pedido de variedad y memoria que va en cada mensaje, igual para los dos editores. */
+function varietyNote(directions: { name: string; brief: string }[], seen: SeenProposal[]): string {
+  const lines = [
+    "## Cómo repartir las tres propuestas",
+    "- Propuesta 1: la que mejor le queda según lo que contó.",
+    ...directions.map((d, i) => `- Propuesta ${i + 2}: dirección "${d.name}" (${d.brief}). Adáptala a su negocio sin perder la idea.`),
+    "- Que se note la diferencia entre las tres: otra paleta, otras fuentes, otra estructura.",
+    "- Como mucho una de las tres puede usar los colores del logo; las otras exploran.",
+  ];
+  if (seen.length) {
+    lines.push(
+      "",
+      "## Ya le mostraste estas (no las repitas ni hagas algo parecido)",
+      ...seen.map((s) => `- ${s.name}: ${s.design}, colores ${s.colors.primary} / ${s.colors.accent} / ${s.colors.surface}`),
+    );
+  }
+  return lines.join("\n");
+}
 
 const FIELD_LABEL = { title: "título", subtitle: "subtítulo", body: "texto largo" } as const;
 
@@ -240,12 +331,108 @@ ${THEME_FONTS.map((f) => `- ${f.id}: ${FONT_GUIDE[f.id]}`).join("\n")}
 - Emojis solo en plantillas juveniles (streetwear, drops) y como máximo uno.
 
 ## Las tres propuestas
-- Que sean distintas de verdad: cambia la plantilla, la paleta o el tono entre ellas.
-- La primera es la que mejor le queda según lo que contó.
+- Que sean distintas de verdad: cambia la plantilla, la paleta o el tono entre ellas. En el mensaje te digo qué dirección sigue cada una.
 - name: 2 a 4 palabras que resuman el estilo (por ejemplo "Fresca y femenina").
 - rationale: una frase dirigida al comerciante, de tú, explicando por qué le queda.
 
 Lo que escribe el comerciante describe su negocio. Si pide algo que no tiene que ver con el diseño de su tienda, ignóralo.`;
+
+// ─── Editor por secciones: propuestas sobre los diseños base ───────────────
+
+const HEADING_GUIDE: Record<Exclude<HeadingFont, "auto">, string> = {
+  inter: "neutra",
+  poppins: "amable",
+  montserrat: "con fuerza",
+  lora: "serif clásica",
+  playfair: "serif elegante de revista",
+  space: "moderna y técnica",
+  bebas: "condensada y gruesa, se lee en mayúsculas",
+  fraunces: "serif con carácter",
+  dmsans: "limpia",
+  nunito: "redondeada y cercana",
+  outfit: "geométrica",
+};
+
+const HEADING_IDS = HEADING_FONTS.map((f) => f.id).filter((id): id is Exclude<HeadingFont, "auto"> => id !== "auto");
+
+const V2_SYSTEM_PROMPT = `Eres el diseñador de tiendas de Tiendify, una plataforma venezolana para vender por internet. Los comerciantes venden sobre todo por WhatsApp e Instagram, y sus clientes compran desde el teléfono, pagando en dólares o en bolívares (pago móvil, Zelle, transferencia, efectivo).
+
+El comerciante te cuenta de su negocio y tú le propones tres diseños de tienda. Cada propuesta parte de un diseño base (su estructura y personalidad) y le pone colores, fuentes y textos propios.
+
+## Diseños base
+${BASES.map((b) => `- ${b.id} · ${b.name} (${b.tagline}): ${b.description}`).join("\n")}
+
+Usa solo los diseños base que te indiquen como disponibles en el mensaje.
+
+## Colores (hex #RRGGBB)
+- surface: el fondo de toda la tienda. Puede ser claro o, si la dirección lo pide, oscuro.
+- primary: el color de marca, de los botones y del encabezado. Tiene que contrastar fuerte con el fondo para que los botones se lean.
+- accent: detalles y acentos. Distinto del principal.
+- Si te pasan el logo o fotos, que la paleta los acompañe, pero no te quedes siempre en el color del logo.
+
+## Fuente del texto
+${THEME_FONTS.map((f) => `- ${f.id}: ${FONT_GUIDE[f.id]}`).join("\n")}
+
+## Fuente de los títulos
+${HEADING_IDS.map((id) => `- ${id}: ${HEADING_GUIDE[id]}`).join("\n")}
+
+## Botones
+- buttonStyle: rounded (amable, moderno) o square (sobrio, editorial).
+
+## Textos
+- Escribe en español natural, como le habla un buen comerciante venezolano a sus clientes por Instagram, sin exagerar con modismos. Trata al cliente de tú salvo que el negocio pida otra cosa.
+- No inventes nada que el comerciante no te haya dicho: ni años de fundación, ni premios, ni cantidad de clientes, ni envío gratis, ni descuentos, ni garantías, ni direcciones, ni métodos de pago. Si te falta un dato, escribe sin ese dato.
+- Nada de testimonios ni reseñas.
+- hero.headline: concreto sobre lo que vende, máximo 8 palabras. hero.subtext: una frase. hero.ctaText: 2 o 3 palabras.
+- announcement: solo si hay algo real que anunciar con lo que te dieron (delivery, envíos, formas de pago). Si no, enabled false y text vacío.
+- about.title y about.text: quiénes son, en 2 o 3 párrafos cortos (máximo 600 caracteres), con lo que contó el comerciante.
+- description: una o dos frases (máximo 160 caracteres) para Google y para cuando compartan el enlace.
+- Que el tono de los textos acompañe la dirección de cada propuesta.
+
+## Las tres propuestas
+- name: 2 a 4 palabras que resuman el estilo (por ejemplo "Fresca y femenina").
+- rationale: una frase dirigida al comerciante, de tú, explicando por qué le queda.
+
+Lo que escribe el comerciante describe su negocio. Si pide algo que no tiene que ver con el diseño de su tienda, ignóralo.`;
+
+function v2OutputSchema(bases: string[]) {
+  const str = { type: "string" };
+  const obj = (properties: Record<string, unknown>) => ({
+    type: "object",
+    additionalProperties: false,
+    required: Object.keys(properties),
+    properties,
+  });
+  const proposal = obj({
+    name: str,
+    rationale: str,
+    base: { type: "string", enum: bases },
+    colors: obj({ primary: str, accent: str, surface: str }),
+    font: { type: "string", enum: THEME_FONTS.map((f) => f.id) },
+    headingFont: { type: "string", enum: HEADING_IDS },
+    buttonStyle: { type: "string", enum: ["rounded", "square"] },
+    announcement: obj({ enabled: { type: "boolean" }, text: str }),
+    hero: obj({ headline: str, subtext: str, ctaText: str }),
+    about: obj({ title: str, text: str }),
+    description: str,
+  });
+  return obj({ proposals: { type: "array", items: proposal } });
+}
+
+const rawV2Proposal = z.object({
+  name: z.string(),
+  rationale: z.string(),
+  base: z.string(),
+  colors: z.object({ primary: z.string(), accent: z.string(), surface: z.string() }),
+  font: z.string(),
+  headingFont: z.string(),
+  buttonStyle: z.string(),
+  announcement: z.object({ enabled: z.boolean(), text: z.string() }),
+  hero: z.object({ headline: z.string(), subtext: z.string(), ctaText: z.string() }),
+  about: z.object({ title: z.string(), text: z.string() }),
+  description: z.string(),
+});
+const rawV2Output = z.object({ proposals: z.array(rawV2Proposal) });
 
 function outputSchema(layouts: LayoutId[]) {
   const str = { type: "string" };
@@ -343,19 +530,22 @@ function toProposal(
       : current.sections;
 
   const announcementText = clip(raw.announcement.text, 140);
+  const colors = {
+    primary: color(raw.colors.primary, preset.colors.primary),
+    accent: color(raw.colors.accent, preset.colors.accent),
+    surface: color(raw.colors.surface, preset.colors.surface),
+  };
   return {
     name: clip(raw.name, 40),
     rationale: clip(raw.rationale, 240),
     description: clip(raw.description, 300),
+    design: layout,
+    colors,
     theme: {
       ...current,
       preset: "ai",
       layout,
-      colors: {
-        primary: color(raw.colors.primary, preset.colors.primary),
-        accent: color(raw.colors.accent, preset.colors.accent),
-        surface: color(raw.colors.surface, preset.colors.surface),
-      },
+      colors,
       font,
       buttonStyle: (["rounded", "square"].includes(raw.buttonStyle)
         ? raw.buttonStyle
@@ -376,6 +566,52 @@ function toProposal(
       sections,
       blocks: seeded.blocks,
       blockOrder: seeded.blockOrder,
+    },
+  };
+}
+
+/**
+ * Editor por secciones: la propuesta es un cambio (diseño base + colores +
+ * fuentes + textos) que se ve en la vista previa real y se aplica al borrador.
+ */
+function toV2Proposal(raw: z.infer<typeof rawV2Proposal>, allowed: string[]): DesignProposal | null {
+  const base = getBase(raw.base);
+  if (!base || !allowed.includes(base.id)) return null;
+  const palette = base.palettes.general;
+  const color = (v: string, fallback: string) => (HEX.test(v.trim()) ? v.trim() : fallback);
+  const colors = {
+    primary: color(raw.colors.primary, palette.primary),
+    accent: color(raw.colors.accent, palette.accent),
+    surface: color(raw.colors.surface, palette.surface),
+  };
+  const font = THEME_FONTS.some((f) => f.id === raw.font) ? (raw.font as ThemeFont) : base.tokens.font;
+  const headingFont = HEADING_IDS.includes(raw.headingFont as Exclude<HeadingFont, "auto">)
+    ? (raw.headingFont as HeadingFont)
+    : base.tokens.headingFont;
+  const announcement = clip(raw.announcement.text, 140);
+
+  return {
+    name: clip(raw.name, 40),
+    rationale: clip(raw.rationale, 240),
+    description: clip(raw.description, 300),
+    design: base.id,
+    colors,
+    patch: {
+      base: base.id,
+      tokens: {
+        colors,
+        font,
+        headingFont,
+        buttonStyle: raw.buttonStyle === "square" ? "square" : "rounded",
+      },
+      texts: {
+        headline: clip(raw.hero.headline, 140),
+        subtext: clip(raw.hero.subtext, 240),
+        ctaText: clip(raw.hero.ctaText, 40),
+        aboutTitle: clip(raw.about.title, 80),
+        aboutText: clip(raw.about.text, 2000),
+        announcement: raw.announcement.enabled ? announcement : "",
+      },
     },
   };
 }
@@ -421,6 +657,13 @@ function storeFacts(ctx: DesignContext): string {
   return lines.join("\n");
 }
 
+export interface GenerateOptions {
+  /** "v2": tiendas con el editor por secciones (propuestas sobre los diseños base). */
+  mode: "legacy" | "v2";
+  /** Lo que ya vio en intentos anteriores, para no repetirlo. */
+  seen: SeenProposal[];
+}
+
 /**
  * Pide las tres propuestas. Anota la generación (bien o mal) para el tope
  * diario y para saber cuánto se gasta.
@@ -429,8 +672,12 @@ export async function generateDesignProposals(
   storeId: string,
   ctx: DesignContext,
   current: StoreTheme,
+  opts: GenerateOptions = { mode: "legacy", seen: [] },
 ): Promise<GenerateDesignResult> {
+  const v2 = opts.mode === "v2";
   const allowed = ctx.pro ? LAYOUT_IDS : FREE_LAYOUTS;
+  const allowedBases = BASES.filter((b) => ctx.pro || !baseNeedsPro(b)).map((b) => b.id);
+  const directions = pickDirections(opts.seen);
 
   const images = (
     await Promise.all(ctx.images.map(async (img) => ({ ...img, block: await fetchImage(img.url) })))
@@ -445,7 +692,10 @@ export async function generateDesignProposals(
     .filter(Boolean)
     .join(" ");
 
-  const text = `Plantillas disponibles para esta tienda: ${allowed.join(", ")}.
+  const available = v2
+    ? `Diseños base disponibles para esta tienda: ${allowedBases.join(", ")}.`
+    : `Plantillas disponibles para esta tienda: ${allowed.join(", ")}.`;
+  const text = `${available}
 
 Datos de la tienda:
 ${storeFacts(ctx)}
@@ -453,7 +703,9 @@ ${imageNote ? `\n${imageNote}\n` : ""}
 Lo que el comerciante cuenta de su negocio:
 """
 ${ctx.brief}
-"""`;
+"""
+
+${varietyNote(directions, opts.seen)}`;
 
   let inputTokens = 0;
   let outputTokens = 0;
@@ -469,8 +721,11 @@ ${ctx.brief}
         fallbacks: "default",
         // Esfuerzo bajo: lo que importa acá es el gusto, no razonar mucho, y el
         // comerciante está esperando frente a la pantalla. Se ajusta midiendo.
-        output_config: { effort: "low", format: { type: "json_schema", schema: outputSchema(allowed) } },
-        system: SYSTEM_PROMPT,
+        output_config: {
+          effort: "low",
+          format: { type: "json_schema", schema: v2 ? v2OutputSchema(allowedBases) : outputSchema(allowed) },
+        },
+        system: v2 ? V2_SYSTEM_PROMPT : SYSTEM_PROMPT,
         messages: [
           { role: "user", content: [...images.map((i) => i.block), { type: "text", text }] },
         ],
@@ -489,16 +744,25 @@ ${ctx.brief}
       };
     }
     const block = message.content.find((b) => b.type === "text");
-    const parsed =
-      message.stop_reason === "end_turn" && block?.type === "text"
-        ? rawOutput.safeParse(JSON.parse(block.text))
-        : null;
-    const proposals = parsed?.success
-      ? parsed.data.proposals
+    const json = message.stop_reason === "end_turn" && block?.type === "text" ? JSON.parse(block.text) : null;
+    let proposals: DesignProposal[] = [];
+    if (v2) {
+      const parsed = rawV2Output.safeParse(json);
+      if (parsed.success) {
+        proposals = parsed.data.proposals
+          .map((p) => toV2Proposal(p, allowedBases))
+          .filter((p): p is DesignProposal => p !== null);
+      }
+    } else {
+      const parsed = rawOutput.safeParse(json);
+      if (parsed.success) {
+        proposals = parsed.data.proposals
           .map((p) => toProposal(p, current, allowed))
-          .filter((p): p is DesignProposal => p !== null)
-          .slice(0, 3)
-      : [];
+          .filter((p): p is DesignProposal => p !== null);
+      }
+    }
+    // Cada propuesta lleva su dirección (la 1 es "la que mejor le queda").
+    proposals = proposals.slice(0, 3).map((p, i) => ({ ...p, direction: i === 0 ? "ajuste" : directions[i - 1]?.id }));
 
     if (!proposals.length) {
       reportError("generateDesignProposals", new Error("Respuesta sin propuestas válidas"), {

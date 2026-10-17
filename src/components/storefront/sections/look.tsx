@@ -13,7 +13,7 @@ import { ProductCard } from "@/components/storefront/product-card";
 import { SportsProductCard } from "@/components/storefront/sports-product-card";
 import { StreetProductCard } from "@/components/storefront/streetwear-product-card";
 import { TechProductCard } from "@/components/storefront/tech-product-card";
-import type { LookId } from "@/lib/design/types";
+import type { Density, LookId } from "@/lib/design/types";
 import { cn } from "@/lib/utils";
 import type { HomeContext } from "@/components/storefront/sections/context";
 import type { Product } from "@/types/database";
@@ -29,7 +29,7 @@ const SERIF = { fontFamily: "var(--font-heading, var(--font-lora))" } as const;
 /** La tarjeta de producto del estilo. */
 export function LookCard({ product, ctx }: { product: Product; ctx: HomeContext }) {
   const { store } = ctx;
-  switch (ctx.look) {
+  switch (ctx.cardLook) {
     case "fashion":
       return <FashionProductCard product={product} store={store} />;
     case "fashion-athletic":
@@ -62,31 +62,30 @@ export function LookCard({ product, ctx }: { product: Product; ctx: HomeContext 
   }
 }
 
-/** Aire alrededor de cada sección. El borde, donde la plantilla lo tenía. */
-export function lookShell(look: LookId): string {
-  switch (look) {
-    case "classic":
-      return "pt-6";
-    case "fashion":
-      return "py-10";
-    case "fashion-athletic":
-      return "border-b py-12";
-    case "fashion-streetwear":
-      return "border-b py-10";
-    case "accessories":
-      return "py-12";
-    case "beauty":
-      return "py-8";
-    case "beauty-minimal":
-      return "py-12";
-    case "tech":
-    case "sports":
-      return "py-6";
-    case "tech-discover":
-      return "pt-7";
-    case "sports-drops":
-      return "border-b border-foreground/10 py-8";
-  }
+/** Aire y borde de cada sección según el estilo, tal como lo tenía su plantilla. */
+const LOOK_SHELL: Record<LookId, { pad: string; border?: string }> = {
+  classic: { pad: "pt-6" },
+  fashion: { pad: "py-10" },
+  "fashion-athletic": { pad: "py-12", border: "border-b" },
+  "fashion-streetwear": { pad: "py-10", border: "border-b" },
+  accessories: { pad: "py-12" },
+  beauty: { pad: "py-8" },
+  "beauty-minimal": { pad: "py-12" },
+  tech: { pad: "py-6" },
+  sports: { pad: "py-6" },
+  "tech-discover": { pad: "pt-7" },
+  "sports-drops": { pad: "py-8", border: "border-b border-foreground/10" },
+};
+
+/** "Normal" respeta el aire del estilo; las otras dos lo cambian para todas las secciones. */
+const DENSITY_PAD: Record<Exclude<Density, "normal">, string> = {
+  compacta: "py-5",
+  amplia: "py-16 sm:py-20",
+};
+
+export function lookShell(look: LookId, density: Density = "normal"): string {
+  const s = LOOK_SHELL[look];
+  return cn(s.border, density === "normal" ? s.pad : DENSITY_PAD[density]);
 }
 
 /** Las secciones de texto que van centradas en este estilo. */
@@ -154,14 +153,15 @@ export function SectionHeading({ ctx, title, subtitle, action, accent, as: Tag =
     <span className="inline-block size-2.5 shrink-0 rounded-full" style={{ background: "hsl(var(--brand-accent))" }} />
   ) : null;
 
-  switch (ctx.look) {
+  const h = ctx.headingLook;
+  switch (h) {
     case "fashion":
     case "fashion-athletic":
     case "accessories": {
       const cls =
-        ctx.look === "fashion"
+        h === "fashion"
           ? "text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground"
-          : ctx.look === "accessories"
+          : h === "accessories"
             ? "text-[11px] uppercase tracking-[0.3em] text-muted-foreground"
             : "text-[11px] font-medium uppercase tracking-[0.3em] text-foreground/50";
       return (
@@ -239,13 +239,13 @@ export function SectionHeading({ ctx, title, subtitle, action, accent, as: Tag =
       );
     default: {
       const cls =
-        ctx.look === "tech"
+        h === "tech"
           ? "text-base font-bold uppercase tracking-wide"
-          : ctx.look === "tech-discover"
+          : h === "tech-discover"
             ? "text-base font-bold"
-            : ctx.look === "sports"
+            : h === "sports"
               ? "text-lg font-extrabold uppercase italic tracking-wide"
-              : ctx.look === "beauty"
+              : h === "beauty"
                 ? "text-lg font-semibold"
                 : "text-lg font-bold tracking-tight";
       return (
@@ -254,7 +254,7 @@ export function SectionHeading({ ctx, title, subtitle, action, accent, as: Tag =
             {title && (
               <Tag className={cn("flex items-center gap-2", cls)}>
                 {accentDot}
-                {ctx.look === "beauty" && !accent && <Sparkles className="size-5 text-primary" />}
+                {h === "beauty" && !accent && <Sparkles className="size-5 text-primary" />}
                 {title}
               </Tag>
             )}
@@ -274,7 +274,7 @@ export function ProductRow({ ctx, items }: { ctx: HomeContext; items: Product[] 
   return (
     <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden">
       {items.map((p) => (
-        <div key={p.id} className={lookRowItem(ctx.look)}>
+        <div key={p.id} className={lookRowItem(ctx.cardLook)}>
           <LookCard product={p} ctx={ctx} />
         </div>
       ))}
@@ -297,7 +297,7 @@ export function Shell({
   id?: string;
 }) {
   return (
-    <section id={id} className={cn(lookShell(ctx.look), className)} style={style}>
+    <section id={id} className={cn(lookShell(ctx.look, ctx.density), className)} style={style}>
       <div className="container">{children}</div>
     </section>
   );

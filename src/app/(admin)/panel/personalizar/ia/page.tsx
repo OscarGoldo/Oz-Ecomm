@@ -40,6 +40,7 @@ export default async function AiDesignPage() {
 
   return (
     <AiDesigner
+      storeId={store.id}
       storeName={store.name}
       logoUrl={getImageUrl(store.logo_url)}
       sampleProducts={sampleProducts}
