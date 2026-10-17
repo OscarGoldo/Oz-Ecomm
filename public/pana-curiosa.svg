@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="70 80 260 340" width="260" height="340">
+  <defs>
+    <clipPath id="pana-curiosa-cuerpo"><ellipse cx="186" cy="300" rx="70" ry="90"/></clipPath>
+  </defs>
+  <ellipse cx="186" cy="402" rx="86" ry="9" fill="#0F172A" opacity="0.08"/>
+  <g transform="translate(156 358) rotate(152)">
+    <path d="M 0,-17 C 40,-19 92,-10 128,0 C 92,10 40,19 0,17 Z" fill="#0369A1"/>
+    <path d="M 20,0 L 110,0" stroke="#0284C7" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  
+  <g fill="#64748B">
+    <ellipse cx="168" cy="392" rx="13" ry="7"/>
+    <ellipse cx="206" cy="392" rx="13" ry="7"/>
+  </g>
+  <ellipse cx="186" cy="300" rx="70" ry="90" fill="#0EA5E9"/>
+  <ellipse cx="212" cy="316" rx="54" ry="80" fill="#FBBF24" clip-path="url(#pana-curiosa-cuerpo)"/>
+  <g transform="translate(168 250) rotate(112) scale(1)">
+    <path d="M 0,-22 C 35,-30 85,-24 112,-10 C 124,-4 124,10 112,14 C 80,26 35,28 0,22 C -12,12 -12,-12 0,-22 Z" fill="#0284C7"/>
+    <path d="M 58,-6 L 104,-1" stroke="#7DD3FC" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+    <path d="M 48,8 L 96,9" stroke="#7DD3FC" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+  </g>
+  <g transform="translate(257.7 192.5) rotate(16)">
+    <path d="M -120,-60 L 0,-60 L 26,-34 L 26,34 L 0,60 L -120,60 Z" fill="#0EA5E9" stroke="#0EA5E9" stroke-width="22" stroke-linejoin="round"/>
+    <ellipse cx="-2" cy="6" rx="34" ry="30" fill="#FFFFFF"/>
+    <path d="M -24,14 Q -8,19 8,14" fill="none" stroke="#0F172A" stroke-width="2.6" stroke-linecap="round" opacity="0.8"/>
+    <path d="M -22,22 Q -8,27 6,22" fill="none" stroke="#0F172A" stroke-width="2.6" stroke-linecap="round" opacity="0.8"/>
+    <path d="M -18,30 Q -8,34 2,30" fill="none" stroke="#0F172A" stroke-width="2.6" stroke-linecap="round" opacity="0.8"/>
+    <circle cx="4" cy="-6" r="15" fill="#0F172A"/>
+        <circle cx="9" cy="-11" r="5.5" fill="#FFFFFF"/>
+        <circle cx="0" cy="-1" r="2" fill="#FFFFFF"/>
+    <path d="M -12,-28 Q 4,-40 19,-31" fill="none" stroke="#0F172A" stroke-width="5" stroke-linecap="round"/>
+    <path d="M 22,15 L 50,19 C 62,26 62,40 50,46 C 40,50 28,48 22,44 Z" fill="#334155"/>
+      <path d="M 22,-38 C 56,-46 96,-26 98,10 C 99,30 88,46 72,54 C 74,38 66,24 50,19 L 22,15 Z" fill="#0F172A"/>
+  </g>
+</svg>

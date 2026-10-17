@@ -15,8 +15,12 @@ export const metadata: Metadata = {
 export default async function CrearTiendaPage({
   searchParams,
 }: {
-  searchParams: { email?: string; ref?: string; codigo?: string };
+  searchParams: { email?: string; ref?: string; codigo?: string; nombre?: string };
 }) {
+  // El nombre que escribió en la landing. Recortado al mismo largo que deja
+  // escribir ese campo; si alguien arma el link a mano, el server action lo
+  // valida igual que si lo hubiera tipeado acá.
+  const prefillName = (searchParams.nombre ?? "").trim().slice(0, 60);
   // El link de una campaña trae el código (?codigo=…). Se revisa acá para
   // decirle qué le toca antes de que llene nada, y para no dejarle puesto en el
   // formulario un código agotado que después le frenaría el registro.
@@ -50,6 +54,7 @@ export default async function CrearTiendaPage({
         </p>
         <SignupForm
           prefillEmail={searchParams.email ?? ""}
+          prefillStoreName={prefillName}
           referralCode={searchParams.ref ?? ""}
           promoOffer={offer}
           promoUnavailable={linkCode && !offer ? linkCode : null}

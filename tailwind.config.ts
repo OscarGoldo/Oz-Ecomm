@@ -22,6 +22,18 @@ const config: Config = {
       fontFamily: {
         // UI y datos: Inter, que es la que aguanta tablas densas a 13px.
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        // Las tres de la landing (components/landing/fonts.ts, que las carga
+        // solo ahí): una grotesca con eje de ancho para titulares apretados,
+        // Figtree —el cuerpo de los posts de Instagram— y una mono para montos
+        // y tasas, que es como se leen en un comprobante.
+        "landing-display": [
+          "var(--font-landing-display)",
+          "Arial Narrow",
+          "system-ui",
+          "sans-serif",
+        ],
+        "landing-body": ["var(--font-landing-body)", "system-ui", "sans-serif"],
+        "landing-mono": ["var(--font-landing-mono)", "ui-monospace", "monospace"],
         // Titulares y cifras protagonistas: una grotesca distinta, con
         // aperturas más cerradas. El contraste con Inter es lo que hace que
         // un encabezado se lea compuesto y no simplemente "más grande".
@@ -91,6 +103,26 @@ const config: Config = {
           900: hsl("--brand-900"),
           DEFAULT: hsl("--brand-500"),
         },
+
+        /* Paleta de marketing: la de la landing y los posts de Instagram
+           (ver globals.css). Con los mismos nombres que marketing/plantilla.html
+           para que un color se llame igual en los dos lados. */
+        noche: {
+          DEFAULT: hsl("--noche"),
+          suave: hsl("--noche-suave"),
+        },
+        sol: hsl("--sol"),
+        claro: {
+          DEFAULT: hsl("--claro"),
+          hondo: hsl("--claro-hondo"),
+        },
+        linea: {
+          DEFAULT: hsl("--linea"),
+          fuerte: hsl("--linea-fuerte"),
+        },
+        pizarra: hsl("--pizarra"),
+        gris: hsl("--gris"),
+        niebla: hsl("--niebla"),
 
         surface: {
           DEFAULT: hsl("--surface"),
@@ -213,6 +245,26 @@ const config: Config = {
         shimmer: {
           "100%": { transform: "translateX(100%)" },
         },
+        // Entrada del hero de la landing. Solo transform, nunca opacidad: el
+        // primer cuadro (lo que se ve en una vista previa de WhatsApp o si el
+        // JS tarda) tiene que estar completo aunque la animación no corra.
+        "landing-rise": {
+          from: { transform: "translateY(46px)" },
+          to: { transform: "none" },
+        },
+        "tag-swing": {
+          from: { transform: "rotate(-22deg) translateY(16px)" },
+          to: { transform: "none" },
+        },
+        "landing-pop": {
+          from: { transform: "scale(0.82) translateY(14px)" },
+          to: { transform: "none" },
+        },
+        // Barrita de las tiendas de ejemplo: cuánto falta para la siguiente.
+        "store-progress": {
+          from: { transform: "scaleX(0)" },
+          to: { transform: "scaleX(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -221,6 +273,11 @@ const config: Config = {
         float: "float 6s ease-in-out infinite",
         "fade-in-up": "fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both",
         shimmer: "shimmer 1.6s infinite",
+        "marquee-slow": "marquee 34s linear infinite",
+        "landing-rise": "landing-rise 1s cubic-bezier(0.16, 1, 0.3, 1) both",
+        "tag-swing": "tag-swing 1.5s cubic-bezier(0.34, 1.45, 0.5, 1) 0.35s both",
+        "landing-pop": "landing-pop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.75s both",
+        "store-progress": "store-progress 7s linear forwards",
       },
     },
   },

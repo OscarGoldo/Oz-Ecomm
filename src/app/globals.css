@@ -59,6 +59,22 @@
     --brand-800: 201 90% 27%;
     --brand-900: 202 80% 24%;
 
+    /* --- Marketing (landing) ---------------------------------------------
+       La landing habla el mismo idioma visual que los posts de Instagram
+       (marketing/plantilla.html): azul de marca, noche, sol y neutros fríos.
+       Quien llega desde un post tiene que sentir que sigue en el mismo lugar.
+       Solo la landing los usa: el panel sigue con la tinta cálida. */
+    --noche: 210 59% 10.6%;
+    --noche-suave: 211 52% 17.1%;
+    --sol: 47 100% 61.6%;
+    --claro: 210 50% 96.9%;
+    --claro-hondo: 210 50% 93.7%;
+    --linea: 210 33% 88.2%;
+    --linea-fuerte: 210 31% 80.8%;
+    --pizarra: 212 22% 34.5%;
+    --gris: 213 17% 43.5%;
+    --niebla: 211 27% 70.4%;
+
     /* --- Superficies de plataforma -------------------------------------- */
     --surface: var(--ink-50);
     --surface-raised: 0 0% 100%;

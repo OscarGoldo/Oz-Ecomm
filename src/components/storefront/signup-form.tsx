@@ -63,11 +63,17 @@ interface Success {
 
 export function SignupForm({
   prefillEmail = "",
+  prefillStoreName = "",
   referralCode = "",
   promoOffer = null,
   promoUnavailable = null,
 }: {
   prefillEmail?: string;
+  /**
+   * El nombre que la persona ya escribió en la landing (?nombre=…). Ahí vio
+   * su tienda y su link con ese nombre; pedírselo otra vez sería un paso de más.
+   */
+  prefillStoreName?: string;
   /**
    * Código de referido de la URL. El respaldo, no la fuente: normalmente el
    * server action lo saca de la cookie que dejó /r/<codigo>.
@@ -101,7 +107,7 @@ export function SignupForm({
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
-      store_name: "",
+      store_name: prefillStoreName,
       owner_name: "",
       owner_email: prefillEmail,
       password: "",
