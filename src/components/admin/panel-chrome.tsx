@@ -7,14 +7,10 @@ import { cn } from "@/lib/utils";
 
 /**
  * Piezas fijas del panel del vendedor (las que arma el layout alrededor de
- * cada pantalla): la ficha de la tienda, la tarjeta del plan, la tasa del día
- * y el buscador de pedidos. Sin estado: son de servidor.
+ * cada pantalla): la ficha de la tienda, la tarjeta del plan y el buscador de
+ * pedidos. Sin estado: son de servidor. La tasa del día, que sí tiene estado,
+ * está en rate-menu.tsx.
  */
-
-const rateFormat = new Intl.NumberFormat("es-VE", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
 
 /** El cuadrado de la tienda: su logo, o la inicial en el azul de marca. */
 export function StoreMark({
@@ -135,39 +131,6 @@ export function PanelPlanCard({
         Pasar a Pro <ArrowRight className="size-3.5" />
       </Link>
     </div>
-  );
-}
-
-/**
- * La tasa con la que la tienda está calculando los bolívares hoy. Punto verde
- * si se actualiza sola con el BCV; si la puso el dueño a mano, dice "Tasa".
- */
-export function PanelRateChip({
-  rate,
-  auto,
-  tone = "light",
-}: {
-  rate: number;
-  auto: boolean;
-  tone?: "light" | "dark";
-}) {
-  return (
-    <Link
-      href="/panel"
-      title={auto ? "Tasa BCV de hoy, se actualiza sola" : "Tasa que pusiste a mano"}
-      className={cn(
-        "inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-3 font-landing-mono text-[12.5px] tabular-nums",
-        tone === "light"
-          ? "border border-border bg-surface text-foreground hover:border-ink-300"
-          : "bg-white/[0.08] text-white",
-      )}
-    >
-      <span
-        aria-hidden="true"
-        className={cn("size-[7px] rounded-full", auto ? "bg-[#16A34A]" : "bg-niebla")}
-      />
-      {auto ? "BCV" : "Tasa"} {rateFormat.format(rate)}
-    </Link>
   );
 }
 

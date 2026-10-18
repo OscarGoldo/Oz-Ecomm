@@ -4,7 +4,6 @@ import Link from "next/link";
 import { DomainNotice } from "@/components/admin/domain-notice";
 import {
   PanelPlanCard,
-  PanelRateChip,
   PanelSearch,
   PanelStoreCard,
   StoreMark,
@@ -12,11 +11,14 @@ import {
 import { PanelBottomNav, PanelSidebarNav } from "@/components/admin/panel-nav";
 import { PlanBanner } from "@/components/admin/plan-banner";
 import { PlanGiftNotice } from "@/components/admin/plan-gift-notice";
+import { RateMenu, type PanelRates, type StoreRate } from "@/components/admin/rate-menu";
 import { StoreAddressNotice } from "@/components/admin/store-address-notice";
 import { UserMenu } from "@/components/admin/user-menu";
 import { landingFonts } from "@/components/landing/fonts";
 import { TiendifyLogo } from "@/components/landing/tiendify-logo";
 import { requireStoreUser } from "@/lib/auth";
+import { getCachedBcvRates } from "@/lib/bcv";
+import { getUsdtRate } from "@/lib/usdt";
 import { createClient } from "@/lib/supabase/server";
 import { abandonedCartCutoff } from "@/lib/constants";
 import { shouldShowDomainNotice } from "@/lib/domain-notice";
@@ -106,8 +108,23 @@ export default async function PanelLayout({
     .eq("store_id", store.id)
     .eq("status", "pending");
 
-  // La tasa se muestra arriba solo si la tienda muestra precios en bolívares.
-  const rate = store.show_bs_prices && store.exchange_rate ? store.exchange_rate : null;
+  // La tasa del día de arriba (dólar y euro del BCV y el precio del USDT) va
+  // aunque la tienda no muestre precios en bolívares: la calculadora sirve
+  // igual para cobrar un Pago Móvil. El USDT sale de una caché de 15 minutos y
+  // no demora el panel (ver lib/usdt.ts).
+  const [bcvRates, usdt] = await Promise.all([getCachedBcvRates(), getUsdtRate()]);
+  const panelRates: PanelRates = {
+    usd: bcvRates?.usd ?? null,
+    eur: bcvRates?.eur ?? null,
+    bcvDate: bcvRates?.source_date ?? null,
+    usdt,
+  };
+  const storeRate: StoreRate = {
+    rate: store.exchange_rate,
+    auto: store.auto_exchange_rate,
+    currency: store.currency_primary,
+    showBs: store.show_bs_prices,
+  };
 
   // El panel usa el azul de Tiendify (definido en globals.css), no el
   // primary_color de la tienda: ese es el color de la tienda pública, no el
@@ -138,7 +155,7 @@ export default async function PanelLayout({
             {displayStoreAddress(publicUrl)}
           </p>
         </div>
-        {rate !== null && <PanelRateChip rate={rate} auto={store.auto_exchange_rate} tone="dark" />}
+        <RateMenu rates={panelRates} store={storeRate} tone="dark" />
         <UserMenu
           fullName={user.full_name}
           email={user.email}
@@ -179,7 +196,7 @@ export default async function PanelLayout({
           <header className="sticky top-0 z-30 hidden h-16 items-center gap-4 border-b border-border bg-card px-8 md:flex print:hidden">
             <PanelSearch />
             <div className="ml-auto flex items-center gap-3">
-              {rate !== null && <PanelRateChip rate={rate} auto={store.auto_exchange_rate} />}
+              <RateMenu rates={panelRates} store={storeRate} />
               <UserMenu fullName={user.full_name} email={user.email} storeUrl={publicUrl} />
             </div>
           </header>
