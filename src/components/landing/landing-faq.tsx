@@ -49,7 +49,7 @@ const faqs = [
   },
   {
     q: "¿Cómo pago Pro? ¿Puedo cancelarlo?",
-    a: `Cuesta $${DEFAULT_PRO_PRICE_USD} al mes o $${DEFAULT_PRO_PRICE_YEARLY_USD} al año. Si lo pagas por Pago Móvil, Zelle o Binance, no se renueva solo. Con tarjeta se renueva automáticamente y lo cancelas cuando quieras desde tu panel: sigues con Pro hasta el final del período que ya pagaste.`,
+    a: `Cuesta $${DEFAULT_PRO_PRICE_USD} al mes o $${DEFAULT_PRO_PRICE_YEARLY_USD} al año. Si lo pagas por Pago Móvil o Binance, no se renueva solo. Con tarjeta se renueva automáticamente y lo cancelas cuando quieras desde tu panel: sigues con Pro hasta el final del período que ya pagaste.`,
   },
 ];
 

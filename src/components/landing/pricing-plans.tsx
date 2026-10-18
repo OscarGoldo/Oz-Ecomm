@@ -173,7 +173,7 @@ export function PricingPlans({
               Empezar gratis
             </Link>
             <p className="-mt-2.5 text-center text-[13.5px] text-niebla">
-              Activas Pro desde tu panel. Lo pagas por Pago Móvil, Zelle, Binance o tarjeta.
+              Activas Pro desde tu panel. Lo pagas por Pago Móvil, Binance o tarjeta.
             </p>
           </article>
         </div>
