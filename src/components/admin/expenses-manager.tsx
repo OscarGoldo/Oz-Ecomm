@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { createExpense, deleteExpense } from "@/app/(admin)/panel/finanzas/actions";
 import { formatUSD } from "@/lib/format";
+import { caracasToday, shortDay } from "@/lib/report-period";
 import type { Expense } from "@/types/database";
 
 const CATEGORIES = [
@@ -31,13 +30,24 @@ const CATEGORIES = [
   "Otros",
 ];
 
+/**
+ * Hoy en Caracas. Con `toISOString()` era el día de UTC: un gasto cargado a
+ * las 9 de la noche quedaba con fecha de mañana.
+ */
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return caracasToday();
 }
 
-export function ExpensesManager({ initial }: { initial: Expense[] }) {
+export function ExpensesManager({
+  initial,
+  defaultOpen = false,
+}: {
+  initial: Expense[];
+  /** Llega abierto cuando se viene desde "Registrar gasto". */
+  defaultOpen?: boolean;
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [saving, setSaving] = useState(false);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -142,7 +152,9 @@ export function ExpensesManager({ initial }: { initial: Expense[] }) {
                 <p className="truncate text-sm font-medium">{e.description}</p>
                 <p className="text-xs text-muted-foreground">
                   {e.category ? `${e.category} · ` : ""}
-                  {format(new Date(e.spent_at), "d MMM yyyy", { locale: es })}
+                  {/* `spent_at` es un día sin hora: con `new Date()` se leía
+                      como medianoche UTC y en Caracas salía el día anterior. */}
+                  {shortDay(e.spent_at)} {e.spent_at.slice(0, 4)}
                 </p>
               </div>
               <span className="shrink-0 font-semibold text-destructive">

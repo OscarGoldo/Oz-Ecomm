@@ -122,6 +122,8 @@ export async function listSales(
 // ── Productos ───────────────────────────────────────────────────────────────
 
 export interface ProductReportRow {
+  /** null para lo vendido de un producto que ya se borró. */
+  productId: string | null;
   name: string;
   qty: number;
   revenueUsd: number;
@@ -232,6 +234,7 @@ export async function getProductReport(
     const row =
       byProduct.get(key) ??
       {
+        productId: it.product_id,
         name: it.product_name,
         qty: 0,
         revenueUsd: 0,

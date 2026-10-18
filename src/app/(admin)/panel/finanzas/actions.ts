@@ -49,7 +49,8 @@ export async function createExpense(input: ExpenseInput): Promise<ActionResult> 
   });
   if (error) return { ok: false, error: "No se pudo registrar el gasto" };
 
-  revalidatePath("/panel/finanzas");
+  // "layout": el resumen y cada pestaña de Finanzas (gastos, reportes…).
+  revalidatePath("/panel/finanzas", "layout");
   revalidatePath("/panel");
   return { ok: true };
 }
@@ -70,7 +71,7 @@ export async function deleteExpense(id: string): Promise<ActionResult> {
     .eq("store_id", storeId);
   if (error) return { ok: false, error: "No se pudo eliminar" };
 
-  revalidatePath("/panel/finanzas");
+  revalidatePath("/panel/finanzas", "layout");
   return { ok: true };
 }
 
@@ -110,7 +111,7 @@ export async function createEmployee(input: EmployeeInput): Promise<ActionResult
   });
   if (error) return { ok: false, error: "No se pudo agregar el empleado" };
 
-  revalidatePath("/panel/finanzas");
+  revalidatePath("/panel/finanzas", "layout");
   return { ok: true };
 }
 
@@ -131,7 +132,7 @@ export async function setEmployeeActive(
     .eq("id", id)
     .eq("store_id", storeId);
   if (error) return { ok: false, error: "No se pudo actualizar" };
-  revalidatePath("/panel/finanzas");
+  revalidatePath("/panel/finanzas", "layout");
   return { ok: true };
 }
 
@@ -149,6 +150,6 @@ export async function deleteEmployee(id: string): Promise<ActionResult> {
     .eq("id", id)
     .eq("store_id", storeId);
   if (error) return { ok: false, error: "No se pudo eliminar" };
-  revalidatePath("/panel/finanzas");
+  revalidatePath("/panel/finanzas", "layout");
   return { ok: true };
 }

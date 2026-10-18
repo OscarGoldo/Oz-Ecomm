@@ -315,111 +315,8 @@ export async function getDashboardMetrics(
   };
 }
 
-export interface FinanceSummary {
-  // Revenue
-  totalUsd: number;
-  totalBs: number;
-  salesCount: number;
-  unitsSold: number;
-  avgTicketUsd: number;
-  // Profitability (all time)
-  cogsUsd: number;
-  grossProfitUsd: number;
-  marginPct: number;
-  expensesTotalUsd: number;
-  netProfitUsd: number;
-  // This month
-  monthUsd: number;
-  monthCount: number;
-  monthGrossUsd: number;
-  monthExpensesUsd: number;
-  monthNetUsd: number;
-  prevMonthUsd: number;
-  momGrowthPct: number | null;
-  // Pending / breakdowns
-  pendingUsd: number;
-  pendingCount: number;
-  byMethod: { type: string; count: number; usd: number }[];
-  topProducts: { name: string; qty: number; revenue: number; profit: number }[];
-  recentSales: Order[];
-}
-
-/**
- * Resumen de Finanzas. Los totales los calcula Postgres (`finance_summary`).
- *
- * Antes esto traía todos los pedidos históricos y todos sus ítems a memoria
- * para sumarlos acá. Pasado el pedido 1.000 el corte silencioso de PostgREST
- * hacía que el ingreso total dejara de crecer: el panel mostraba números que
- * no eran los de la tienda.
- */
-export async function getFinanceSummary(
-  storeId: string,
-): Promise<FinanceSummary> {
-  const supabase = createClient();
-
-  const [{ data: agg }, { data: recentSales }] = await Promise.all([
-    supabase.rpc("finance_summary", { p_store_id: storeId }),
-    // Las últimas ventas siguen siendo una consulta normal: ya venía acotada.
-    supabase
-      .from("orders")
-      .select("*")
-      .eq("store_id", storeId)
-      .in("status", SALES_STATUSES)
-      .order("created_at", { ascending: false })
-      .limit(8),
-  ]);
-
-  const r = (agg ?? {}) as Record<string, unknown>;
-
-  const totalUsd = num(r.total_usd);
-  const cogsUsd = num(r.cogs_usd);
-  const grossProfitUsd = totalUsd - cogsUsd;
-  const expensesTotalUsd = num(r.expenses_total_usd);
-  const salesCount = num(r.sales_count);
-
-  const monthUsd = num(r.month_usd);
-  const monthCogs = num(r.month_cogs_usd);
-  const monthExpensesUsd = num(r.month_expenses_usd);
-  const prevMonthUsd = num(r.prev_month_usd);
-
-  return {
-    totalUsd,
-    totalBs: num(r.total_bs),
-    salesCount,
-    unitsSold: num(r.units_sold),
-    avgTicketUsd: salesCount ? totalUsd / salesCount : 0,
-    cogsUsd,
-    grossProfitUsd,
-    marginPct: totalUsd > 0 ? (grossProfitUsd / totalUsd) * 100 : 0,
-    expensesTotalUsd,
-    netProfitUsd: grossProfitUsd - expensesTotalUsd,
-    monthUsd,
-    monthCount: num(r.month_count),
-    monthGrossUsd: monthUsd - monthCogs,
-    monthExpensesUsd,
-    monthNetUsd: monthUsd - monthCogs - monthExpensesUsd,
-    prevMonthUsd,
-    momGrowthPct:
-      prevMonthUsd > 0 ? ((monthUsd - prevMonthUsd) / prevMonthUsd) * 100 : null,
-    pendingUsd: num(r.pending_usd),
-    pendingCount: num(r.pending_count),
-    byMethod: list(r.by_method).map((m) => ({
-      type: String(m.type ?? "other"),
-      count: num(m.count),
-      usd: num(m.usd),
-    })),
-    topProducts: list(r.top_products).map((t) => ({
-      name: String(t.name ?? ""),
-      qty: num(t.qty),
-      revenue: num(t.revenue),
-      profit: num(t.profit),
-    })),
-    recentSales: (recentSales ?? []) as Order[],
-  };
-}
-
 /** Income/cost/expense aggregates for a single date range. */
-interface RangeAgg {
+export interface RangeAgg {
   incomeUsd: number;
   incomeBs: number;
   cogsUsd: number;
@@ -498,9 +395,19 @@ export interface PeriodReport {
   prevIncomeUsd: number;
   prevSalesCount: number;
   prevExpensesUsd: number;
+  prevCogsUsd: number;
   prevNetUsd: number;
   incomeGrowthPct: number | null;
   netGrowthPct: number | null;
+}
+
+/** Los agregados de un rango suelto (un mes del gráfico de Finanzas). */
+export async function getRangeAgg(
+  storeId: string,
+  fromISO: string,
+  toISO: string,
+): Promise<RangeAgg> {
+  return computeRange(createClient(), storeId, fromISO, toISO);
 }
 
 /**
@@ -543,6 +450,7 @@ export async function getPeriodReport(
     prevIncomeUsd: prev.incomeUsd,
     prevSalesCount: prev.salesCount,
     prevExpensesUsd: prev.expensesUsd,
+    prevCogsUsd: prev.cogsUsd,
     prevNetUsd,
     incomeGrowthPct: pctChange(cur.incomeUsd, prev.incomeUsd),
     netGrowthPct: pctChange(netUsd, prevNetUsd),

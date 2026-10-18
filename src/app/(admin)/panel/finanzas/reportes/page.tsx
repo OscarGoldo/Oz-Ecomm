@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   AlertTriangle,
-  ArrowLeft,
   DollarSign,
   Download,
   Package,
@@ -14,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { FinanceHeader, FinanceTabs } from "@/components/admin/finance-tabs";
 import { PrintButton, ReportRangeForm } from "@/components/admin/report-controls";
 import { StatCard } from "@/components/admin/stat-card";
 import { requireStoreUser } from "@/lib/auth";
@@ -109,19 +109,12 @@ export default async function ReportesPage({
 
   return (
     <div className="space-y-6">
-      <div className="print:hidden">
-        <Link
-          href="/panel/finanzas"
-          className="mb-1 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-3.5" /> Finanzas
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight">Reportes</h1>
-        <p className="text-sm text-muted-foreground">
-          Elige qué quieres ver y de qué fechas. Lo ves aquí, lo bajas en CSV o
-          lo imprimes.
-        </p>
-      </div>
+      <FinanceHeader
+        eyebrow="Finanzas"
+        title="Reportes"
+        sub="Elige qué quieres ver y de qué fechas. Lo ves aquí, lo bajas en CSV o lo imprimes."
+      />
+      <FinanceTabs active="reportes" />
 
       <div className="space-y-4 rounded-2xl border bg-card p-4 shadow-sm print:hidden">
         <Field label="Reporte">
@@ -682,7 +675,7 @@ async function ExpensesReport({
       <EmptyState
         title="Sin gastos en estas fechas"
         body={`No registraste gastos en ${period.label}.`}
-        action={{ href: "/panel/finanzas", label: "Registrar un gasto" }}
+        action={{ href: "/panel/finanzas/gastos?nuevo=1", label: "Registrar un gasto" }}
       />
     );
   }
@@ -788,7 +781,7 @@ async function ExpensesReport({
         label="Ver más gastos"
       />
 
-      <Note>Los gastos se registran en dólares desde Finanzas.</Note>
+      <Note>Los gastos se registran en dólares desde la pestaña Gastos.</Note>
     </>
   );
 }
