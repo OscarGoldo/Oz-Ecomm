@@ -571,6 +571,8 @@ export interface Database {
           session_id: string;
           event_type: string;
           product_id: string | null;
+          /** De dónde llegó la visita (migración 0035). */
+          source: string | null;
           created_at: string;
         };
         Insert: {
@@ -579,6 +581,7 @@ export interface Database {
           session_id: string;
           event_type: string;
           product_id?: string | null;
+          source?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["store_events"]["Insert"]>;

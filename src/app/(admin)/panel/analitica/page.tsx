@@ -1,282 +1,112 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  Activity,
-  BarChart3,
-  Clock,
-  Eye,
-  MousePointerClick,
-  ShoppingCart,
-  Users,
-} from "lucide-react";
 
+import {
+  AnalyticsInsights,
+  AnalyticsKpis,
+  CustomersCard,
+  FunnelCard,
+  HourHeatmap,
+  ProductMatrix,
+  SourcesCard,
+  VisitorsChart,
+} from "@/components/admin/analytics-overview";
 import { ProLockedPreview } from "@/components/admin/pro-lock";
-import { StatCard as Stat } from "@/components/admin/stat-card";
 import { requireStoreUser } from "@/lib/auth";
-import { getStoreAnalytics, sampleAnalytics } from "@/lib/analytics";
-import { formatUSD } from "@/lib/format";
+import {
+  ANALYTICS_RANGES,
+  getAnalyticsOverview,
+  sampleAnalyticsOverview,
+  type AnalyticsRange,
+} from "@/lib/analytics-overview";
 import { isPro } from "@/lib/plans";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Analítica" };
 
-const RANGES = [
-  { days: 7, label: "7 días" },
-  { days: 30, label: "30 días" },
-  { days: 90, label: "90 días" },
-];
-
-function fmtHour(h: number): string {
-  const period = h < 12 ? "am" : "pm";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}${period}`;
-}
-
+/**
+ * La Analítica responde, en este orden: cuánta gente entra y cuántos compran;
+ * en qué paso se van y qué se puede recuperar; qué conviene hacer; cómo vienen
+ * las visitas día a día y de dónde llegan; cuándo le compran y quién vuelve; y
+ * qué productos atraen y cuáles convencen.
+ */
 export default async function AnaliticaPage({
   searchParams,
 }: {
   searchParams: { dias?: string };
 }) {
   const { store } = await requireStoreUser();
-  const days = RANGES.some((r) => String(r.days) === searchParams.dias)
-    ? Number(searchParams.dias)
-    : 30;
+  const days: AnalyticsRange =
+    ANALYTICS_RANGES.find((d) => String(d) === searchParams.dias) ?? 30;
 
-  // Plan Gratis: no se consulta la DB, se dibuja el panel con datos de ejemplo
-  // detrás de un desenfoque. Ver la función borrosa convierte mucho mejor que
-  // esconderla: el comerciante ve exactamente lo que se está perdiendo.
+  // Plan Gratis: no se consulta la base, se dibuja el panel con datos de
+  // ejemplo detrás de un desenfoque. Ver la función borrosa convierte mucho
+  // mejor que esconderla: el comerciante ve exactamente lo que se está perdiendo.
   const locked = !isPro(store);
-  const a = locked ? sampleAnalytics(days) : await getStoreAnalytics(store.id, days);
-
-  const maxDayUsd = Math.max(1, ...a.byDay.map((d) => d.usd));
-  const maxHourOrders = Math.max(1, ...a.byHour.map((h) => h.orders));
-  const funnelBase = Math.max(1, a.funnel[0]?.sessions ?? 1);
+  const a = locked ? sampleAnalyticsOverview(days) : await getAnalyticsOverview(store.id, days);
 
   const panels = (
     <div className="space-y-6">
-      {!locked && !a.hasEvents && (
-        <p className="rounded-lg bg-primary/10 p-3 text-xs text-foreground">
-          📊 La medición de visitas y conversión empezó a registrarse ahora.
-          A medida que entren visitas a tu tienda, aquí vas a ver los productos
-          más vistos, el embudo de compra y tu tasa de conversión. Las ventas por
-          día y hora ya reflejan tus pedidos reales.
-        </p>
-      )}
-
-      {/* Headline KPIs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat
-          icon={<Users className="size-4" />}
-          label="Visitantes"
-          value={String(a.visitors)}
-          sub={`${a.productViews} vistas de productos`}
-        />
-        <Stat
-          icon={<Activity className="size-4" />}
-          label="Tasa de conversión"
-          value={`${a.conversionPct.toFixed(1)}%`}
-          sub="visitantes que compraron"
-          highlight
-          tone="primary"
-        />
-        <Stat
-          icon={<ShoppingCart className="size-4" />}
-          label="Pedidos"
-          value={String(a.ordersCount)}
-          sub={`en ${days} días`}
-        />
-        <Stat
-          icon={<BarChart3 className="size-4" />}
-          label="Ventas"
-          value={formatUSD(a.salesUsd)}
-          sub={a.peakHour !== null ? `pico ${fmtHour(a.peakHour)}` : undefined}
-        />
+      <AnalyticsKpis a={a} />
+      <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
+        <FunnelCard a={a} />
+        <AnalyticsInsights items={a.insights} />
       </div>
-
-      {/* Funnel */}
-      <section className="rounded-2xl border bg-card shadow-sm p-4">
-        <h2 className="mb-1 text-sm font-semibold">Embudo de compra</h2>
-        <p className="mb-4 text-xs text-muted-foreground">
-          Cuántos visitantes distintos llegaron a cada paso (últimos {days} días).
-        </p>
-        {a.funnel[0].sessions === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Todavía no hay visitas registradas en este período.
-          </p>
-        ) : (
-          <ul className="space-y-3">
-            {a.funnel.map((s) => {
-              const width = Math.max(3, (s.sessions / funnelBase) * 100);
-              return (
-                <li key={s.key}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="font-medium">{s.label}</span>
-                    <span className="text-muted-foreground">
-                      {s.sessions}
-                      {s.fromPrevPct !== null && (
-                        <span className="ml-2 text-xs">
-                          {Math.round(s.fromPrevPct)}% del paso anterior
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{ width: `${width}%` }}
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      {/* Sales by day */}
-      <section className="rounded-2xl border bg-card shadow-sm p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <BarChart3 className="size-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">Ventas por día</h2>
-        </div>
-        {a.salesUsd === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin ventas en este período.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <div className="flex min-w-full items-end gap-1" style={{ height: 140 }}>
-              {a.byDay.map((d) => (
-                <div
-                  key={d.ymd}
-                  className="group flex min-w-[8px] flex-1 flex-col items-center justify-end"
-                  title={`${d.label}: ${formatUSD(d.usd)} · ${d.orders} pedido(s)`}
-                >
-                  <div
-                    className="w-full rounded-t bg-primary/80 transition-colors group-hover:bg-primary"
-                    style={{ height: `${(d.usd / maxDayUsd) * 120 + (d.usd > 0 ? 2 : 0)}px` }}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-              <span>{a.byDay[0]?.label}</span>
-              <span>{a.byDay[a.byDay.length - 1]?.label}</span>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* Sales by hour */}
-      <section className="rounded-2xl border bg-card shadow-sm p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <Clock className="size-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">¿A qué hora te compran?</h2>
-        </div>
-        {a.ordersCount === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin pedidos en este período.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <div className="flex min-w-full items-end gap-[3px]" style={{ height: 110 }}>
-              {a.byHour.map((h) => (
-                <div
-                  key={h.hour}
-                  className="flex flex-1 flex-col items-center justify-end"
-                  title={`${fmtHour(h.hour)}: ${h.orders} pedido(s) · ${formatUSD(h.usd)}`}
-                >
-                  <div
-                    className={`w-full rounded-t ${
-                      h.hour === a.peakHour ? "bg-primary" : "bg-primary/40"
-                    }`}
-                    style={{ height: `${(h.orders / maxHourOrders) * 90 + (h.orders > 0 ? 2 : 0)}px` }}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-              <span>12am</span>
-              <span>6am</span>
-              <span>12pm</span>
-              <span>6pm</span>
-              <span>11pm</span>
-            </div>
-          </div>
-        )}
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          Hora de Venezuela. La barra resaltada es tu hora pico de pedidos.
-        </p>
-      </section>
-
-      {/* Most viewed products */}
-      <section className="rounded-2xl border bg-card shadow-sm p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <Eye className="size-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">Productos más vistos</h2>
-        </div>
-        {a.topViewed.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Todavía no hay vistas de productos registradas.
-          </p>
-        ) : (
-          <ul className="space-y-2.5">
-            {a.topViewed.map((p) => {
-              const toCartPct = p.views > 0 ? Math.round((p.addToCarts / p.views) * 100) : 0;
-              return (
-                <li key={p.productId} className="flex items-center gap-3 text-sm">
-                  <span className="min-w-0 flex-1 truncate font-medium">{p.name}</span>
-                  <span className="inline-flex shrink-0 items-center gap-1 text-muted-foreground">
-                    <Eye className="size-3.5" /> {p.views}
-                  </span>
-                  <span
-                    className="inline-flex w-24 shrink-0 items-center justify-end gap-1 text-xs text-muted-foreground"
-                    title="Vistas que terminaron agregando el producto al carrito"
-                  >
-                    <MousePointerClick className="size-3.5" /> {p.addToCarts} · {toCartPct}%
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          La última columna es cuántas de esas vistas agregaron el producto al carrito.
-        </p>
-      </section>
+      <div className="grid gap-4 sm:gap-5 lg:grid-cols-5">
+        <VisitorsChart a={a} />
+        <SourcesCard a={a} />
+      </div>
+      <div className="grid gap-4 sm:gap-5 lg:grid-cols-5">
+        <HourHeatmap a={a} />
+        <CustomersCard a={a} />
+      </div>
+      <ProductMatrix a={a} />
     </div>
   );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analítica</h1>
-          <p className="text-sm text-muted-foreground">
-            Cómo se comporta tu tienda: visitas, conversión y a qué hora te compran.
+          <p className="font-landing-mono text-[11.5px] font-semibold uppercase tracking-[0.08em] text-ink-500">
+            Analítica · últimos {days} días
+          </p>
+          <h1 className="mt-2 font-display text-[2rem] font-bold leading-[1.05] tracking-[-0.028em]">
+            Quién entra y quién compra
+          </h1>
+          <p className="mt-1.5 text-[15px] text-ink-600">
+            {a.period.label}, comparado con {a.period.previousLabel}.
           </p>
         </div>
         {!locked && (
-          <div className="inline-flex overflow-hidden rounded-lg border text-sm">
-            {RANGES.map((r) => {
-              const active = r.days === days;
+          <nav aria-label="Período" className="flex gap-1.5">
+            {ANALYTICS_RANGES.map((d) => {
+              const on = d === days;
               return (
                 <Link
-                  key={r.days}
-                  href={`/panel/analitica?dias=${r.days}`}
-                  className={`px-3 py-1.5 font-medium transition-colors ${
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted"
-                  }`}
+                  key={d}
+                  href={d === 30 ? "/panel/analitica" : `/panel/analitica?dias=${d}`}
+                  aria-current={on ? "true" : undefined}
+                  scroll={false}
+                  className={cn(
+                    "inline-flex h-10 items-center whitespace-nowrap rounded-full border px-3.5 text-[13px] font-semibold transition-colors sm:h-9",
+                    on
+                      ? "border-noche bg-noche text-white"
+                      : "bg-card text-ink-600 hover:border-ink-300 hover:text-foreground",
+                  )}
                 >
-                  {r.label}
+                  {d} días
                 </Link>
               );
             })}
-          </div>
+          </nav>
         )}
-      </div>
+      </header>
 
       {locked ? (
         <ProLockedPreview
           title="La analítica es del plan Pro"
-          text="Visitantes, tasa de conversión, embudo de compra, productos más vistos y a qué hora te compran. Ya estamos registrando los datos de tu tienda: al activar Pro los ves desde el primer día."
+          text="Quién entra a tu tienda y de dónde llega, en qué paso se va, qué productos atraen y cuáles convencen, a qué hora te compran y quién vuelve. Ya estamos registrando los datos de tu tienda: al activar Pro los ves desde el primer día."
         >
           {panels}
         </ProLockedPreview>

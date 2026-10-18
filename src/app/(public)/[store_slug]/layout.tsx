@@ -5,6 +5,7 @@ import { StoreBaseProvider } from "@/components/storefront/store-base";
 import { StorefrontHeader } from "@/components/storefront/storefront-header";
 import { StorefrontFooter } from "@/components/storefront/storefront-footer";
 import { WhatsappFloat } from "@/components/storefront/whatsapp-float";
+import { VisitTracker } from "@/components/storefront/event-tracker";
 import { getStoreBySlug } from "@/lib/storefront";
 import { getImageUrl } from "@/lib/storage";
 import { JsonLd } from "@/components/storefront/json-ld";
@@ -56,6 +57,7 @@ export default async function StoreLayout({
           <div className="flex-1">{children}</div>
           <StorefrontFooter store={store} layout={design.tokens.footer ?? design.tokens.look} />
           <WhatsappFloat phone={store.whatsapp} storeName={store.name} />
+          <VisitTracker storeId={store.id} />
         </div>
       </StoreBaseProvider>
     );
@@ -98,6 +100,7 @@ export default async function StoreLayout({
         <div className="flex-1">{children}</div>
         <StorefrontFooter store={store} layout={theme.layout} />
         <WhatsappFloat phone={store.whatsapp} storeName={store.name} />
+        <VisitTracker storeId={store.id} />
       </div>
     </StoreBaseProvider>
   );
