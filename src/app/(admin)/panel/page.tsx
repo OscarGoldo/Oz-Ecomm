@@ -35,6 +35,9 @@ import {
   WelcomeChecklist,
   type ChecklistStep,
 } from "@/components/admin/welcome-checklist";
+import { PushNotifications } from "@/components/admin/push-notifications";
+import { aiProductsAvailable } from "@/lib/ai-products";
+import { pushConfigured } from "@/lib/push";
 import { requireStoreUser } from "@/lib/auth";
 import { getCachedBcvRates } from "@/lib/bcv";
 import { bcvReference } from "@/lib/exchange-rate";
@@ -71,7 +74,12 @@ export default async function DashboardPage() {
       href: "/panel/personalizar",
     },
     { label: "Sube el logo de tu tienda", done: Boolean(store.logo_url), href: "/panel/configuracion" },
-    { label: "Carga tu primer producto", done: (productCount ?? 0) > 0, href: "/panel/productos/nuevo" },
+    {
+      label: "Carga tu primer producto",
+      done: (productCount ?? 0) > 0,
+      // Con IA, desde fotos: es el paso donde más tiendas nuevas se quedan.
+      href: aiProductsAvailable() ? "/panel/productos/fotos" : "/panel/productos/nuevo",
+    },
     { label: "Configura un método de pago", done: (paymentCount ?? 0) > 0, href: "/panel/configuracion/pagos" },
     { label: "Define la tasa del día (Bs)", done: store.exchange_rate != null, href: "/panel/configuracion" },
   ];
@@ -116,6 +124,10 @@ export default async function DashboardPage() {
       </header>
 
       <WelcomeChecklist steps={steps} />
+
+      {pushConfigured() && (
+        <PushNotifications variant="prompt" publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!} />
+      )}
 
       <section aria-labelledby="para-hoy">
         <div className="mb-3 flex items-baseline justify-between gap-3">

@@ -1,3 +1,4 @@
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 
 import { DomainNotice } from "@/components/admin/domain-notice";
@@ -26,6 +27,22 @@ import { getImageUrl } from "@/lib/storage";
 import { publicSiteUrl } from "@/lib/site-url";
 import { displayStoreAddress, storeSubdomainOrigin, storeUrl } from "@/lib/store-url";
 import { cn } from "@/lib/utils";
+
+/**
+ * El panel se puede instalar en la pantalla de inicio como una app. En iPhone
+ * es obligatorio para recibir avisos de pedidos (Safari solo los permite a
+ * webs instaladas). El manifiesto es solo del panel: las tiendas públicas no
+ * lo llevan, así un cliente que guarda una tienda no se lleva el panel.
+ */
+export const metadata: Metadata = {
+  manifest: "/panel.webmanifest",
+  // "black" y no "black-translucent": con translúcido el contenido pasa por
+  // debajo de la hora y la batería, y la barra del panel no deja ese espacio.
+  appleWebApp: { capable: true, title: "Tiendify", statusBarStyle: "black" },
+};
+
+// La barra del navegador del color de la barra noche del panel en móvil.
+export const viewport: Viewport = { themeColor: "#0B1B2B" };
 
 export default async function PanelLayout({
   children,

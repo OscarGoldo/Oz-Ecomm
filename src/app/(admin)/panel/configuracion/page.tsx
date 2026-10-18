@@ -1,11 +1,13 @@
 import { CloseStoreCard } from "@/components/admin/close-store-card";
 import { ConfigTabs } from "@/components/admin/config-tabs";
+import { PushNotifications } from "@/components/admin/push-notifications";
 import {
   StoreSettingsForm,
   type BcvDisplay,
 } from "@/components/admin/store-settings-form";
 import { requireStoreUser } from "@/lib/auth";
 import { fetchBcvRates, getCachedBcvRates } from "@/lib/bcv";
+import { pushConfigured } from "@/lib/push";
 
 export const metadata = { title: "Configuración" };
 
@@ -27,6 +29,9 @@ export default async function ConfiguracionPage() {
     <div className="mx-auto max-w-2xl space-y-5">
       <h1 className="text-2xl font-bold tracking-tight">Configuración</h1>
       <ConfigTabs />
+      {pushConfigured() && (
+        <PushNotifications variant="card" publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!} />
+      )}
       <StoreSettingsForm store={store} bcvRates={bcvRates} />
       {user.role === "store_owner" && (
         <CloseStoreCard

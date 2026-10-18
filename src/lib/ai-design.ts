@@ -78,11 +78,13 @@ export async function aiDesignQuota(
   const pro = isPro(store);
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
+  // La tabla la comparte la carga de productos con fotos: solo cuentan los diseños.
   const [today, everOk] = await Promise.all([
     db
       .from("ai_generations")
       .select("id", { count: "exact", head: true })
       .eq("store_id", store.id)
+      .eq("kind", "design")
       .gte("created_at", since),
     pro
       ? null
@@ -90,6 +92,7 @@ export async function aiDesignQuota(
           .from("ai_generations")
           .select("id", { count: "exact", head: true })
           .eq("store_id", store.id)
+          .eq("kind", "design")
           .eq("ok", true),
   ]);
   const error = today.error ?? everOk?.error;

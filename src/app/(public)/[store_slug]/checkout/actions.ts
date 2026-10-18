@@ -14,6 +14,8 @@ import {
   sendEmail,
 } from "@/lib/email";
 import { buildOrderMessageData } from "@/lib/order-messages";
+import { PAYMENT_METHOD_META } from "@/lib/constants";
+import { newOrderPush, proofPush, sendStorePush } from "@/lib/push";
 import { notifyOwnerNewOrder } from "@/lib/whatsapp-cloud";
 import { evaluateCoupon, findCouponByCode } from "@/lib/coupons";
 import { maybeQualifyReferral } from "@/lib/referrals-server";
@@ -30,7 +32,14 @@ import {
   getStripe,
   toCents,
 } from "@/lib/stripe";
-import type { Coupon, CouponType, Json, OrderStatus, Store } from "@/types/database";
+import type {
+  Coupon,
+  CouponType,
+  Json,
+  OrderStatus,
+  PaymentMethodType,
+  Store,
+} from "@/types/database";
 
 const checkoutSchema = z.object({
   store_id: z.string().uuid(),
@@ -869,6 +878,20 @@ async function insertOrder(
     reportError("createOrder:notifyOwnerWhatsapp", e, { orderId: order.id });
   }
 
+  // Y al teléfono de quien activó los avisos en el panel. Gratis; no-op sin
+  // las claves VAPID o sin teléfonos activados. Nunca lanza.
+  await sendStorePush(
+    store.id,
+    newOrderPush({
+      id: order.id,
+      orderNumber: order.order_number,
+      customerName: data.customer_name,
+      totalLabel: formatUSD(total),
+      paymentLabel: PAYMENT_METHOD_META[method.type as PaymentMethodType]?.label ?? null,
+      status,
+    }),
+  );
+
   // Recibo al cliente apenas compra.
   try {
     const { subject, html } = customerOrderReceiptEmail(messageData, {
@@ -997,6 +1020,12 @@ export async function attachPaymentProof(
   } catch {
     // Notificar nunca puede fallar la operación.
   }
+
+  // Al teléfono también: es el aviso que de verdad se ve. Nunca lanza.
+  await sendStorePush(
+    d.store_id,
+    proofPush({ id: order.id, orderNumber: order.order_number, customerName: order.customer_name }),
+  );
 
   return { ok: true };
 }

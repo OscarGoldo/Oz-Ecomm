@@ -12,6 +12,7 @@ import {
   sendEmail,
 } from "@/lib/email";
 import { buildOrderMessageData } from "@/lib/order-messages";
+import { newOrderPush, sendStorePush } from "@/lib/push";
 import { reportError } from "@/lib/report-error";
 import { storeUrl } from "@/lib/store-url";
 import { notifyOwnerNewOrder } from "@/lib/whatsapp-cloud";
@@ -111,6 +112,18 @@ export async function notifyPaidOrder(db: Db, orderId: string): Promise<void> {
       orderNumber: order.order_number,
       totalLabel: formatUSD(Number(order.total)),
     });
+
+    await sendStorePush(
+      store.id,
+      newOrderPush({
+        id: order.id,
+        orderNumber: order.order_number,
+        customerName: order.customer_name,
+        totalLabel: formatUSD(Number(order.total)),
+        paymentLabel: "Tarjeta",
+        status: "confirmed",
+      }),
+    );
 
     if (order.customer_email) {
       const { subject, html } = customerOrderReceiptEmail(messageData, {

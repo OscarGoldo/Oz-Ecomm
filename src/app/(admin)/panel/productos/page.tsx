@@ -1,12 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronRight, ImageOff, Package, Plus, Sparkles, Star } from "lucide-react";
+import { Camera, ChevronRight, ImageOff, Package, Plus, Sparkles, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProductStatusBadge } from "@/components/admin/status-badge";
 import { ProductsFilters } from "@/components/admin/products-filters";
 import { StockQuickEdit } from "@/components/admin/stock-quick-edit";
+import { aiProductsAvailable } from "@/lib/ai-products";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatUSD } from "@/lib/format";
@@ -84,6 +85,7 @@ export default async function ProductosPage({
     : { count: null };
   const used = usedRaw ?? 0;
   const atLimit = capped && used >= maxProducts;
+  const photosAvailable = aiProductsAvailable();
 
   return (
     <div className="space-y-6">
@@ -105,12 +107,22 @@ export default async function ProductosPage({
             </Link>
           </Button>
         ) : (
-          <Button asChild>
-            <Link href="/panel/productos/nuevo">
-              <Plus /> <span className="hidden sm:inline">Nuevo producto</span>
-              <span className="sm:hidden">Nuevo</span>
-            </Link>
-          </Button>
+          <div className="flex shrink-0 gap-2">
+            {photosAvailable && (
+              <Button asChild variant="outline">
+                <Link href="/panel/productos/fotos">
+                  <Camera /> <span className="hidden sm:inline">Cargar con fotos</span>
+                  <span className="sm:hidden">Fotos</span>
+                </Link>
+              </Button>
+            )}
+            <Button asChild>
+              <Link href="/panel/productos/nuevo">
+                <Plus /> <span className="hidden sm:inline">Nuevo producto</span>
+                <span className="sm:hidden">Nuevo</span>
+              </Link>
+            </Button>
+          </div>
         )}
       </div>
 
@@ -138,14 +150,27 @@ export default async function ProductosPage({
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
             {hasFilters
               ? "Prueba con otra búsqueda o quita los filtros."
-              : "Crea tu primer producto para empezar a vender."}
+              : photosAvailable
+                ? "Sube fotos de lo que vendes y la IA escribe nombre, descripción y categoría. Tú solo pones el precio."
+                : "Crea tu primer producto para empezar a vender."}
           </p>
+          {/* La tienda vacía es la que más se beneficia de cargar con fotos:
+              ahí va como acción principal. */}
           {!hasFilters && (
-            <Button asChild className="mt-4">
-              <Link href="/panel/productos/nuevo">
-                <Plus /> Nuevo producto
-              </Link>
-            </Button>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {photosAvailable && (
+                <Button asChild>
+                  <Link href="/panel/productos/fotos">
+                    <Camera /> Cargar con fotos
+                  </Link>
+                </Button>
+              )}
+              <Button asChild variant={photosAvailable ? "outline" : "default"}>
+                <Link href="/panel/productos/nuevo">
+                  <Plus /> {photosAvailable ? "Uno por uno" : "Nuevo producto"}
+                </Link>
+              </Button>
+            </div>
           )}
         </div>
       ) : (

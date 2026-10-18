@@ -1,0 +1,19 @@
+{
+  "name": "Tiendify · Panel",
+  "short_name": "Tiendify",
+  "description": "Pedidos, productos y avisos de tu tienda.",
+  "lang": "es",
+  "start_url": "/panel",
+  "scope": "/panel",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0B1B2B",
+  "icons": [
+    {
+      "src": "/tiendify-app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
