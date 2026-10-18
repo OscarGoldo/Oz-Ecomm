@@ -6,7 +6,8 @@ import { toast } from "sonner";
 
 import { createClient } from "@/lib/supabase/client";
 import { PAYMENT_PROOFS_BUCKET } from "@/lib/storage";
-import { uploadImage } from "@/lib/upload";
+import { createProofUploadTicket } from "@/lib/storage-actions";
+import { uploadImageSigned } from "@/lib/upload";
 import { formatBytes } from "@/lib/image-compress";
 
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -58,12 +59,14 @@ export function PaymentProofUpload({
     setPhase("compressing");
     setPercent(0);
 
-    const path = `${storeId}/${folder}/${crypto.randomUUID()}.jpg`;
-    const res = await uploadImage({
+    // La ruta y el permiso los da el servidor (URL firmada de un solo uso):
+    // desde la migración 0021 el bucket no acepta subidas directas con la anon
+    // key, y así el archivo nunca puede caer en la carpeta de otra tienda.
+    const res = await uploadImageSigned({
       supabase,
       bucket: PAYMENT_PROOFS_BUCKET,
-      path,
       file,
+      getTicket: (ext) => createProofUploadTicket(storeId, ext, folder),
       onProgress: (p) => {
         setPhase("uploading");
         setPercent(p);
@@ -74,9 +77,13 @@ export function PaymentProofUpload({
     setPercent(0);
 
     if (!res.ok || !res.path) {
-      toast.error("No se pudo subir el comprobante. Revisa tu conexión.", {
-        description: "Puedes intentar de nuevo con la misma foto.",
-      });
+      if (res.userError && res.error) {
+        toast.error(res.error);
+      } else {
+        toast.error("No se pudo subir el comprobante. Revisa tu conexión.", {
+          description: "Puedes intentar de nuevo con la misma foto.",
+        });
+      }
       return;
     }
     setPreview(URL.createObjectURL(file));

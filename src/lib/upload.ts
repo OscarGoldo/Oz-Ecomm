@@ -36,21 +36,16 @@ interface UploadArgs {
 /** Sube con XHR para poder informar el avance. Lanza si no termina en 2xx. */
 function xhrUpload(args: {
   url: string;
-  token: string;
-  apikey: string;
-  file: File;
-  cacheControl: string;
+  method: "POST" | "PUT";
+  headers: Record<string, string>;
+  body: File | FormData;
   onProgress?: (percent: number) => void;
 }): Promise<void> {
-  const { url, token, apikey, file, cacheControl, onProgress } = args;
+  const { url, method, headers, body, onProgress } = args;
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", url, true);
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-    xhr.setRequestHeader("apikey", apikey);
-    xhr.setRequestHeader("x-upsert", "false");
-    xhr.setRequestHeader("cache-control", `max-age=${cacheControl}`);
-    if (file.type) xhr.setRequestHeader("Content-Type", file.type);
+    xhr.open(method, url, true);
+    for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
 
     xhr.upload.onprogress = (e) => {
       if (!e.lengthComputable || !onProgress) return;
@@ -67,7 +62,7 @@ function xhrUpload(args: {
     };
     xhr.onerror = () => reject(new Error("fallo de red"));
     xhr.onabort = () => reject(new Error("subida cancelada"));
-    xhr.send(file);
+    xhr.send(body);
   });
 }
 
@@ -94,12 +89,18 @@ export async function uploadImage({
       // que usa el cliente que sube el comprobante sin cuenta.
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token ?? apikey;
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${token}`,
+        apikey,
+        "x-upsert": "false",
+        "cache-control": `max-age=${cacheControl}`,
+      };
+      if (compressed.type) headers["Content-Type"] = compressed.type;
       await xhrUpload({
         url: `${base}/storage/v1/object/${bucket}/${path}`,
-        token,
-        apikey,
-        file: compressed,
-        cacheControl,
+        method: "POST",
+        headers,
+        body: compressed,
         onProgress,
       });
       return { ok: true, path };
@@ -112,6 +113,102 @@ export async function uploadImage({
   const { error } = await supabase.storage
     .from(bucket)
     .upload(path, compressed, { cacheControl, upsert: false });
+  if (error) return { ok: false, error: error.message };
+  onProgress?.(100);
+  return { ok: true, path };
+}
+
+/** Lo que devuelve el servidor al pedir permiso para subir (ver storage-actions.ts). */
+export interface UploadTicket {
+  ok: boolean;
+  error?: string;
+  path?: string;
+  token?: string;
+}
+
+/** Extensión que corresponde al tipo del archivo ya comprimido. */
+function extFor(type: string): string {
+  if (type === "image/png") return "png";
+  if (type === "image/webp") return "webp";
+  if (type === "image/heic") return "heic";
+  if (type === "image/heif") return "heif";
+  return "jpg";
+}
+
+/** El techo del bucket de comprobantes (migración 0021). */
+const SIGNED_MAX_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Comprime y sube con una URL firmada que emite el servidor: la forma de subir
+ * comprobantes desde la migración 0021, que quitó el permiso de subida directa
+ * con la anon key. El servidor elige la ruta y da un token de un solo uso.
+ *
+ * `error` va listo para mostrarle al usuario cuando el problema es suyo (foto
+ * muy pesada) o del servidor (tienda cerrada); si no, el componente pone su
+ * mensaje de conexión.
+ */
+export async function uploadImageSigned({
+  supabase,
+  bucket,
+  file,
+  getTicket,
+  cacheControl = "3600",
+  onProgress,
+}: {
+  supabase: SupabaseClient<Database>;
+  bucket: string;
+  file: File;
+  /** Pide la ruta y el token al servidor, con la extensión del archivo final. */
+  getTicket: (ext: string) => Promise<UploadTicket>;
+  cacheControl?: string;
+  onProgress?: (percent: number) => void;
+}): Promise<UploadResult & { userError?: boolean }> {
+  const compressed = await compressImage(file);
+  if (compressed.size > SIGNED_MAX_BYTES) {
+    return {
+      ok: false,
+      userError: true,
+      error: "La imagen es muy pesada. Sube una captura de pantalla del comprobante.",
+    };
+  }
+
+  let ticket: UploadTicket;
+  try {
+    ticket = await getTicket(extFor(compressed.type));
+  } catch {
+    return { ok: false, error: "fallo de red" };
+  }
+  if (!ticket.ok || !ticket.path || !ticket.token) {
+    return { ok: false, userError: true, error: ticket.error ?? "No se pudo preparar la subida" };
+  }
+  const { path, token } = ticket;
+
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const apikey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (base && apikey) {
+    try {
+      // Mismo pedido que arma supabase-js en uploadToSignedUrl, pero con XHR
+      // para tener el avance. El token va en la URL; no hace falta sesión.
+      const body = new FormData();
+      body.append("cacheControl", cacheControl);
+      body.append("", compressed);
+      await xhrUpload({
+        url: `${base}/storage/v1/object/upload/sign/${bucket}/${path}?token=${encodeURIComponent(token)}`,
+        method: "PUT",
+        headers: { apikey, "x-upsert": "false" },
+        body,
+        onProgress,
+      });
+      return { ok: true, path };
+    } catch {
+      // Cae al camino de supabase-js.
+    }
+  }
+
+  onProgress?.(50);
+  const { error } = await supabase.storage
+    .from(bucket)
+    .uploadToSignedUrl(path, token, compressed, { cacheControl });
   if (error) return { ok: false, error: error.message };
   onProgress?.(100);
   return { ok: true, path };
