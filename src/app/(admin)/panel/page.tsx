@@ -35,9 +35,11 @@ import {
   WelcomeChecklist,
   type ChecklistStep,
 } from "@/components/admin/welcome-checklist";
+import { DismissibleTask, ShowHiddenTasks } from "@/components/admin/dismissible-task";
 import { PushNotifications } from "@/components/admin/push-notifications";
 import { aiProductsAvailable } from "@/lib/ai-products";
-import { pushConfigured } from "@/lib/push";
+import { isTaskHidden, readHiddenTasks, type TaskId } from "@/lib/dashboard-tasks";
+import { pushConfigured, storePushDeviceCount } from "@/lib/push";
 import { requireStoreUser } from "@/lib/auth";
 import { getCachedBcvRates } from "@/lib/bcv";
 import { bcvReference } from "@/lib/exchange-rate";
@@ -49,9 +51,13 @@ import { formatBs, formatUSD } from "@/lib/format";
 export const metadata: Metadata = { title: "Resumen" };
 
 export default async function DashboardPage() {
-  const { user, store } = await requireStoreUser();
+  const { user, store, metadata } = await requireStoreUser();
   const firstName = user.full_name.split(" ")[0] ?? user.full_name;
-  const m = await getDashboardMetrics(store.id);
+  const pushOn = pushConfigured();
+  const [m, pushDevices] = await Promise.all([
+    getDashboardMetrics(store.id),
+    pushOn ? storePushDeviceCount(store.id) : Promise.resolve(0),
+  ]);
 
   // Setup checklist for new stores.
   const supabase = createClient();
@@ -84,7 +90,11 @@ export default async function DashboardPage() {
     { label: "Define la tasa del día (Bs)", done: store.exchange_rate != null, href: "/panel/configuracion" },
   ];
 
-  const tasks = buildTasks(m);
+  // Las que el comerciante ocultó no salen, hasta que tengan algo nuevo.
+  const allTasks = buildTasks(m);
+  const hiddenTasks = readHiddenTasks(metadata);
+  const tasks = allTasks.filter((t) => !isTaskHidden(hiddenTasks, t.id, t.itemIds));
+  const hiddenCount = allTasks.length - tasks.length;
   const lowStockOnly = m.lowStock.filter((p) => p.stock > 0);
   const outOfStock = m.lowStock.filter((p) => p.stock <= 0);
   const ticket = m.monthOrders > 0 ? m.monthSalesUsd / m.monthOrders : null;
@@ -125,7 +135,10 @@ export default async function DashboardPage() {
 
       <WelcomeChecklist steps={steps} />
 
-      {pushConfigured() && (
+      {/* Solo mientras ningún teléfono de la tienda los tenga: si ya le suenan
+          en el teléfono, ofrecerlos en la computadora cada día es ruido. En
+          Ajustes sigue la opción para activarlos en este equipo. */}
+      {pushOn && pushDevices === 0 && (
         <PushNotifications variant="prompt" publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!} />
       )}
 
@@ -138,7 +151,7 @@ export default async function DashboardPage() {
             <p className="hidden text-[13px] text-ink-600 sm:block">Lo más urgente primero</p>
           )}
         </div>
-        {tasks.length === 0 ? (
+        {allTasks.length === 0 ? (
           <div className="flex items-center gap-3.5 rounded-2xl border bg-card p-5">
             <span className="grid size-10 shrink-0 place-items-center rounded-[10px] bg-success-surface text-success-text">
               <CheckCircle2 className="size-5" />
@@ -151,11 +164,18 @@ export default async function DashboardPage() {
             </div>
           </div>
         ) : (
-          <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
-            {tasks.map((t) => (
-              <TaskCard key={t.href} task={t} />
-            ))}
-          </div>
+          <>
+            {tasks.length > 0 && (
+              <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
+                {tasks.map((t) => (
+                  <DismissibleTask key={t.id} taskId={t.id} itemIds={t.itemIds} label={t.title}>
+                    <TaskCard task={t} />
+                  </DismissibleTask>
+                ))}
+              </div>
+            )}
+            {hiddenCount > 0 && <ShowHiddenTasks count={hiddenCount} />}
+          </>
         )}
       </section>
 
@@ -304,6 +324,10 @@ export default async function DashboardPage() {
 /* --- Para atender hoy ------------------------------------------------------ */
 
 interface Task {
+  /** Para ocultarla (ver lib/dashboard-tasks.ts). */
+  id: TaskId;
+  /** Lo que hay detrás de la tarea; si aparece uno nuevo, vuelve aunque esté oculta. */
+  itemIds: string[];
   icon: LucideIcon;
   /** El único que va en amarillo: hay plata esperando que la confirmen. */
   urgent?: boolean;
@@ -323,6 +347,8 @@ function buildTasks(m: DashboardMetrics): Task[] {
 
   if (m.pendingConfirmation > 0) {
     tasks.push({
+      id: "comprobantes",
+      itemIds: m.pendingConfirmationIds,
       icon: Receipt,
       urgent: true,
       title: plural(m.pendingConfirmation, "comprobante por revisar", "comprobantes por revisar"),
@@ -339,6 +365,8 @@ function buildTasks(m: DashboardMetrics): Task[] {
 
   if (m.pendingPayment > 0) {
     tasks.push({
+      id: "esperan-pago",
+      itemIds: m.pendingPaymentIds,
       icon: Clock,
       title: plural(m.pendingPayment, "pedido espera el pago", "pedidos esperan el pago"),
       text: "Eligieron pagar por fuera y no mandaron el comprobante. El producto queda apartado mientras tanto.",
@@ -349,6 +377,8 @@ function buildTasks(m: DashboardMetrics): Task[] {
 
   if (m.abandonedCarts.count > 0) {
     tasks.push({
+      id: "carritos",
+      itemIds: m.abandonedCarts.ids,
       icon: ShoppingCart,
       title: plural(m.abandonedCarts.count, "carrito sin terminar", "carritos sin terminar"),
       text: `${formatUSD(m.abandonedCarts.usd)} que se quedaron sin pagar. Un mensaje a tiempo los recupera.`,
@@ -362,6 +392,8 @@ function buildTasks(m: DashboardMetrics): Task[] {
   if (out.length > 0 || low.length > 0) {
     const names = (out.length > 0 ? out : low).slice(0, 2).map((p) => p.name).join(", ");
     tasks.push({
+      id: "stock",
+      itemIds: m.lowStock.map((p) => p.id),
       icon: out.length > 0 ? PackageX : AlertTriangle,
       title:
         out.length > 0

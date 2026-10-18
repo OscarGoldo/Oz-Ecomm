@@ -168,6 +168,20 @@ export async function sendStorePush(storeId: string, payload: PushPayload): Prom
   }
 }
 
+/**
+ * Cuántos teléfonos (o computadoras) de la tienda tienen los avisos activos.
+ * El Resumen deja de ofrecerlos cuando ya hay alguno: si ya le suena el
+ * teléfono, verlo en la computadora todos los días es ruido (en Ajustes sigue
+ * la opción para activarlos también ahí). 0 si la tabla no existe.
+ */
+export async function storePushDeviceCount(storeId: string): Promise<number> {
+  const { count, error } = await createAdminClient()
+    .from("push_subscriptions")
+    .select("id", { count: "exact", head: true })
+    .eq("store_id", storeId);
+  return error ? 0 : (count ?? 0);
+}
+
 /** El aviso de prueba: solo al teléfono que lo pidió. */
 export async function sendPushToEndpoint(
   storeId: string,

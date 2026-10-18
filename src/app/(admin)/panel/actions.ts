@@ -1,5 +1,14 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
+import {
+  HIDDEN_TASKS_KEY,
+  MAX_HIDDEN_IDS,
+  TASK_IDS,
+  readHiddenTasks,
+  type TaskId,
+} from "@/lib/dashboard-tasks";
 import { DOMAIN_NOTICE_KEY } from "@/lib/domain-notice";
 import { PLAN_GIFT_SEEN_KEY } from "@/lib/plan-gift";
 import { STORE_ADDRESS_NOTICE_KEY } from "@/lib/store-address-notice";
@@ -27,4 +36,31 @@ export async function dismissPlanGiftNotice(): Promise<void> {
   await createClient().auth.updateUser({
     data: { [PLAN_GIFT_SEEN_KEY]: new Date().toISOString() },
   });
+}
+
+/**
+ * Oculta una tarea de "Para atender hoy" hasta que tenga algo nuevo (ver
+ * dashboard-tasks.ts). Se guardan los ids que el comerciante tenía a la vista.
+ */
+export async function hideDashboardTask(taskId: string, itemIds: unknown): Promise<void> {
+  if (!(TASK_IDS as readonly string[]).includes(taskId)) return;
+  const ids = Array.isArray(itemIds)
+    ? itemIds.filter((x): x is string => typeof x === "string" && x.length <= 64).slice(0, MAX_HIDDEN_IDS)
+    : [];
+
+  const supabase = createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return;
+  // updateUser reemplaza la clave entera: se suma a lo que ya estaba oculto.
+  const hidden = readHiddenTasks(data.user.user_metadata ?? {});
+  await supabase.auth.updateUser({
+    data: { [HIDDEN_TASKS_KEY]: { ...hidden, [taskId as TaskId]: ids } },
+  });
+  revalidatePath("/panel");
+}
+
+/** Vuelve a mostrar todas las tareas ocultas. */
+export async function showHiddenTasks(): Promise<void> {
+  await createClient().auth.updateUser({ data: { [HIDDEN_TASKS_KEY]: {} } });
+  revalidatePath("/panel");
 }
