@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   CreditCard,
   Gift,
+  HandCoins,
   LayoutDashboard,
   MessageSquare,
   MoreHorizontal,
@@ -54,6 +55,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/super/suscripciones", label: "Suscripciones", icon: Receipt },
       { href: "/super/pagos", label: "Pagos a tiendas", icon: Wallet },
       { href: "/super/stripe", label: "Stripe", icon: CreditCard },
+      { href: "/super/credito", label: "Crédito", icon: HandCoins },
     ],
   },
   {
