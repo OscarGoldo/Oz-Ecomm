@@ -9,7 +9,8 @@ Reglas de la casa:
 - **Es interno.** Solo lo ven los socios. Ninguna tienda ve su puntaje.
 - **El comerciante decide.** Nada se le ofrece sin que lo pida y acepte los
   términos.
-- **Las tiendas de prueba no cuentan.** Alfa Electronic queda fuera
+- **Las tiendas de prueba no cuentan.** Quedan fuera Alfa Electronic, Retro
+  Mania, Ozzie Steaks, Abigaile, Ovejita y Mr. Cleaner
   (`CREDIT_EXCLUDED_SLUGS` en `src/lib/credit-score.ts`).
 
 ## Los dos productos

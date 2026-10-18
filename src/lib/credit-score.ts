@@ -25,7 +25,14 @@ import { emailKey, groupByCustomer, phoneKey } from "@/lib/customer-identity";
  */
 
 /** Tiendas que no se evalúan: las de prueba de Tiendify. */
-export const CREDIT_EXCLUDED_SLUGS = new Set(["alfa-electronic"]);
+export const CREDIT_EXCLUDED_SLUGS = new Set([
+  "alfa-electronic",
+  "retro-mania",
+  "ozzie-steaks",
+  "abigaile",
+  "ovejita",
+  "mr-cleaner",
+]);
 
 const DAY_MS = 86_400_000;
 /** Un "mes" del puntaje: ventanas de 30 días hacia atrás, no meses de calendario. */
