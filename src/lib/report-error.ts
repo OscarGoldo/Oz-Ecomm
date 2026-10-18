@@ -58,6 +58,25 @@ export function reportError(
           /* si ni Sentry carga, ya quedó en los logs de arriba */
         });
     }
+
+    // Y al grupo de Telegram de los socios (máximo un aviso por lugar cada 30
+    // minutos). Import dinámico: error-alerts usa la base y Telegram, y este
+    // archivo lo importa medio proyecto. Corre después de la respuesta si hace
+    // falta, sin demorar lo que se esté haciendo.
+    void import("@/lib/error-alerts")
+      .then(({ alertError, runInBackground }) =>
+        runInBackground(
+          alertError({
+            source: "servidor",
+            where,
+            detail: `${detail}${context ? ` · ${JSON.stringify(context).slice(0, 200)}` : ""}`,
+            ref,
+          }),
+        ),
+      )
+      .catch(() => {
+        /* avisar nunca puede tumbar nada */
+      });
   } catch {
     // Ni siquiera loguear puede tumbar la operación de arriba.
   }

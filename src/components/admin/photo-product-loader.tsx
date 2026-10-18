@@ -23,9 +23,10 @@ import {
   type PhotoProductInput,
 } from "@/app/(admin)/panel/productos/fotos/actions";
 import type { AiPhotoQuota } from "@/lib/ai-products";
+import { reportClientError } from "@/lib/client-error-actions";
 import { createClient } from "@/lib/supabase/client";
 import { STORE_IMAGES_BUCKET, productImagePath } from "@/lib/storage";
-import { uploadImage } from "@/lib/upload";
+import { isNetworkError, uploadImage } from "@/lib/upload";
 import { cn } from "@/lib/utils";
 
 /** Cuántas fotos se suben y se leen a la vez. Más satura los datos móviles. */
@@ -130,6 +131,9 @@ export function PhotoProductLoader({
         file,
       });
       if (!res.ok || !res.path) {
+        if (!isNetworkError(res.error)) {
+          void reportClientError({ place: "carga-fotos", message: res.error, path: window.location.pathname });
+        }
         patch(key, { status: "failed", message: "No se pudo subir la foto. Revisa tu conexión." });
         return;
       }

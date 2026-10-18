@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { RefreshCw } from "lucide-react";
 
+import { reportErrorScreen } from "@/lib/report-error-screen";
+
 /**
  * Error dentro de una tienda. Es la pantalla comercialmente más importante de
  * las tres: acá hay un cliente con plata en la mano y un comerciante que se
@@ -24,6 +26,7 @@ export default function StorefrontError({
       `[storefront-error]${error.digest ? ` ${error.digest}` : ""}`,
       error,
     );
+    reportErrorScreen(error);
   }, [error]);
 
   return (

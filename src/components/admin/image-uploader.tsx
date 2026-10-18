@@ -12,7 +12,8 @@ import {
   productImagePath,
   themeImagePath,
 } from "@/lib/storage";
-import { uploadImage } from "@/lib/upload";
+import { reportClientError } from "@/lib/client-error-actions";
+import { isNetworkError, uploadImage } from "@/lib/upload";
 
 const DEFAULT_MAX_IMAGES = 6;
 /** Techo antes de comprimir. Después de comprimir queda en ~300 KB. */
@@ -93,6 +94,13 @@ export function ImageUploader({
         onProgress: setPercent,
       });
       if (!res.ok || !res.path) {
+        if (!isNetworkError(res.error)) {
+          void reportClientError({
+            place: "fotos-producto",
+            message: res.error,
+            path: window.location.pathname,
+          });
+        }
         failed++;
         continue;
       }

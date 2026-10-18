@@ -35,7 +35,9 @@ export type PlatformEventType =
   | "plan.payment_failed"
   | "stripe.dispute"
   | "stripe.refund"
-  | "stripe.orphan_charge";
+  | "stripe.orphan_charge"
+  // Errores (los anota y avisa src/lib/error-alerts.ts, no recordPlatformEvent)
+  | "system.error";
 
 export type EventGroup = "clientes" | "dinero" | "pagos" | "crecimiento" | "alerta";
 
@@ -56,6 +58,7 @@ export const EVENT_GROUP: Record<PlatformEventType, EventGroup> = {
   "stripe.dispute": "alerta",
   "stripe.refund": "alerta",
   "stripe.orphan_charge": "alerta",
+  "system.error": "alerta",
 };
 
 /** Un ícono por grupo, para leer el grupo de Telegram de un vistazo. */

@@ -709,6 +709,10 @@ async function insertOrder(
         return { ok: true, orderId: twin.id };
       }
     }
+    reportError("createOrder:insert", new Error(orderErr?.message ?? "sin fila"), {
+      storeId: store.id,
+      code: orderErr?.code,
+    });
     return { ok: false, error: "No se pudo crear el pedido. Intenta de nuevo." };
   }
 
@@ -718,6 +722,10 @@ async function insertOrder(
   if (itemsErr) {
     await db.from("orders").delete().eq("id", order.id);
     await releaseCoupon();
+    reportError("createOrder:items", new Error(itemsErr.message), {
+      storeId: store.id,
+      code: itemsErr.code,
+    });
     return { ok: false, error: "No se pudo crear el pedido. Intenta de nuevo." };
   }
 
@@ -987,6 +995,10 @@ export async function attachPaymentProof(
     .eq("status", "pending_payment");
 
   if (error) {
+    reportError("attachPaymentProof", new Error(error.message), {
+      orderId: order.id,
+      code: error.code,
+    });
     return { ok: false, error: "No se pudo guardar el comprobante. Intenta de nuevo." };
   }
 

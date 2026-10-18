@@ -6,8 +6,9 @@ import { toast } from "sonner";
 
 import { createClient } from "@/lib/supabase/client";
 import { PAYMENT_PROOFS_BUCKET } from "@/lib/storage";
+import { reportClientError } from "@/lib/client-error-actions";
 import { createProofUploadTicket } from "@/lib/storage-actions";
-import { uploadImageSigned } from "@/lib/upload";
+import { isNetworkError, uploadImageSigned } from "@/lib/upload";
 import { formatBytes } from "@/lib/image-compress";
 
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -77,6 +78,19 @@ export function PaymentProofUpload({
     setPercent(0);
 
     if (!res.ok || !res.path) {
+      // A Telegram de los socios, salvo que sea la conexión del cliente o algo
+      // que el cliente puede resolver (foto muy pesada, tienda cerrada). El
+      // "no se pudo preparar la subida" sí es nuestro.
+      const ours = res.userError
+        ? res.error === "No se pudo preparar la subida"
+        : !isNetworkError(res.error);
+      if (ours) {
+        void reportClientError({
+          place: "comprobante",
+          message: res.error,
+          path: window.location.pathname,
+        });
+      }
       if (res.userError && res.error) {
         toast.error(res.error);
       } else {

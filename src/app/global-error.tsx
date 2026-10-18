@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { reportErrorScreen } from "@/lib/report-error-screen";
+
 /**
  * Última red: se activa cuando el que revienta es el layout raíz, así que
  * tiene que traer su propio <html> y <body> y no puede usar nada de la app
@@ -20,6 +22,7 @@ export default function GlobalError({
       `[global-error]${error.digest ? ` ${error.digest}` : ""}`,
       error,
     );
+    reportErrorScreen(error);
   }, [error]);
 
   return (

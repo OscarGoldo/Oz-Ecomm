@@ -5,6 +5,7 @@ import Link from "next/link";
 import { RefreshCw } from "lucide-react";
 
 import { TiendifyLogoMark } from "@/components/landing/tiendify-logo";
+import { reportErrorScreen } from "@/lib/report-error-screen";
 
 /**
  * Pantalla de error de toda la app. Sin esto, cualquier excepción del servidor
@@ -24,6 +25,7 @@ export default function AppError({
 }) {
   useEffect(() => {
     console.error(`[app-error]${error.digest ? ` ${error.digest}` : ""}`, error);
+    reportErrorScreen(error);
   }, [error]);
 
   return (

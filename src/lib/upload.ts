@@ -118,6 +118,17 @@ export async function uploadImage({
   return { ok: true, path };
 }
 
+/**
+ * ¿Falló por la conexión del usuario y no por nosotros? Con datos móviles en
+ * Venezuela esto pasa todo el tiempo y no es para avisar a nadie; un rechazo
+ * de Storage (permisos, tamaño, token) sí.
+ */
+export function isNetworkError(message: string | undefined): boolean {
+  return /failed to fetch|network|fallo de red|load failed|cancelad|aborted|timeout|timed out/i.test(
+    message ?? "",
+  );
+}
+
 /** Lo que devuelve el servidor al pedir permiso para subir (ver storage-actions.ts). */
 export interface UploadTicket {
   ok: boolean;
