@@ -26,6 +26,57 @@ function shortRef(): string {
   return `TND-${Math.random().toString(36).toUpperCase().slice(2, 6)}`;
 }
 
+/**
+ * El texto de un error, sea lo que sea lo que llegó.
+ *
+ * Supabase no lanza: devuelve `{ error }` como un objeto suelto
+ * (`{ message, code, details, hint }`), no como un `Error`, y medio proyecto
+ * hace `if (error) throw error`. Con `String()` eso quedaba "[object Object]" y
+ * el aviso no decía nada: pasó con el sitemap el 2026-10-19 y no hubo forma de
+ * saber qué falló.
+ */
+function describeError(error: unknown): string {
+  const code = (e: object) => {
+    const c = (e as { code?: unknown }).code;
+    return (typeof c === "string" && c) || typeof c === "number" ? ` [${c}]` : "";
+  };
+
+  if (error instanceof Error) return `${error.name}: ${error.message}${code(error)}`;
+
+  if (error && typeof error === "object") {
+    const { message, details, hint } = error as Record<string, unknown>;
+    if (typeof message === "string" && message) {
+      return [`${message}${code(error)}`, cleanDetails(details, message), hint]
+        .filter((s): s is string => typeof s === "string" && s !== "")
+        .join(" · ");
+    }
+    try {
+      return JSON.stringify(error);
+    } catch {
+      // Circular o algo raro: queda el String() de abajo.
+    }
+  }
+
+  return String(error);
+}
+
+/**
+ * Cuando Supabase no llega a la base (`fetch failed`), `details` trae el stack
+ * entero de undici. Lo que sirve es el "Caused by: …" (timeout, DNS, puerto);
+ * el resto se comería los 500 caracteres del aviso.
+ */
+function cleanDetails(details: unknown, message: string): string | null {
+  if (typeof details !== "string") return null;
+  const kept: string[] = [];
+  for (const raw of details.split("\n")) {
+    const line = raw.trim();
+    if (!line || line.startsWith("at ") || line === message) continue;
+    if (kept.some((k) => k.includes(line))) continue;
+    kept.push(line);
+  }
+  return kept.join(" ").slice(0, 200) || null;
+}
+
 export function reportError(
   where: string,
   error: unknown,
@@ -33,10 +84,7 @@ export function reportError(
 ): ErrorReport {
   const ref = shortRef();
   try {
-    const detail =
-      error instanceof Error
-        ? `${error.name}: ${error.message}`
-        : String(error);
+    const detail = describeError(error);
     // Una línea por error, con el ref adelante para poder grepear.
     console.error(
       `[${ref}] ${where} — ${detail}`,
@@ -49,7 +97,9 @@ export function reportError(
     if (process.env.SENTRY_DSN) {
       void import("@sentry/nextjs")
         .then((Sentry) =>
-          Sentry.captureException(error, {
+          // Un objeto suelto de Supabase llegaría como "Object captured as
+          // exception"; envuelto en un Error se agrupa por su mensaje.
+          Sentry.captureException(error instanceof Error ? error : new Error(detail), {
             tags: { ref, where },
             extra: context,
           }),
