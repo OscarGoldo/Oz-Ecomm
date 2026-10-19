@@ -9,6 +9,7 @@ import { requireStoreUser } from "@/lib/auth";
 import { fetchBcvRates, getCachedBcvRates } from "@/lib/bcv";
 import { pushConfigured } from "@/lib/push";
 import { getStoreSetup } from "@/lib/store-setup";
+import { getUsdtRate } from "@/lib/usdt";
 
 export const metadata = { title: "Ajustes" };
 
@@ -16,7 +17,12 @@ export default async function ConfiguracionPage() {
   const { user, store } = await requireStoreUser();
 
   // Prefer cached rates (refreshed by the cron); fall back to a live fetch.
-  const [cached, setup] = await Promise.all([getCachedBcvRates(), getStoreSetup(store)]);
+  // El USDT sale de una caché de 15 minutos y no demora la página (lib/usdt.ts).
+  const [cached, setup, usdt] = await Promise.all([
+    getCachedBcvRates(),
+    getStoreSetup(store),
+    getUsdtRate(),
+  ]);
   let bcvRates: BcvDisplay | null =
     cached && (cached.usd || cached.eur)
       ? { usd: cached.usd, eur: cached.eur, value_date: cached.source_date }
@@ -30,6 +36,7 @@ export default async function ConfiguracionPage() {
     <StoreSettingsForm
       store={store}
       bcvRates={bcvRates}
+      usdtRate={usdt?.rate ?? null}
       after={
         <>
           {pushConfigured() && (

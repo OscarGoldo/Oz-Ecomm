@@ -18,6 +18,7 @@ import type {
   OrderStatus,
   PaymentMethodType,
   Product,
+  RecurringExpense,
 } from "@/types/database";
 
 /** Lunes a domingo, en ese orden (getDay() de date-fns arranca en domingo). */
@@ -468,4 +469,44 @@ export async function getRecentExpenses(storeId: string) {
     .order("created_at", { ascending: false })
     .limit(20);
   return data ?? [];
+}
+
+/**
+ * Los gastos que se repiten de la tienda, activos primero. Vacío si la
+ * migración 0036 todavía no corrió.
+ */
+export async function getRecurringExpenses(storeId: string): Promise<RecurringExpense[]> {
+  const { data, error } = await createClient()
+    .from("recurring_expenses")
+    .select("*")
+    .eq("store_id", storeId)
+    .order("active", { ascending: false })
+    .order("created_at", { ascending: true });
+  if (error) return [];
+  return data ?? [];
+}
+
+/**
+ * Lo registrado en un rango por gastos que se repiten, por categoría: los
+ * fijos ya no son solo alquiler, sueldos y servicios. `to` es exclusivo.
+ */
+export async function getRecurringSpentByCategory(
+  storeId: string,
+  from: string,
+  to: string,
+): Promise<Map<string, number>> {
+  const { data, error } = await createClient()
+    .from("expenses")
+    .select("amount, category")
+    .eq("store_id", storeId)
+    .not("recurring_expense_id", "is", null)
+    .gte("spent_at", from)
+    .lt("spent_at", to);
+  const out = new Map<string, number>();
+  if (error) return out;
+  for (const e of data ?? []) {
+    const cat = e.category || "Otros";
+    out.set(cat, (out.get(cat) ?? 0) + Number(e.amount));
+  }
+  return out;
 }

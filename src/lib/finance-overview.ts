@@ -6,6 +6,8 @@ import {
   getPeriodReport,
   getRangeAgg,
   getRecentExpenses,
+  getRecurringExpenses,
+  getRecurringSpentByCategory,
   SALES_STATUSES,
   type PeriodReport,
   type RangeAgg,
@@ -17,6 +19,7 @@ import {
   shortDay,
   type ReportPeriod,
 } from "@/lib/report-period";
+import { pendingBetween } from "@/lib/recurring-expenses";
 import { PAYMENT_PROOFS_BUCKET } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -33,6 +36,10 @@ import type { Employee, Expense, PaymentMethodType } from "@/types/database";
  * Las categorías de gasto que se pagan igual venda o no venda. Son las que
  * entran en el punto de equilibrio. El resto (inventario, publicidad,
  * envíos…) se mueve con las ventas.
+ *
+ * Además es fijo todo gasto que se repite, sea de la categoría que sea (ver
+ * lib/recurring-expenses.ts): si el comerciante lo cargó para que se registre
+ * solo cada mes, es porque lo paga venda o no venda.
  */
 export const FIXED_CATEGORIES = ["Alquiler", "Sueldos", "Servicios"];
 
@@ -461,6 +468,8 @@ export async function getFinanceOverview(
     { data: dueRows },
     { data: paidRows },
     bcv,
+    recurring,
+    recurringSpent,
   ] = await Promise.all([
     getPeriodReport(storeId, period),
     Promise.all(months.map((m) => getRangeAgg(storeId, m.range.fromISO, m.range.toISO))),
@@ -495,11 +504,19 @@ export async function getFinanceOverview(
       .order("paid_out_at", { ascending: false })
       .limit(200),
     getCachedBcvRates(),
+    isThisMonth ? getRecurringExpenses(storeId) : Promise.resolve([]),
+    getRecurringSpentByCategory(storeId, period.from, addDays(period.to, 1)),
   ]);
 
   const employees = (employeeRows ?? []) as Employee[];
   const payrollUsd = payrollMonthlyUsd(employees, bcv?.usd ?? null);
   const monthCats = byCategory(report.expensesByCategory);
+  // Lo registrado por gastos que se repiten fuera de alquiler, sueldos y
+  // servicios: también es fijo (los de esas tres ya cuentan por categoría).
+  const recurringOtherUsd = [...recurringSpent]
+    .filter(([cat]) => !FIXED_CATEGORIES.includes(cat))
+    .reduce((s, [, usd]) => s + usd, 0);
+  const fixedPaid = fixedOf(report.expensesByCategory) + recurringOtherUsd;
 
   // ── Mes a mes ──
   const monthPoints: MonthPoint[] = months.map((m, i) => {
@@ -520,25 +537,41 @@ export async function getFinanceOverview(
   // ── Este mes: avance y proyección ──
   let monthProgress: FinanceOverview["monthProgress"] = null;
   let projection: FinanceOverview["projection"] = null;
-  let fixedExpected = fixedOf(report.expensesByCategory);
+  let fixedExpected = fixedPaid;
   if (isThisMonth) {
     const [y, m, d] = ymd(today);
     monthProgress = { day: d, days: daysInMonth(y, m) };
 
-    // Los fijos del mes son, por categoría, lo que ya se pagó o lo del mes
-    // pasado si fue más: el alquiler se paga una vez y no se multiplica por
-    // los días. Los sueldos, además, por lo menos lo de la nómina.
+    // Lo que falta registrar este mes de los gastos que se repiten: el
+    // alquiler del 30 ya cuenta aunque todavía no llegó.
+    const monthEnd = `${today.slice(0, 8)}${String(monthProgress.days).padStart(2, "0")}`;
+    const upcoming = new Map<string, number>();
+    for (const r of recurring) {
+      if (!r.active) continue;
+      const cat = r.category || "Otros";
+      const n = pendingBetween(r, today, monthEnd).length;
+      if (n > 0) upcoming.set(cat, (upcoming.get(cat) ?? 0) + n * Number(r.amount));
+    }
+
+    // Los fijos del mes son, por categoría, lo que ya se pagó (más lo que se
+    // repite y falta) o lo del mes pasado si fue más: el alquiler se paga una
+    // vez y no se multiplica por los días. Los sueldos, además, por lo menos
+    // lo de la nómina. Lo que se repite en otras categorías suma aparte.
     const last = monthAggs.length >= 2 ? byCategory(monthAggs[monthAggs.length - 2].expensesByCategory) : new Map();
     fixedExpected = FIXED_CATEGORIES.reduce((sum, cat) => {
       const floor = cat === "Sueldos" ? payrollUsd : 0;
-      return sum + Math.max(monthCats.get(cat) ?? 0, last.get(cat) ?? 0, floor);
-    }, 0);
+      const now = (monthCats.get(cat) ?? 0) + (upcoming.get(cat) ?? 0);
+      return sum + Math.max(now, last.get(cat) ?? 0, floor);
+    }, recurringOtherUsd);
+    for (const [cat, usd] of upcoming) {
+      if (!FIXED_CATEGORIES.includes(cat)) fixedExpected += usd;
+    }
 
     // Antes del tercer día, o con menos de cinco ventas, el ritmo dice poco:
     // una sola venta grande el día 2 proyectaba un mes que no iba a pasar.
     if (d >= 3 && report.salesCount >= MIN_SALES_TO_PROJECT) {
       const factor = monthProgress.days / d;
-      const variable = report.expensesUsd - fixedOf(report.expensesByCategory);
+      const variable = report.expensesUsd - fixedPaid;
       const incomeUsd = report.incomeUsd * factor;
       const best = Math.max(0, ...monthPoints.slice(0, -1).map((p) => p.incomeUsd));
       projection = {
@@ -682,7 +715,7 @@ export async function getFinanceOverview(
       category: c.category,
       usd: c.usd,
       pct: report.expensesUsd > 0 ? (c.usd / report.expensesUsd) * 100 : 0,
-      fixed: FIXED_CATEGORIES.includes(c.category),
+      fixed: FIXED_CATEGORIES.includes(c.category) || recurringSpent.has(c.category),
     })),
     payrollDueUsd: isThisMonth && payrollUsd - sueldos >= 1 ? payrollUsd - sueldos : null,
     collect: {

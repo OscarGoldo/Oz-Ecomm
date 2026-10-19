@@ -1,4 +1,96 @@
 import { formatBs } from "@/lib/format";
+import type { ExchangeRateSource } from "@/types/database";
+
+// ── De dónde sale la tasa de la tienda ──────────────────────────────────────
+
+/**
+ * El comerciante elige con qué tasa se calculan sus bolívares: dólar BCV, euro
+ * BCV o USDT, con un ajuste opcional en % ("USDT − 2 %"). El cron de cada hora
+ * (api/cron/bcv) y el guardado de Ajustes hacen la misma cuenta y la escriben
+ * en `stores.exchange_rate`, que es lo único que leen la tienda, el checkout y
+ * Finanzas.
+ *
+ * El USDT se nombra solo dentro del panel. Afuera, una tienda que usa el USDT
+ * o una tasa con ajuste muestra "Tasa del día" sin decir de dónde sale (ver
+ * lib/usdt.ts por qué).
+ */
+export const RATE_SOURCES: Record<ExchangeRateSource, { name: string; sym: string }> = {
+  bcv_usd: { name: "Dólar BCV", sym: "$" },
+  bcv_eur: { name: "Euro BCV", sym: "€" },
+  usdt: { name: "USDT", sym: "₮" },
+};
+
+export const MARGIN_MIN = -50;
+export const MARGIN_MAX = 100;
+
+/** Lo que una tienda necesita para saber de dónde sale su tasa. */
+export interface StoreRateFields {
+  auto_exchange_rate?: boolean | null;
+  exchange_rate_source?: ExchangeRateSource | null;
+  exchange_rate_margin?: number | string | null;
+  currency_primary?: string | null;
+}
+
+export interface RateSettings {
+  /** false: la tasa la pone el comerciante y no se toca. */
+  auto: boolean;
+  source: ExchangeRateSource;
+  /** Ajuste en %: 0, −2, 10… */
+  margin: number;
+}
+
+/**
+ * La tasa de la tienda, con los valores de antes de la migración 0036 cuando
+ * faltan: dólar BCV sin ajuste, o euro BCV si la tienda cobra en euros (lo que
+ * ya hacía el cron).
+ */
+export function rateSettings(store: StoreRateFields): RateSettings {
+  const margin = Number(store.exchange_rate_margin ?? 0);
+  return {
+    auto: store.auto_exchange_rate ?? false,
+    source:
+      store.exchange_rate_source ??
+      (store.currency_primary === "EUR" ? "bcv_eur" : "bcv_usd"),
+    margin: Number.isFinite(margin) ? margin : 0,
+  };
+}
+
+/** Las tasas de donde puede salir la de una tienda, en bolívares. */
+export interface RateInputs {
+  usd: number | null;
+  eur: number | null;
+  usdt: number | null;
+}
+
+export function baseRate(source: ExchangeRateSource, inputs: RateInputs): number | null {
+  const value = source === "usdt" ? inputs.usdt : source === "bcv_eur" ? inputs.eur : inputs.usd;
+  return value != null && value > 0 ? Number(value) : null;
+}
+
+/** La base con el ajuste, a dos decimales: es lo que se guarda y se ve. */
+export function applyMargin(base: number, margin: number): number {
+  return Math.round(base * (1 + margin / 100) * 100) / 100;
+}
+
+/** La tasa automática que le toca a la tienda hoy, o null si falta la base. */
+export function autoRate(settings: RateSettings, inputs: RateInputs): number | null {
+  const base = baseRate(settings.source, inputs);
+  return base == null ? null : applyMargin(base, settings.margin);
+}
+
+/** "+ 10 %", "− 2,5 %" o "" sin ajuste. */
+export function marginLabel(margin: number): string {
+  if (!margin) return "";
+  const abs = Math.abs(margin).toLocaleString("es-VE", { maximumFractionDigits: 2 });
+  return `${margin > 0 ? "+" : "−"} ${abs} %`;
+}
+
+/** "USDT − 2 %", "Dólar BCV": cómo se llama la tasa en el panel. */
+export function rateSourceLabel(settings: Pick<RateSettings, "source" | "margin">): string {
+  const name = RATE_SOURCES[settings.source].name;
+  const adj = marginLabel(settings.margin);
+  return adj ? `${name} ${adj}` : name;
+}
 
 /**
  * Cuándo una tasa deja de ser creíble.
@@ -21,15 +113,30 @@ export interface BcvReference {
   rate: number | null;
   /** Fecha valor: desde qué día rige. */
   date: string | null;
+  /** Del dólar o del euro: el cartel dice cuál. */
+  currency: "usd" | "eur";
 }
 
-/** La tasa BCV que le toca a una tienda según su moneda, igual que en el cron. */
+/**
+ * La tasa BCV contra la que se compara la de una tienda, igual que en el cron.
+ *
+ * Null si la tienda se actualiza sola con el USDT o con un ajuste: ahí su tasa
+ * no es la del BCV aunque un día coincida, y decir "Tasa BCV" sería mentir.
+ */
 export function bcvReference(
-  currency: string | null | undefined,
+  store: StoreRateFields,
   rates: { usd: number | null; eur: number | null; source_date: string | null } | null | undefined,
 ): BcvReference | null {
   if (!rates) return null;
-  return { rate: currency === "EUR" ? rates.eur : rates.usd, date: rates.source_date };
+  const s = rateSettings(store);
+  if (s.auto && (s.source === "usdt" || s.margin !== 0)) return null;
+  // La fija se compara con la del BCV de su moneda, como siempre.
+  const eur = s.auto ? s.source === "bcv_eur" : store.currency_primary === "EUR";
+  return {
+    rate: eur ? rates.eur : rates.usd,
+    date: rates.source_date,
+    currency: eur ? "eur" : "usd",
+  };
 }
 
 /**
@@ -92,7 +199,11 @@ export function rateInfo(
 
   const valueDate = bcvValueDate(rate, bcv);
   if (valueDate) {
-    return { label: `Tasa BCV del ${bcvDateLabel(valueDate)}: ${amount}`, stale };
+    // Con el euro no va "/ USD": "Tasa euro BCV: Bs 250 / USD" se lee como
+    // una contradicción. El número es el mismo que multiplica los precios.
+    return bcv?.currency === "eur"
+      ? { label: `Tasa euro BCV del ${bcvDateLabel(valueDate)}: ${formatBs(rate)}`, stale }
+      : { label: `Tasa BCV del ${bcvDateLabel(valueDate)}: ${amount}`, stale };
   }
 
   if (!setAt) {

@@ -18,6 +18,7 @@ import { landingFonts } from "@/components/landing/fonts";
 import { TiendifyLogo } from "@/components/landing/tiendify-logo";
 import { requireStoreUser } from "@/lib/auth";
 import { getCachedBcvRates } from "@/lib/bcv";
+import { rateSettings } from "@/lib/exchange-rate";
 import { getUsdtRate } from "@/lib/usdt";
 import { createClient } from "@/lib/supabase/server";
 import { abandonedCartCutoff } from "@/lib/constants";
@@ -119,10 +120,12 @@ export default async function PanelLayout({
     bcvDate: bcvRates?.source_date ?? null,
     usdt,
   };
+  const rateFrom = rateSettings(store);
   const storeRate: StoreRate = {
     rate: store.exchange_rate,
-    auto: store.auto_exchange_rate,
-    currency: store.currency_primary,
+    auto: rateFrom.auto,
+    source: rateFrom.source,
+    margin: rateFrom.margin,
     showBs: store.show_bs_prices,
   };
 

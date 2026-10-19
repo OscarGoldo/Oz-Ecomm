@@ -32,6 +32,8 @@ interface ExchangeRateCardProps {
   showBs: boolean;
   /** La tasa del BCV, para decir si la de la tienda es esa y de qué fecha valor. */
   bcv?: BcvReference | null;
+  /** De dónde sale la automática: "Dólar BCV", "USDT − 2 %"… */
+  source?: string | null;
 }
 
 function daysSince(iso: string | null): number | null {
@@ -55,6 +57,7 @@ export function ExchangeRateCard({
   auto,
   showBs,
   bcv,
+  source,
 }: ExchangeRateCardProps) {
   // Sin precios en bolívares la tasa no afecta nada de lo que ve el comprador:
   // mostrarla sería ruido en la pantalla que el dueño mira todos los días.
@@ -117,9 +120,17 @@ export function ExchangeRateCard({
             único cierto. */}
         {bcvDate ? (
           <p className="truncate text-xs text-muted-foreground">
-            Tasa BCV del {bcvDateLabel(bcvDate)}
+            Tasa {bcv?.currency === "eur" ? "euro " : ""}BCV del {bcvDateLabel(bcvDate)}
           </p>
-        ) : !auto && (
+        ) : auto ? (
+          // El USDT o una tasa con ajuste: se dice de cuál sale y de cuándo
+          // es el número, que el cron pone cada hora.
+          source && (
+            <p className="truncate text-xs text-muted-foreground">
+              {source} · actualizada {ageLabel(days)}
+            </p>
+          )
+        ) : (
           <p
             className={cn(
               "truncate text-xs",

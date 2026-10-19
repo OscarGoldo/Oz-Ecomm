@@ -66,7 +66,7 @@ export default async function NominaPage() {
               />
             </div>
             <p className="mt-2 text-[12.5px] text-ink-500">
-              Cada pago real va en Gastos, con la categoría Sueldos: así se descuenta de tu ganancia.
+              Cada pago real va en Gastos, con la categoría Sueldos: así se descuenta de tu ganancia. Si pagas lo mismo cada quincena o cada mes, cárgalo como gasto que se repite y se registra solo.
             </p>
           </section>
         </div>

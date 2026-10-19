@@ -443,10 +443,10 @@ export function FinanceOutlook({ o }: { o: FinanceOverview }) {
         </>
       ) : single ? (
         <p className="text-[13.5px] leading-relaxed text-white/[0.8]">
-          Para ver tu punto de equilibrio, registra tus gastos fijos (alquiler, sueldos, servicios)
-          y cárgale el costo a tus productos.{" "}
-          <Link href="/panel/finanzas/gastos?nuevo=1" className="font-semibold text-brand-300 underline">
-            Registrar un gasto
+          Para ver tu punto de equilibrio, carga tus gastos fijos (el alquiler, los servicios: lo
+          que pagas cada mes se carga una vez y se registra solo) y cárgale el costo a tus productos.{" "}
+          <Link href="/panel/finanzas/gastos?nuevo=fijo" className="font-semibold text-brand-300 underline">
+            Cargar un gasto fijo
           </Link>
         </p>
       ) : null}

@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 
 import { ExpensesManager } from "@/components/admin/expenses-manager";
+import { RecurringExpensesList } from "@/components/admin/recurring-expenses-list";
 import { FinanceHeader, FinanceTabs } from "@/components/admin/finance-tabs";
 import { requireStoreUser } from "@/lib/auth";
 import { FIXED_CATEGORIES } from "@/lib/finance-overview";
 import { formatUSD } from "@/lib/format";
-import { getPeriodReport, getRecentExpenses } from "@/lib/metrics";
-import { resolvePeriod } from "@/lib/report-period";
+import {
+  getPeriodReport,
+  getRecentExpenses,
+  getRecurringExpenses,
+  getRecurringSpentByCategory,
+} from "@/lib/metrics";
+import { addDays, pendingBetween } from "@/lib/recurring-expenses";
+import { caracasToday, resolvePeriod } from "@/lib/report-period";
 import type { Expense } from "@/types/database";
 
 export const metadata: Metadata = { title: "Gastos" };
@@ -15,8 +22,11 @@ const RAMP = ["#4B3BB8", "#6250d6", "#8A7CE3", "#ACA3EC", "#CBC5F3", "#E2DEF8"];
 
 /**
  * Los gastos: se cargan aquí y se ven por categoría. Son los que separan la
- * ganancia bruta de la neta en el resumen, y los fijos (alquiler, sueldos,
- * servicios) son los que arman el punto de equilibrio.
+ * ganancia bruta de la neta en el resumen, y los fijos (los que se repiten,
+ * más alquiler, sueldos y servicios) son los que arman el punto de equilibrio.
+ *
+ * `?nuevo=1` abre el formulario; `?nuevo=fijo` lo abre en "Se repite" (viene
+ * de "registra tus gastos fijos").
  */
 export default async function GastosPage({
   searchParams,
@@ -25,13 +35,28 @@ export default async function GastosPage({
 }) {
   const { store } = await requireStoreUser();
   const period = resolvePeriod({ periodo: "este-mes" });
-  const [r, expenses] = await Promise.all([
+  const [r, expenses, recurring, recurringSpent] = await Promise.all([
     getPeriodReport(store.id, period),
     getRecentExpenses(store.id),
+    getRecurringExpenses(store.id),
+    getRecurringSpentByCategory(store.id, period.from, addDays(period.to, 1)),
   ]);
-  const fixed = r.expensesByCategory
-    .filter((c) => FIXED_CATEGORIES.includes(c.category))
-    .reduce((s, c) => s + c.usd, 0);
+  // Fijo: alquiler, sueldos y servicios, y todo lo que se repite.
+  const fixed =
+    r.expensesByCategory
+      .filter((c) => FIXED_CATEGORIES.includes(c.category))
+      .reduce((s, c) => s + c.usd, 0) +
+    [...recurringSpent]
+      .filter(([cat]) => !FIXED_CATEGORIES.includes(cat))
+      .reduce((s, [, usd]) => s + usd, 0);
+  // Lo que se repite y todavía falta este mes.
+  const today = caracasToday();
+  const [y, m] = today.split("-").map(Number);
+  const monthEnd = `${today.slice(0, 8)}${new Date(Date.UTC(y, m, 0)).getUTCDate()}`;
+  const fixedToCome = recurring
+    .filter((x) => x.active)
+    .reduce((s, x) => s + pendingBetween(x, today, monthEnd).length * Number(x.amount), 0);
+  const isFixed = (cat: string) => FIXED_CATEGORIES.includes(cat) || recurringSpent.has(cat);
   const delta = r.prevExpensesUsd > 0 ? ((r.expensesUsd - r.prevExpensesUsd) / r.prevExpensesUsd) * 100 : null;
 
   return (
@@ -61,7 +86,11 @@ export default async function GastosPage({
         <Stat
           label="Fijos"
           value={formatUSD(fixed)}
-          sub="alquiler, sueldos y servicios: los pagas vendas o no"
+          sub={
+            fixedToCome > 0
+              ? `faltan ${formatUSD(fixedToCome)} este mes de los que se repiten`
+              : "lo que se repite, alquiler, sueldos y servicios: lo pagas vendas o no"
+          }
         />
       </div>
 
@@ -70,7 +99,17 @@ export default async function GastosPage({
           <h2 id="registrar" className="font-display text-lg font-bold tracking-[-0.02em]">
             Tus gastos
           </h2>
-          <ExpensesManager initial={expenses as Expense[]} defaultOpen={searchParams.nuevo === "1"} />
+          <ExpensesManager
+            initial={expenses as Expense[]}
+            defaultOpen={searchParams.nuevo === "1" || searchParams.nuevo === "fijo"}
+            defaultKind={searchParams.nuevo === "fijo" ? "repeat" : "once"}
+          />
+          {recurring.length > 0 && (
+            <div className="space-y-3 pt-3">
+              <h2 className="font-display text-lg font-bold tracking-[-0.02em]">Gastos que se repiten</h2>
+              <RecurringExpensesList items={recurring} />
+            </div>
+          )}
         </section>
 
         <section aria-labelledby="por-categoria" className="rounded-2xl border bg-card p-5 sm:p-6 lg:col-span-2">
@@ -88,7 +127,7 @@ export default async function GastosPage({
                     <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
                       <span className="font-semibold">
                         {c.category}
-                        {FIXED_CATEGORIES.includes(c.category) && (
+                        {isFixed(c.category) && (
                           <span className="ml-1.5 inline-flex h-5 items-center rounded-md bg-[#EEF0FB] px-1.5 text-[11px] font-bold text-[#4B3BB8]">
                             fijo
                           </span>

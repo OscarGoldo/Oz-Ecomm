@@ -1,14 +1,17 @@
 import { unstable_cache } from "next/cache";
 
 /**
- * El precio del USDT en bolívares, para la calculadora de la tasa del panel.
+ * El precio del USDT en bolívares: la calculadora de la tasa del panel y las
+ * tiendas que eligen calcular sus bolívares con él (ver lib/exchange-rate.ts).
  *
- * Es una referencia para el comerciante y nada más: no calcula ningún precio
- * de la tienda y no sale del panel (ni la tienda pública, ni la portada, ni
- * una tabla que se pueda leer desde afuera). Se presenta como "precio del USDT
- * en Binance P2P" y no como "dólar paralelo" a propósito: en 2025 hubo
- * detenciones por publicar el paralelo, y esto es el precio de un activo en un
- * mercado concreto.
+ * El nombre no sale del panel. Una tienda que cobra con el USDT muestra sus
+ * precios en Bs y "Tasa del día", sin decir de dónde sale; la portada no lo
+ * muestra y no se guarda en ninguna tabla que se pueda leer desde afuera
+ * (solo queda, ya multiplicado, en la tasa de cada tienda que lo eligió). Se
+ * presenta como "precio del USDT en Binance P2P" y no como "dólar paralelo" a
+ * propósito: en 2025 hubo detenciones por publicar el paralelo, y esto es el
+ * precio de un activo en un mercado concreto. Usarlo para los precios es
+ * decisión de cada comerciante (octubre de 2026, aprobado por el dueño).
  *
  * Se lee de tres lados a la vez y gana el primero de esta lista que responde:
  *
@@ -124,6 +127,18 @@ async function readUsdtRate(): Promise<UsdtRate> {
 }
 
 const cachedUsdtRate = unstable_cache(readUsdtRate, ["usdt-ves"], { revalidate: 900 });
+
+/**
+ * El precio recién leído, sin caché y sin el apuro del panel: para el cron que
+ * les pone la tasa a las tiendas. Null si no respondió ninguna fuente.
+ */
+export async function fetchUsdtRate(): Promise<UsdtRate | null> {
+  try {
+    return await readUsdtRate();
+  } catch {
+    return null;
+  }
+}
 
 /**
  * El precio del USDT para el panel, o null si no hay. Con la caché caliente es

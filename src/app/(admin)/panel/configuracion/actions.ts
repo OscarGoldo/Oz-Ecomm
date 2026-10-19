@@ -10,6 +10,14 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth";
+import { getCachedBcvRates } from "@/lib/bcv";
+import {
+  autoRate,
+  MARGIN_MAX,
+  MARGIN_MIN,
+  type RateSettings,
+} from "@/lib/exchange-rate";
+import { getUsdtRate } from "@/lib/usdt";
 import { recordPlatformEvent } from "@/lib/platform-events";
 import { storeClosedByOwner } from "@/lib/store-status";
 
@@ -44,13 +52,45 @@ const storeSchema = z.object({
   show_bs_prices: z.boolean().default(true),
   exchange_rate: z.coerce.number().positive("Tasa inválida").nullable().optional(),
   auto_exchange_rate: z.boolean().default(false),
+  exchange_rate_source: z.enum(["bcv_usd", "bcv_eur", "usdt"]).default("bcv_usd"),
+  exchange_rate_margin: z.coerce
+    .number()
+    .min(MARGIN_MIN, `El ajuste va de ${MARGIN_MIN} % a +${MARGIN_MAX} %`)
+    .max(MARGIN_MAX, `El ajuste va de ${MARGIN_MIN} % a +${MARGIN_MAX} %`)
+    .default(0),
 });
 
 export type StoreSettingsInput = z.input<typeof storeSchema>;
 
+export interface StoreSettingsResult extends ActionResult {
+  /** Se guardó, pero hay algo que el comerciante tiene que saber. */
+  notice?: string;
+}
+
+/** La columna no existe todavía: la migración 0036 no corrió. */
+function missingColumn(error: { code?: string } | null): boolean {
+  return error?.code === "PGRST204" || error?.code === "42703";
+}
+
+/**
+ * La tasa automática que le toca a la tienda ahora mismo, para no esperar al
+ * cron: el comerciante elige "USDT − 2 %", guarda y ya ve el número.
+ */
+async function rateNow(settings: RateSettings): Promise<number | null> {
+  const [bcv, usdt] = await Promise.all([
+    getCachedBcvRates(),
+    settings.source === "usdt" ? getUsdtRate() : Promise.resolve(null),
+  ]);
+  return autoRate(settings, {
+    usd: bcv?.usd ?? null,
+    eur: bcv?.eur ?? null,
+    usdt: usdt?.rate ?? null,
+  });
+}
+
 export async function updateStoreSettings(
   input: StoreSettingsInput,
-): Promise<ActionResult> {
+): Promise<StoreSettingsResult> {
   const parsed = storeSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
@@ -74,7 +114,7 @@ export async function updateStoreSettings(
   // nada distinto. Guardar acá ahora escribe los dos.
   const { data: current } = await supabase
     .from("stores")
-    .select("customization")
+    .select("customization, exchange_rate, auto_exchange_rate, exchange_rate_updated_at")
     .eq("id", storeId)
     .maybeSingle();
   const customization = {
@@ -86,33 +126,81 @@ export async function updateStoreSettings(
     },
   };
 
-  const { error } = await supabase
+  // La tasa. La automática se calcula ya; si su fuente no responde, la tienda
+  // se queda con la que tenía y el cron la pone en la próxima pasada.
+  const now = new Date().toISOString();
+  const margin = Math.round(d.exchange_rate_margin * 100) / 100;
+  const settings: RateSettings = {
+    auto: d.auto_exchange_rate,
+    source: d.exchange_rate_source,
+    margin,
+  };
+  let rateFields: { exchange_rate?: number | null; exchange_rate_updated_at?: string | null } = {};
+  let notice: string | undefined;
+  if (settings.auto) {
+    const rate = await rateNow(settings);
+    if (rate != null) {
+      rateFields = { exchange_rate: rate, exchange_rate_updated_at: now };
+    } else {
+      notice =
+        settings.source === "usdt"
+          ? "El precio del USDT no respondió ahora: tu tasa se pone sola en la próxima hora."
+          : "La tasa del BCV no respondió ahora: tu tasa se pone sola en la próxima actualización.";
+    }
+  } else {
+    const rate = d.exchange_rate ?? null;
+    // Guardar el teléfono no puede hacer que una tasa de hace dos semanas
+    // pase por "de hoy": la fecha solo cambia si cambia el número (o si
+    // venía de la automática).
+    const same =
+      !current?.auto_exchange_rate &&
+      rate != null &&
+      current?.exchange_rate != null &&
+      Number(current.exchange_rate) === rate;
+    rateFields = {
+      exchange_rate: rate,
+      exchange_rate_updated_at:
+        rate == null ? null : same ? (current?.exchange_rate_updated_at ?? now) : now,
+    };
+  }
+
+  const fields = {
+    name: d.name,
+    description: d.description?.trim() ? d.description.trim() : null,
+    primary_color: d.primary_color,
+    customization,
+    logo_url: d.logo_url || null,
+    banner_url: d.banner_url || null,
+    whatsapp: d.whatsapp?.trim() ? d.whatsapp.trim() : null,
+    instagram: d.instagram?.trim() ? d.instagram.trim() : null,
+    phone: d.phone?.trim() ? d.phone.trim() : null,
+    email: d.email ? d.email : null,
+    address: d.address?.trim() ? d.address.trim() : null,
+    show_bs_prices: d.show_bs_prices,
+    auto_exchange_rate: d.auto_exchange_rate,
+    ...rateFields,
+  };
+
+  let { error } = await supabase
     .from("stores")
     .update({
-      name: d.name,
-      description: d.description?.trim() ? d.description.trim() : null,
-      primary_color: d.primary_color,
-      customization,
-      logo_url: d.logo_url || null,
-      banner_url: d.banner_url || null,
-      whatsapp: d.whatsapp?.trim() ? d.whatsapp.trim() : null,
-      instagram: d.instagram?.trim() ? d.instagram.trim() : null,
-      phone: d.phone?.trim() ? d.phone.trim() : null,
-      email: d.email ? d.email : null,
-      address: d.address?.trim() ? d.address.trim() : null,
-      show_bs_prices: d.show_bs_prices,
-      exchange_rate: d.exchange_rate ?? null,
-      auto_exchange_rate: d.auto_exchange_rate,
-      exchange_rate_updated_at:
-        d.exchange_rate != null ? new Date().toISOString() : null,
+      ...fields,
+      exchange_rate_source: settings.source,
+      exchange_rate_margin: settings.margin,
     })
     .eq("id", storeId);
+  // Sin la migración 0036 las dos columnas no existen. Con dólar BCV sin
+  // ajuste (lo único que había antes) se guarda igual; con otra tasa, no se
+  // puede guardar sin mentir.
+  if (missingColumn(error) && settings.source === "bcv_usd" && settings.margin === 0) {
+    ({ error } = await supabase.from("stores").update(fields).eq("id", storeId));
+  }
 
   if (error) return { ok: false, error: "No se pudieron guardar los cambios" };
 
   revalidatePath("/panel/configuracion");
   revalidatePath("/panel");
-  return { ok: true };
+  return { ok: true, notice };
 }
 
 const deliverySchema = z.object({

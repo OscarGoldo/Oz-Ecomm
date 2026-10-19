@@ -64,6 +64,10 @@ export type CouponType = "percentage" | "fixed" | "free_shipping";
 
 export type PayCurrency = "USD" | "VES";
 export type PayFrequency = "weekly" | "biweekly" | "monthly";
+/** De dónde sale la tasa automática de la tienda (migración 0036). */
+export type ExchangeRateSource = "bcv_usd" | "bcv_eur" | "usdt";
+/** Cada cuánto se repite un gasto (migración 0036). */
+export type RecurringFrequency = "weekly" | "biweekly" | "monthly" | "yearly";
 
 /** One variant axis, e.g. { name: "Talla", values: ["S","M","L"] }. */
 export interface VariantOption {
@@ -110,6 +114,10 @@ export interface Database {
           subscription_status: SubscriptionStatus;
           active: boolean;
           auto_exchange_rate: boolean;
+          /** De dónde sale la tasa automática (migración 0036). Ausente si no corrió: dólar BCV. */
+          exchange_rate_source?: ExchangeRateSource;
+          /** Ajuste en % sobre esa tasa, de −50 a 100 (migración 0036). */
+          exchange_rate_margin?: number;
           customization: Json | null;
           /** Diseño por secciones publicado (migración 0033). Ausente si no corrió. */
           design?: Json | null;
@@ -153,6 +161,8 @@ export interface Database {
           subscription_status?: SubscriptionStatus;
           active?: boolean;
           auto_exchange_rate?: boolean;
+          exchange_rate_source?: ExchangeRateSource;
+          exchange_rate_margin?: number;
           customization?: Json | null;
           design?: Json | null;
           design_published_at?: string | null;
@@ -511,6 +521,8 @@ export interface Database {
           amount: number;
           spent_at: string;
           created_at: string;
+          /** El gasto que se repite del que salió (migración 0036). */
+          recurring_expense_id?: string | null;
         };
         Insert: {
           id?: string;
@@ -520,8 +532,40 @@ export interface Database {
           amount: number;
           spent_at?: string;
           created_at?: string;
+          recurring_expense_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["expenses"]["Insert"]>;
+        Relationships: [];
+      };
+      recurring_expenses: {
+        Row: {
+          id: string;
+          store_id: string;
+          description: string;
+          category: string | null;
+          /** En dólares, como `expenses`. */
+          amount: number;
+          frequency: RecurringFrequency;
+          /** El primer pago: de acá sale el día de los demás. */
+          starts_on: string;
+          /** El próximo pago que falta registrar. */
+          next_due_on: string;
+          active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          description: string;
+          category?: string | null;
+          amount: number;
+          frequency?: RecurringFrequency;
+          starts_on: string;
+          next_due_on: string;
+          active?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["recurring_expenses"]["Insert"]>;
         Relationships: [];
       };
       employees: {
@@ -1040,6 +1084,7 @@ export type PaymentMethod = Tables["payment_methods"]["Row"];
 export type Order = Tables["orders"]["Row"];
 export type OrderItem = Tables["order_items"]["Row"];
 export type Expense = Tables["expenses"]["Row"];
+export type RecurringExpense = Tables["recurring_expenses"]["Row"];
 export type Employee = Tables["employees"]["Row"];
 export type StoreEvent = Tables["store_events"]["Row"];
 export type ProductVariant = Tables["product_variants"]["Row"];

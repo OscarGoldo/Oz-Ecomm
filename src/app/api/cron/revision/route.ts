@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { alertError } from "@/lib/error-alerts";
+import { caracasToday } from "@/lib/report-period";
 import { publicSiteUrl } from "@/lib/site-url";
 import { PAYMENT_PROOFS_BUCKET } from "@/lib/storage";
 import { createProofUploadTicket } from "@/lib/storage-actions";
@@ -26,6 +27,7 @@ export const maxDuration = 30;
 
 const TEST_STORE_SLUG = "alfa-electronic";
 const BCV_MAX_AGE_HOURS = 26;
+const USDT_MAX_AGE_HOURS = 3;
 
 /** JPEG mínimo válido (1×1 px). */
 const TINY_JPEG = Buffer.from(
@@ -85,6 +87,65 @@ async function checkBcv(): Promise<Check> {
       };
 }
 
+/** La consulta pidió algo que todavía no existe: falta correr una migración. */
+function missingSchema(error: { code?: string } | null): boolean {
+  return ["42P01", "42703", "PGRST204", "PGRST205"].includes(error?.code ?? "");
+}
+
+/**
+ * Las tiendas que eligieron el USDT reciben su tasa cada hora. Si el cron lleva
+ * horas sin poder ponérsela (las fuentes no responden o el precio viene raro),
+ * sus bolívares se van quedando atrás.
+ */
+async function checkUsdtStores(): Promise<Check> {
+  const name = "tasa-usdt";
+  const { data, error } = await createAdminClient()
+    .from("stores")
+    .select("exchange_rate_updated_at")
+    .eq("auto_exchange_rate", true)
+    .eq("active", true)
+    .eq("exchange_rate_source", "usdt");
+  if (missingSchema(error)) return { name, ok: true };
+  if (error) return { name, ok: false, detail: `No se pudieron leer las tiendas con USDT: ${error.message}` };
+  const cutoff = Date.now() - USDT_MAX_AGE_HOURS * 3_600_000;
+  const late = (data ?? []).filter(
+    (s) => !s.exchange_rate_updated_at || Date.parse(s.exchange_rate_updated_at) < cutoff,
+  ).length;
+  return late === 0
+    ? { name, ok: true }
+    : {
+        name,
+        ok: false,
+        detail: `${late} ${late === 1 ? "tienda con tasa USDT no se actualiza" : "tiendas con tasa USDT no se actualizan"} hace más de ${USDT_MAX_AGE_HOURS} horas. Revisa /api/cron/bcv (Binance, CriptoYa y Yadio).`,
+      };
+}
+
+/**
+ * Los gastos que se repiten los registra /api/cron/gastos cada madrugada. Uno
+ * cuyo pago tocaba antes de ayer y sigue sin registrarse es que el cron no
+ * corrió, y la ganancia neta de esas tiendas se ve mejor de lo que es.
+ */
+async function checkRecurringExpenses(): Promise<Check> {
+  const name = "gastos-recurrentes";
+  const yesterday = new Date(Date.parse(`${caracasToday()}T12:00:00Z`) - 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const { count, error } = await createAdminClient()
+    .from("recurring_expenses")
+    .select("id", { count: "exact", head: true })
+    .eq("active", true)
+    .lt("next_due_on", yesterday);
+  if (missingSchema(error)) return { name, ok: true };
+  if (error) return { name, ok: false, detail: `No se pudieron leer los gastos que se repiten: ${error.message}` };
+  return !count
+    ? { name, ok: true }
+    : {
+        name,
+        ok: false,
+        detail: `${count} ${count === 1 ? "gasto que se repite tiene" : "gastos que se repiten tienen"} pagos vencidos sin registrar. Revisa /api/cron/gastos.`,
+      };
+}
+
 async function checkStorefront(): Promise<Check> {
   const name = "tienda-publica";
   try {
@@ -120,6 +181,8 @@ export async function GET(request: NextRequest) {
       ? checkProofUpload(store.id).catch((e) => ({ name: "comprobantes", ok: false, detail: String(e).slice(0, 200) }))
       : Promise.resolve({ name: "comprobantes", ok: false, detail: `No existe la tienda de prueba ${TEST_STORE_SLUG}` }),
     checkBcv().catch((e) => ({ name: "tasa-bcv", ok: false, detail: String(e).slice(0, 200) })),
+    checkUsdtStores().catch((e) => ({ name: "tasa-usdt", ok: false, detail: String(e).slice(0, 200) })),
+    checkRecurringExpenses().catch((e) => ({ name: "gastos-recurrentes", ok: false, detail: String(e).slice(0, 200) })),
     checkStorefront(),
   ]);
 

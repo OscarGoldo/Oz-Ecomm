@@ -5,6 +5,9 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth";
+import { addDays, firstDueFrom, MAX_BACKFILL_DAYS } from "@/lib/recurring-expenses";
+import { registerDuePayments } from "@/lib/recurring-expenses-run";
+import { caracasToday } from "@/lib/report-period";
 
 export interface ActionResult {
   ok: boolean;
@@ -71,6 +74,172 @@ export async function deleteExpense(id: string): Promise<ActionResult> {
     .eq("store_id", storeId);
   if (error) return { ok: false, error: "No se pudo eliminar" };
 
+  revalidatePath("/panel/finanzas", "layout");
+  return { ok: true };
+}
+
+// ── Gastos que se repiten ───────────────────────────────────────────────────
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+const recurringFields = {
+  description: z.string().trim().min(2, "Pon una descripción").max(160),
+  amount: z.coerce.number().positive("Monto inválido"),
+  category: z.string().trim().max(40).optional().nullable(),
+};
+
+const recurringSchema = z.object({
+  ...recurringFields,
+  frequency: z.enum(["weekly", "biweekly", "monthly", "yearly"]),
+  starts_on: z.string().trim().regex(DAY, "Fecha inválida"),
+});
+
+export type RecurringExpenseInput = z.input<typeof recurringSchema>;
+
+const recurringUpdateSchema = z.object(recurringFields);
+
+export type RecurringExpenseUpdate = z.input<typeof recurringUpdateSchema>;
+
+/** La tabla no existe: la migración 0036 no corrió. */
+function missingTable(error: { code?: string } | null): boolean {
+  return error?.code === "42P01" || error?.code === "PGRST205";
+}
+
+const NOT_READY = "Los gastos que se repiten todavía no están activos. Escríbenos y lo resolvemos.";
+
+/**
+ * Crea un gasto que se repite y registra de una vez los pagos que ya tocan:
+ * si el alquiler empezó el 1 de agosto, quedan agosto, septiembre y octubre.
+ */
+export async function createRecurringExpense(
+  input: RecurringExpenseInput,
+): Promise<ActionResult & { registered?: number }> {
+  const parsed = recurringSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+  const d = parsed.data;
+
+  let storeId: string;
+  try {
+    storeId = await requireStoreId();
+  } catch {
+    return { ok: false, error: "No autorizado" };
+  }
+
+  const today = caracasToday();
+  if (d.starts_on < addDays(today, -MAX_BACKFILL_DAYS)) {
+    return { ok: false, error: "El primer pago puede ser de hasta un año atrás" };
+  }
+  if (d.starts_on > addDays(today, MAX_BACKFILL_DAYS)) {
+    return { ok: false, error: "El primer pago tiene que ser dentro del próximo año" };
+  }
+
+  const supabase = createClient();
+  const { data: row, error } = await supabase
+    .from("recurring_expenses")
+    .insert({
+      store_id: storeId,
+      description: d.description,
+      amount: d.amount,
+      category: d.category?.trim() || null,
+      frequency: d.frequency,
+      starts_on: d.starts_on,
+      next_due_on: d.starts_on,
+    })
+    .select("*")
+    .single();
+  if (error || !row) {
+    return { ok: false, error: missingTable(error) ? NOT_READY : "No se pudo guardar el gasto" };
+  }
+
+  const { registered } = await registerDuePayments(supabase, [row], today);
+
+  revalidatePath("/panel/finanzas", "layout");
+  revalidatePath("/panel");
+  return { ok: true, registered };
+}
+
+/** Lo nuevo vale de acá en adelante: los pagos ya registrados no se tocan. */
+export async function updateRecurringExpense(
+  id: string,
+  input: RecurringExpenseUpdate,
+): Promise<ActionResult> {
+  const parsed = recurringUpdateSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+  let storeId: string;
+  try {
+    storeId = await requireStoreId();
+  } catch {
+    return { ok: false, error: "No autorizado" };
+  }
+  const { error } = await createClient()
+    .from("recurring_expenses")
+    .update({
+      description: parsed.data.description,
+      amount: parsed.data.amount,
+      category: parsed.data.category?.trim() || null,
+    })
+    .eq("id", id)
+    .eq("store_id", storeId);
+  if (error) return { ok: false, error: "No se pudo guardar" };
+  revalidatePath("/panel/finanzas", "layout");
+  return { ok: true };
+}
+
+/**
+ * Pausar deja de registrarlo; reanudar sigue desde el próximo pago que toque
+ * a partir de hoy, sin cobrar lo que pasó durante la pausa.
+ */
+export async function setRecurringExpenseActive(
+  id: string,
+  active: boolean,
+): Promise<ActionResult> {
+  let storeId: string;
+  try {
+    storeId = await requireStoreId();
+  } catch {
+    return { ok: false, error: "No autorizado" };
+  }
+  const supabase = createClient();
+  const { data: row } = await supabase
+    .from("recurring_expenses")
+    .select("*")
+    .eq("id", id)
+    .eq("store_id", storeId)
+    .maybeSingle();
+  if (!row) return { ok: false, error: "No se encontró el gasto" };
+
+  const today = caracasToday();
+  const next_due_on = active ? firstDueFrom(row, today) : row.next_due_on;
+  const { error } = await supabase
+    .from("recurring_expenses")
+    .update({ active, next_due_on })
+    .eq("id", id)
+    .eq("store_id", storeId);
+  if (error) return { ok: false, error: "No se pudo actualizar" };
+  if (active) await registerDuePayments(supabase, [{ ...row, active, next_due_on }], today);
+
+  revalidatePath("/panel/finanzas", "layout");
+  return { ok: true };
+}
+
+/** Los pagos ya registrados quedan como gastos normales (ON DELETE SET NULL). */
+export async function deleteRecurringExpense(id: string): Promise<ActionResult> {
+  let storeId: string;
+  try {
+    storeId = await requireStoreId();
+  } catch {
+    return { ok: false, error: "No autorizado" };
+  }
+  const { error } = await createClient()
+    .from("recurring_expenses")
+    .delete()
+    .eq("id", id)
+    .eq("store_id", storeId);
+  if (error) return { ok: false, error: "No se pudo eliminar" };
   revalidatePath("/panel/finanzas", "layout");
   return { ok: true };
 }

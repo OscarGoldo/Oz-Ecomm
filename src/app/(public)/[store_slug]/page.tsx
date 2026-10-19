@@ -83,7 +83,7 @@ export default async function StorefrontHome({
     store.show_bs_prices ? getCachedBcvRates() : null,
   ]);
   const products = page.products;
-  const bcv = bcvReference(store.currency_primary, bcvRates);
+  const bcv = bcvReference(store, bcvRates);
 
   /**
    * Las plantillas verticales arman su propia estructura y devuelven temprano,

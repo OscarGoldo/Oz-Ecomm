@@ -69,7 +69,7 @@ export default async function DesignPreviewPage({
             hasFilters={false}
             heading="Todos los productos"
             banner={getImageUrl(store.banner_url)}
-            bcv={bcvReference(store.currency_primary, bcvRates)}
+            bcv={bcvReference(store, bcvRates)}
             editing={searchParams.vitrina !== "1"}
           />
         </div>

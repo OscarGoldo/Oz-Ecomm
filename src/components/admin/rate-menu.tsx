@@ -7,7 +7,8 @@ import { usePathname } from "next/navigation";
 import { ArrowUpDown, Check, ChevronDown, Copy, X } from "lucide-react";
 
 import { landingFonts } from "@/components/landing/fonts";
-import { bcvDateLabel } from "@/lib/exchange-rate";
+import { bcvDateLabel, marginLabel } from "@/lib/exchange-rate";
+import type { ExchangeRateSource } from "@/types/database";
 import { evalAmount } from "@/lib/quick-calc";
 import { cn } from "@/lib/utils";
 
@@ -17,8 +18,10 @@ import { cn } from "@/lib/utils";
  * una calculadora para las cuentas que el comerciante hace todo el día.
  *
  * Elegir moneda acá no cambia los precios de la tienda: eso sigue siendo la
- * tasa de Configuración, y el pie del menú dice cuál es. En escritorio se abre
- * como un menú bajo la píldora; en el teléfono, como una hoja desde abajo.
+ * tasa de Ajustes, y el pie del menú dice cuál es. Sin una elegida antes en
+ * este navegador, arranca en la tasa con la que la tienda calcula sus Bs. En
+ * escritorio se abre como un menú bajo la píldora; en el teléfono, como una
+ * hoja desde abajo.
  */
 
 export interface PanelRates {
@@ -35,12 +38,21 @@ export interface PanelRates {
 export interface StoreRate {
   rate: number | null;
   auto: boolean;
-  /** "USD" o "EUR": la moneda de sus precios. */
-  currency: string;
+  /** De dónde sale la automática (ver lib/exchange-rate.ts). */
+  source: ExchangeRateSource;
+  /** Ajuste en % sobre esa tasa. */
+  margin: number;
   showBs: boolean;
 }
 
 type RateId = "usd" | "eur" | "usdt";
+
+/** La pestaña de cada fuente, y cómo se nombra en el pie del menú. */
+const STORE_SOURCE: Record<ExchangeRateSource, { id: RateId; name: string }> = {
+  bcv_usd: { id: "usd", name: "$ dólar BCV" },
+  bcv_eur: { id: "eur", name: "€ euro BCV" },
+  usdt: { id: "usdt", name: "₮ USDT" },
+};
 
 interface RateOption {
   id: RateId;
@@ -150,7 +162,8 @@ interface RateMenuProps {
 export function RateMenu({ rates, store, tone = "light" }: RateMenuProps) {
   const pathname = usePathname();
   const options = useMemo(() => buildOptions(rates), [rates]);
-  const preferred: RateId = store.currency === "EUR" && rates.eur ? "eur" : "usd";
+  const storeTab = store.auto ? STORE_SOURCE[store.source].id : "usd";
+  const preferred: RateId = options.some((o) => o.id === storeTab) ? storeTab : "usd";
 
   const [picked, setPicked] = useState<RateId>(preferred);
   const [open, setOpen] = useState(false);
@@ -300,7 +313,8 @@ export function RateMenu({ rates, store, tone = "light" }: RateMenuProps) {
     <>
       Tus precios en Bs se actualizan solos con el{" "}
       <b className="font-semibold text-foreground">
-        {store.currency === "EUR" ? "€ euro" : "$ dólar"} BCV
+        {STORE_SOURCE[store.source].name}
+        {store.margin ? ` ${marginLabel(store.margin)}` : ""}
       </b>
       .
     </>

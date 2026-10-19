@@ -42,7 +42,7 @@ import { isTaskHidden, readHiddenTasks, type TaskId } from "@/lib/dashboard-task
 import { pushConfigured, storePushDeviceCount } from "@/lib/push";
 import { requireStoreUser } from "@/lib/auth";
 import { getCachedBcvRates } from "@/lib/bcv";
-import { bcvReference } from "@/lib/exchange-rate";
+import { bcvReference, rateSettings, rateSourceLabel } from "@/lib/exchange-rate";
 import { storeUrl } from "@/lib/store-url";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardMetrics } from "@/lib/metrics";
@@ -282,7 +282,8 @@ export default async function DashboardPage() {
             updatedAt={store.exchange_rate_updated_at}
             auto={store.auto_exchange_rate}
             showBs={store.show_bs_prices}
-            bcv={bcvReference(store.currency_primary, bcvRates)}
+            bcv={bcvReference(store, bcvRates)}
+            source={rateSourceLabel(rateSettings(store))}
           />
 
           {m.lowStock.length > 0 && (
