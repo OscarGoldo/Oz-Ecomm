@@ -1,6 +1,6 @@
 import { CloseStoreCard } from "@/components/admin/close-store-card";
-import { ConfigTabs } from "@/components/admin/config-tabs";
 import { PushNotifications } from "@/components/admin/push-notifications";
+import { SetupChecklist } from "@/components/admin/setup-checklist";
 import {
   StoreSettingsForm,
   type BcvDisplay,
@@ -8,14 +8,15 @@ import {
 import { requireStoreUser } from "@/lib/auth";
 import { fetchBcvRates, getCachedBcvRates } from "@/lib/bcv";
 import { pushConfigured } from "@/lib/push";
+import { getStoreSetup } from "@/lib/store-setup";
 
-export const metadata = { title: "Configuración" };
+export const metadata = { title: "Ajustes" };
 
 export default async function ConfiguracionPage() {
   const { user, store } = await requireStoreUser();
 
   // Prefer cached rates (refreshed by the cron); fall back to a live fetch.
-  const cached = await getCachedBcvRates();
+  const [cached, setup] = await Promise.all([getCachedBcvRates(), getStoreSetup(store)]);
   let bcvRates: BcvDisplay | null =
     cached && (cached.usd || cached.eur)
       ? { usd: cached.usd, eur: cached.eur, value_date: cached.source_date }
@@ -26,24 +27,28 @@ export default async function ConfiguracionPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
-      <h1 className="text-2xl font-bold tracking-tight">Configuración</h1>
-      <ConfigTabs />
-      {pushConfigured() && (
-        <PushNotifications variant="card" publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!} />
-      )}
-      <StoreSettingsForm store={store} bcvRates={bcvRates} />
-      {user.role === "store_owner" && (
-        <CloseStoreCard
-          storeName={store.name}
-          hasSubscription={
-            store.stripe_subscription_status === "active" ||
-            store.stripe_subscription_status === "suspended" ||
-            store.paypal_subscription_status === "active" ||
-            store.paypal_subscription_status === "suspended"
-          }
-        />
-      )}
-    </div>
+    <StoreSettingsForm
+      store={store}
+      bcvRates={bcvRates}
+      after={
+        <>
+          {pushConfigured() && (
+            <PushNotifications variant="card" publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!} />
+          )}
+          {user.role === "store_owner" && (
+            <CloseStoreCard
+              storeName={store.name}
+              hasSubscription={
+                store.stripe_subscription_status === "active" ||
+                store.stripe_subscription_status === "suspended" ||
+                store.paypal_subscription_status === "active" ||
+                store.paypal_subscription_status === "suspended"
+              }
+            />
+          )}
+        </>
+      }
+      aside={<SetupChecklist items={setup.checklist} />}
+    />
   );
 }

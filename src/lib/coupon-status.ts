@@ -35,6 +35,14 @@ export const COUPON_TYPE_TONE: Record<CouponType, string> = {
   free_shipping: "bg-[#DCF5EA] text-[#0E5A43]",
 };
 
+/** Lo que regala, dicho en una frase: "10% menos", "$5 menos", "envío gratis". */
+export function couponBenefit(type: CouponType, value: number | string): string {
+  const n = Number(value) || 0;
+  if (type === "free_shipping") return "envío gratis";
+  if (type === "fixed") return `$${Number.isInteger(n) ? n : n.toFixed(2)} menos`;
+  return `${Number.isInteger(n) ? n : Math.round(n * 10) / 10}% menos`;
+}
+
 /** Lo que dice el talón del ticket: "15%", "$5" o "Envío / gratis". */
 export function couponFace(type: CouponType, value: number | string): { big: string; small: string } {
   const n = Number(value) || 0;

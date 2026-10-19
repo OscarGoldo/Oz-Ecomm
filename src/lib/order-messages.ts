@@ -241,12 +241,17 @@ export interface AbandonedCartMessageData {
   subtotal: number;
   /** Link a la tienda para que retome la compra. */
   storeUrl?: string | null;
+  /**
+   * Un cupón que el comerciante eligió regalar en este mensaje.
+   * `benefit`: "10% menos", "$5 menos", "envío gratis".
+   */
+  coupon?: { code: string; benefit: string } | null;
 }
 
 /**
- * Mensaje para recuperar un carrito abandonado. Sin descuentos ni presión: el
- * comerciante decide si regala algo, aquí solo se le recuerda lo que dejó y se
- * le ofrece ayuda — que es lo que suele destrabar la compra.
+ * Mensaje para recuperar un carrito abandonado. Sin presión: se le recuerda lo
+ * que dejó y se le ofrece ayuda, que es lo que suele destrabar la compra. El
+ * descuento solo va si el comerciante elige un cupón para este mensaje.
  */
 export function abandonedCartMessage(d: AbandonedCartMessageData): string {
   const name = firstName(d.customerName);
@@ -264,6 +269,8 @@ export function abandonedCartMessage(d: AbandonedCartMessageData): string {
     `Total: ${formatUSD(d.subtotal)}`,
     "",
     `¿Te ${one ? "lo" : "los"} aparto? Si tuviste algún problema para completar la compra, decime y te ayudo. 🙌`,
+    d.coupon && "",
+    d.coupon && `Si lo terminas hoy, usa el código *${d.coupon.code}* y te queda con ${d.coupon.benefit}.`,
     opt(d.storeUrl, () => ""),
     opt(d.storeUrl, (v) => v),
   ]);
