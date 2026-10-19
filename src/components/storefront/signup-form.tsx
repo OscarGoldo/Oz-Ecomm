@@ -21,6 +21,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { signUpStore } from "@/app/(public)/crear-tienda/actions";
 import { monthsLabel } from "@/lib/promo";
 import { slugify } from "@/lib/slug";
+import { displayStoreAddress, storeSubdomainOrigin } from "@/lib/store-url";
 import { cn } from "@/lib/utils";
 
 /**
@@ -54,7 +55,8 @@ interface FormValues {
 }
 
 interface Success {
-  slug: string;
+  /** https://mitienda.usatiendify.com */
+  url: string;
   email: string;
   storeName: string;
   /** Meses de Pro gratis, si entró con un código. */
@@ -158,7 +160,7 @@ export function SignupForm({
       promo: values.promo.trim() || undefined,
     });
     setSubmitting(false);
-    if (!res.ok || !res.slug) {
+    if (!res.ok || !res.url) {
       // El error del código va también en su campo: es el que hay que tocar.
       if (res.field === "promo") setError("promo", { message: res.error });
       toast.error(res.error ?? "No se pudo crear la tienda");
@@ -177,7 +179,7 @@ export function SignupForm({
       return;
     }
     setDone({
-      slug: res.slug,
+      url: res.url,
       email: values.owner_email,
       storeName: values.store_name,
       promoMonths: res.promoMonths,
@@ -196,12 +198,12 @@ export function SignupForm({
         <p className="mt-2 text-sm text-muted-foreground">
           Tu tienda ya está en línea en:
         </p>
-        <Link
-          href={`/${done.slug}`}
+        <a
+          href={done.url}
           className="mt-1 inline-flex items-center gap-1 font-medium text-primary hover:underline"
         >
-          /{done.slug} <ExternalLink className="size-3.5" />
-        </Link>
+          {displayStoreAddress(done.url)} <ExternalLink className="size-3.5" />
+        </a>
         {done.promoMonths && (
           <p className="mt-3 text-sm font-medium text-success">
             Tienes {monthsLabel(done.promoMonths)} de Pro gratis.
@@ -219,7 +221,7 @@ export function SignupForm({
             <Link href="/login">Ir a mi panel</Link>
           </Button>
           <Button asChild variant="outline" className="flex-1">
-            <Link href={`/${done.slug}`}>Ver mi tienda</Link>
+            <a href={done.url}>Ver mi tienda</a>
           </Button>
         </div>
       </div>
@@ -275,7 +277,10 @@ export function SignupForm({
           <p className="text-xs text-destructive">{errors.store_name.message}</p>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Tu link: <span className="font-medium text-foreground">/{previewSlug}</span>
+            Tu link:{" "}
+            <span className="font-medium text-foreground">
+              {displayStoreAddress(storeSubdomainOrigin(previewSlug))}
+            </span>
           </p>
         )}
       </div>

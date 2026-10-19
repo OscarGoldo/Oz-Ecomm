@@ -165,13 +165,10 @@ export function FeatureBento({ usdRate }: { usdRate: number | null }) {
           </article>
 
           <article {...reveal(0)} className={cn(tile, "lg:col-span-3")}>
-            <span className="self-start rounded-md bg-noche px-[9px] py-1.5 font-landing-mono text-[11px] font-bold uppercase leading-none tracking-[0.08em] text-claro">
-              Pro
-            </span>
             <h3 className={tileTitle}>Tu propia dirección.</h3>
             <p className={tileText}>
-              Con Pro, tu tienda vive en su propio subdominio y sin el sello de
-              Tiendify.
+              Tu tienda vive en su propio subdominio desde el plan Gratis. Es el
+              link que pones en tu bio.
             </p>
             <div
               aria-hidden="true"

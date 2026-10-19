@@ -13,6 +13,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createStore } from "@/app/(superadmin)/super/actions";
 import { slugify } from "@/lib/slug";
+import { displayStoreAddress, storeSubdomainOrigin } from "@/lib/store-url";
 
 interface FormValues {
   store_name: string;
@@ -93,7 +94,10 @@ export function StoreOnboardingForm() {
             <Label htmlFor="slug">Enlace (slug)</Label>
             <Input id="slug" {...register("slug")} placeholder="se genera del nombre" />
             <p className="text-xs text-muted-foreground">
-              URL pública: <span className="font-medium text-foreground">/{previewSlug}</span>
+              URL pública:{" "}
+              <span className="font-medium text-foreground">
+                {displayStoreAddress(storeSubdomainOrigin(previewSlug))}
+              </span>
             </p>
           </div>
           <div className="space-y-2">

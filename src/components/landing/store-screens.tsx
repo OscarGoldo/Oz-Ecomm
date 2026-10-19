@@ -106,8 +106,10 @@ function Url({ slug }: { slug: React.ReactNode }) {
   return (
     <div className="mx-[9px] mt-[9px] flex h-6 shrink-0 items-center justify-center gap-1 overflow-hidden whitespace-nowrap rounded-lg bg-black/5 px-2 font-landing-mono text-[8.5px] font-medium text-black/55">
       <Lock className="size-[9px] shrink-0" strokeWidth={2.2} />
-      usatiendify.com/
-      <b className="truncate font-semibold text-[color:var(--k)]">{slug}</b>
+      <span className="truncate">
+        <b className="font-semibold text-[color:var(--k)]">{slug}</b>
+        .usatiendify.com
+      </span>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
 } from "@/components/admin/super-stores-table";
 import { requireSuperAdmin } from "@/lib/auth";
 import { storeClosedByOwner } from "@/lib/store-status";
+import { storeUrl } from "@/lib/store-url";
 import { agoShort, fullDate, planBadge, shortDate } from "@/lib/super-format";
 import { isStoreSegment, originLabel, segmentsOf } from "@/lib/super-segments";
 import { getStoreStats } from "@/lib/super-stats";
@@ -41,6 +42,7 @@ export default async function SuperStoresPage({
   const rows: StoreRow[] = stores.map((s) => ({
     id: s.id,
     slug: s.slug,
+    url: storeUrl(s),
     name: s.name,
     whatsapp: s.whatsapp,
     waUrl: whatsappUrl(s.whatsapp),

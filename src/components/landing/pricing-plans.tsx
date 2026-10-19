@@ -112,6 +112,10 @@ export function PricingPlans({
             </p>
             <ul className="grid gap-[11px] border-t border-linea pt-[22px]">
               <PlanFeature>Hasta {freeMaxProducts} productos</PlanFeature>
+              <PlanFeature>
+                Tu propia dirección:{" "}
+                <span className="font-landing-mono text-[14px]">tutienda.usatiendify.com</span>
+              </PlanFeature>
               <PlanFeature>{freeLayouts} plantillas, una por rubro</PlanFeature>
               <PlanFeature>Pedidos y pagos ilimitados</PlanFeature>
               <PlanFeature>Precios en dólares y bolívares</PlanFeature>
@@ -160,10 +164,6 @@ export function PricingPlans({
             </div>
             <ul className="grid gap-[11px] border-t border-white/[0.12] pt-[22px]">
               <PlanFeature dark>Productos ilimitados</PlanFeature>
-              <PlanFeature dark>
-                Tu propia dirección:{" "}
-                <span className="font-landing-mono text-[14px]">tutienda.usatiendify.com</span>
-              </PlanFeature>
               <PlanFeature dark>Las {allLayouts} plantillas</PlanFeature>
               <PlanFeature dark>Analítica completa de tu tienda</PlanFeature>
               <PlanFeature dark>Cupones de descuento</PlanFeature>

@@ -8,7 +8,7 @@ import { getSessionContext } from "@/lib/auth";
 import { initialExchangeRate } from "@/lib/bcv";
 import { recordPlatformEvent } from "@/lib/platform-events";
 import { sendTelegram, telegramConfigured } from "@/lib/telegram";
-import { isReservedSlug, slugify } from "@/lib/slug";
+import { isReservedSlug, slugify, STORE_SLUG_MAX } from "@/lib/slug";
 
 export interface ActionResult {
   ok: boolean;
@@ -61,6 +61,10 @@ export async function createStore(
   if (!slug) return { ok: false, error: "No se pudo generar el enlace (slug)" };
   if (isReservedSlug(slug)) {
     return { ok: false, error: `El enlace "${slug}" está reservado, elige otro` };
+  }
+  // El enlace es también el subdominio, que aguanta 63 caracteres.
+  if (slug.length > STORE_SLUG_MAX) {
+    return { ok: false, error: `El enlace puede tener hasta ${STORE_SLUG_MAX} caracteres` };
   }
 
   const db = createAdminClient();

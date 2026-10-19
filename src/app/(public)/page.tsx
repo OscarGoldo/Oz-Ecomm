@@ -47,7 +47,7 @@ export const metadata: Metadata = {
  *
  * Todo gira alrededor de un gesto: la persona escribe el nombre de su negocio
  * en el hero y la tienda del navegador, el checkout, su link, los pasos y el
- * subdominio Pro pasan a ser los suyos (StoreNameProvider). El mismo campo,
+ * subdominio pasan a ser los suyos (StoreNameProvider). El mismo campo,
  * abajo, la lleva al registro con el nombre ya puesto. Después, dos tiendas de
  * ejemplo muestran el camino completo del cliente, de la vitrina al pago.
  *

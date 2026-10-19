@@ -116,10 +116,12 @@ function HeroStage({ rate }: { rate: number | null }) {
             </span>
             <span className="mx-auto flex h-[22px] max-w-[300px] flex-1 items-center justify-center gap-1.5 overflow-hidden whitespace-nowrap rounded-[7px] bg-white px-2 font-landing-mono text-[10.5px] font-medium text-gris">
               <Lock className="size-2.5 shrink-0" strokeWidth={2.2} />
-              usatiendify.com/
-              <b className="truncate font-semibold text-noche">
-                <StoreSlug />
-              </b>
+              <span className="truncate">
+                <b className="font-semibold text-noche">
+                  <StoreSlug />
+                </b>
+                .usatiendify.com
+              </span>
             </span>
           </div>
 

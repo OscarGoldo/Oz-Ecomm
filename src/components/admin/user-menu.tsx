@@ -1,7 +1,9 @@
 "use client";
 
-import { ChevronDown, ExternalLink, LogOut } from "lucide-react";
+import { ChevronDown, Copy, ExternalLink, LogOut } from "lucide-react";
+import { toast } from "sonner";
 
+import { useCopyLink } from "@/components/admin/use-copy-link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +18,7 @@ import { cn } from "@/lib/utils";
 interface UserMenuProps {
   fullName: string;
   email: string;
-  /** La dirección pública de la tienda (subdominio si es Pro). */
+  /** La dirección pública de la tienda: su subdominio. */
   storeUrl: string;
   /** "dark" para cuando va sobre la barra noche del teléfono. */
   tone?: "light" | "dark";
@@ -29,6 +31,16 @@ export function UserMenu({ fullName, email, storeUrl, tone = "light" }: UserMenu
     .slice(0, 2)
     .join("")
     .toUpperCase();
+
+  // El menú se cierra al elegir, así que el "copiado" se avisa con un toast.
+  const { copy } = useCopyLink(storeUrl);
+  async function copyStoreLink() {
+    if (await copy()) {
+      toast.success("Link copiado", {
+        description: storeUrl.replace(/^https?:\/\//, ""),
+      });
+    }
+  }
 
   return (
     <DropdownMenu>
@@ -63,6 +75,10 @@ export function UserMenu({ fullName, email, storeUrl, tone = "light" }: UserMenu
             <ExternalLink className="size-4" />
             Ver mi tienda
           </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => void copyStoreLink()}>
+          <Copy className="size-4" />
+          Copiar link de mi tienda
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>

@@ -1,5 +1,5 @@
 /**
- * Registra en Stripe el subdominio de las tiendas Pro (Apple Pay y Google Pay).
+ * Registra en Stripe el subdominio de las tiendas (Apple Pay y Google Pay).
  *
  *   npx tsx --env-file=.env.local scripts/stripe-store-domains.ts          (solo mira)
  *   npx tsx --env-file=.env.local scripts/stripe-store-domains.ts --aplica (registra)
@@ -36,7 +36,7 @@ async function main() {
 
   const result = await syncStorePaymentDomains(stripe, db, { apply });
 
-  console.log(`Tiendas Pro con subdominio: ${result.wanted}`);
+  console.log(`Tiendas con subdominio: ${result.wanted}`);
   console.log(`Faltan en Stripe: ${result.missing.length}`);
   for (const d of result.missing) console.log(`  - ${d}`);
   if (!apply) {

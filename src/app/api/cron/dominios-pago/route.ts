@@ -8,10 +8,10 @@ import { syncStorePaymentDomains } from "@/lib/stripe-domains";
 export const dynamic = "force-dynamic";
 
 /**
- * Cron cada hora. Registra en Stripe el subdominio de las tiendas Pro que
- * todavía no lo tienen, para que su checkout muestre Apple Pay y Google Pay
- * (ver src/lib/stripe-domains.ts). Una tienda que pasa a Pro queda lista en
- * menos de una hora; mientras tanto paga con tarjeta igual.
+ * Cron cada hora. Registra en Stripe el subdominio de las tiendas que todavía
+ * no lo tienen, para que su checkout muestre Apple Pay y Google Pay (ver
+ * src/lib/stripe-domains.ts). Una tienda nueva queda lista en menos de una
+ * hora; mientras tanto paga con tarjeta igual.
  * Protected by CRON_SECRET (Vercel sends it as a Bearer token).
  */
 export async function GET(request: NextRequest) {

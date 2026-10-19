@@ -1,14 +1,12 @@
-import { isPro } from "@/lib/plans";
 import { publicSiteUrl } from "@/lib/site-url";
 import type { Store } from "@/types/database";
 
 /**
- * La dirección pública de una tienda.
+ * La dirección pública de una tienda: mitienda.usatiendify.com, en Gratis y en
+ * Pro. Hasta el 2026-10-18 el subdominio era solo de Pro y las tiendas Gratis
+ * vivían en usatiendify.com/mitienda.
  *
- *   Gratis → usatiendify.com/mitienda
- *   Pro    → mitienda.usatiendify.com
- *
- * La tienda Pro sigue respondiendo también en usatiendify.com/mitienda, sin
+ * La tienda sigue respondiendo también en usatiendify.com/mitienda, sin
  * redirigir: ese link ya está pegado en Instagram y en conversaciones de
  * WhatsApp, y el rastreador de WhatsApp puede quedarse sin foto de vista previa
  * si le contestan con una redirección (ver site-url.ts). El subdominio es la
@@ -27,13 +25,13 @@ import type { Store } from "@/types/database";
 
 /**
  * La ruta original de una petición reescrita desde un subdominio, por si el
- * layout tiene que mandar al cliente a la dirección de siempre (la tienda dejó
- * de ser Pro). Solo se lee cuando el host es un subdominio de tienda.
+ * layout tiene que mandar al cliente a la dirección de siempre (los
+ * subdominios están apagados). Solo se lee cuando el host es un subdominio de tienda.
  */
 export const STORE_PATH_HEADER = "x-tiendify-store-path";
 
 /** Lo mínimo que hace falta saber de una tienda para elegir su dirección. */
-export type StoreAddress = Pick<Store, "slug" | "plan" | "plan_expires_at">;
+export type StoreAddress = Pick<Store, "slug">;
 
 /**
  * Interruptor de emergencia: `STORE_SUBDOMAINS=off` en Vercel vuelve todo a
@@ -64,9 +62,9 @@ export function slugFitsSubdomain(slug: string): boolean {
   return DNS_LABEL.test(slug) && !NOT_A_STORE.has(slug);
 }
 
-/** ¿Esta tienda se ve en su subdominio? Hoy: Pro vigente. */
+/** ¿Esta tienda se ve en su subdominio? Todas, en cualquier plan. */
 export function hasStoreSubdomain(store: StoreAddress): boolean {
-  return storeSubdomainsEnabled() && isPro(store) && slugFitsSubdomain(store.slug);
+  return storeSubdomainsEnabled() && slugFitsSubdomain(store.slug);
 }
 
 /**
@@ -111,8 +109,8 @@ export function joinStorePath(base: string, path = ""): string {
 }
 
 /**
- * La URL absoluta y canónica de una página de la tienda: el subdominio si es
- * Pro, usatiendify.com/mitienda si no. Es la que va en todo lo que sale de la
+ * La URL absoluta y canónica de una página de la tienda: su subdominio, o
+ * usatiendify.com/mitienda si los subdominios están apagados. Es la que va en todo lo que sale de la
  * página: mensajes de WhatsApp y correo, el regreso de Stripe, el sitemap, los
  * canonical y los datos estructurados.
  */

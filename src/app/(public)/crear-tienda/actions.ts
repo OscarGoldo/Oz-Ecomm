@@ -17,7 +17,8 @@ import {
 import { REFERRAL_COOKIE } from "@/lib/referrals";
 import { attachReferral } from "@/lib/referrals-server";
 import { reportError } from "@/lib/report-error";
-import { isReservedSlug, slugify } from "@/lib/slug";
+import { isReservedSlug, slugify, STORE_SLUG_MAX } from "@/lib/slug";
+import { storeUrl } from "@/lib/store-url";
 
 /** Best-effort client IP from the proxy headers (Vercel sets x-forwarded-for). */
 function clientIp(): string {
@@ -52,6 +53,8 @@ export interface SignupResult {
   /** El campo que causó el error, cuando es uno solo y se puede marcar. */
   field?: "promo";
   slug?: string;
+  /** La dirección de la tienda: https://mitienda.usatiendify.com */
+  url?: string;
   /** La sesión quedó abierta: el panel se abre directo, sin pasar por /login. */
   signedIn?: boolean;
   /** Meses de Pro gratis que le dio el código promocional, si usó uno. */
@@ -166,8 +169,10 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
     };
   }
 
-  // Find a free slug (append a short suffix on collision).
-  const base = slugify(d.store_name) || "tienda";
+  // Find a free slug (append a short suffix on collision). Con tope de largo:
+  // el slug es también el subdominio de la tienda.
+  const base =
+    slugify(d.store_name).slice(0, STORE_SLUG_MAX).replace(/-+$/, "") || "tienda";
   let slug = base;
   for (let attempt = 0; attempt < 5; attempt++) {
     const candidate = attempt === 0 ? base : `${base}-${Math.random().toString(36).slice(2, 6)}`;
@@ -331,5 +336,5 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
     // Queda en false y el cliente muestra el camino manual.
   }
 
-  return { ok: true, slug, signedIn, promoMonths: promo?.months };
+  return { ok: true, slug, url: storeUrl({ slug }), signedIn, promoMonths: promo?.months };
 }

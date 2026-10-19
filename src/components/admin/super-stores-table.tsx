@@ -30,6 +30,8 @@ import { cn } from "@/lib/utils";
 export interface StoreRow {
   id: string;
   slug: string;
+  /** La dirección pública: https://mitienda.usatiendify.com */
+  url: string;
   name: string;
   whatsapp: string | null;
   waUrl: string | null;
@@ -626,7 +628,7 @@ function RowLinks({ row }: { row: StoreRow }) {
         </a>
       )}
       <a
-        href={`/${row.slug}`}
+        href={row.url}
         target="_blank"
         rel="noopener noreferrer"
         className="grid size-9 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-muted hover:text-foreground"

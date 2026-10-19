@@ -8,13 +8,17 @@ import { toast } from "sonner";
  * `navigator.clipboard` falla o no existe en varios navegadores embebidos. El
  * plan B selecciona el link que está a la vista (el elemento de `linkRef`) y
  * copia esa selección; si ni eso funciona, el link queda seleccionado para
- * copiarlo a mano.
+ * copiarlo a mano. Sin elemento a la vista (un ítem de menú), el aviso de error
+ * muestra el link.
+ *
+ * `copy()` devuelve si pudo, para quien quiera avisarlo a su manera (un menú se
+ * cierra al elegir, así que no alcanza con cambiar el texto del botón).
  */
-export function useCopyLink(url: string) {
+export function useCopyLink<T extends HTMLElement = HTMLParagraphElement>(url: string) {
   const [copied, setCopied] = useState(false);
-  const linkRef = useRef<HTMLParagraphElement>(null);
+  const linkRef = useRef<T>(null);
 
-  async function copy() {
+  async function copy(): Promise<boolean> {
     let ok = false;
     try {
       await navigator.clipboard.writeText(url);
@@ -35,12 +39,15 @@ export function useCopyLink(url: string) {
     }
     if (!ok) {
       toast.error("Tu navegador no deja copiar", {
-        description: "El link quedó seleccionado: cópialo a mano.",
+        description: linkRef.current
+          ? "El link quedó seleccionado: cópialo a mano."
+          : `Cópialo a mano: ${url}`,
       });
-      return;
+      return false;
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
+    return true;
   }
 
   return { copied, copy, linkRef };

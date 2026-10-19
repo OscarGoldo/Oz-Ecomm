@@ -54,7 +54,30 @@ const RESERVED_SLUGS = new Set([
   "404",
   "500",
   "www",
+  // El slug también es el subdominio (mitienda.usatiendify.com): estos quedan
+  // para la plataforma.
+  "app",
+  "mail",
+  "email",
+  "smtp",
+  "ftp",
+  "blog",
+  "ayuda",
+  "soporte",
+  "help",
+  "status",
+  "docs",
+  "cdn",
+  "dev",
+  "staging",
+  "test",
 ]);
+
+/**
+ * Largo máximo de la base de un slug nuevo. Un subdominio aguanta 63
+ * caracteres; el tope deja lugar para el sufijo de una colisión ("-a1b2").
+ */
+export const STORE_SLUG_MAX = 50;
 
 export function isReservedSlug(slug: string): boolean {
   return RESERVED_SLUGS.has(slug);

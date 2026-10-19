@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ExternalLink, Search } from "lucide-react";
 
+import { CopyStoreAddress } from "@/components/admin/copy-store-address";
 import { FREE_MAX_PRODUCTS } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +39,7 @@ export function StoreMark({
   );
 }
 
-/** Arriba de la barra lateral: qué tienda es y cómo abrirla. */
+/** Arriba de la barra lateral: qué tienda es, su link para copiar y cómo abrirla. */
 export function PanelStoreCard({
   name,
   logo,
@@ -55,7 +56,7 @@ export function PanelStoreCard({
       <StoreMark name={name} logo={logo} />
       <div className="min-w-0 flex-1 leading-tight">
         <p className="truncate text-sm font-bold">{name}</p>
-        <p className="mt-0.5 truncate font-landing-mono text-[11px] text-niebla">{address}</p>
+        <CopyStoreAddress url={url} address={address} />
       </div>
       <a
         href={url}

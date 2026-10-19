@@ -39,7 +39,7 @@ export function LandingSteps() {
               <div className="grid gap-1">
                 <span className="text-[11.5px] font-semibold text-gris">Tu link</span>
                 <span className={cn(field, "font-landing-mono")}>
-                  usatiendify.com/<StoreSlug />
+                  <StoreSlug />.usatiendify.com
                 </span>
               </div>
             </div>
@@ -81,7 +81,7 @@ export function LandingSteps() {
                   </b>
                   <span className="text-[13px] text-pizarra">Ropa y accesorios · Caracas</span>
                   <span className="truncate font-landing-mono text-[13px] font-semibold text-brand-700">
-                    usatiendify.com/<StoreSlug />
+                    <StoreSlug />.usatiendify.com
                   </span>
                 </div>
               </div>

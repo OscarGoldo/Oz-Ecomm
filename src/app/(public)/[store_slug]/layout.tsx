@@ -29,9 +29,10 @@ export default async function StoreLayout({
   const store = await getStoreBySlug(params.store_slug);
   const onSubdomain = onStoreSubdomain(params.store_slug);
 
-  // Un subdominio que no es (o dejó de ser) de una tienda Pro manda a la
-  // dirección de siempre, en la misma página: el link que el comerciante ya
-  // compartió no se rompe porque se le venció el plan.
+  // Un subdominio que no tiene tienda manda a la portada de Tiendify. Si los
+  // subdominios están apagados (STORE_SUBDOMAINS=off), manda a la dirección de
+  // siempre, en la misma página: el link que el comerciante ya compartió no se
+  // rompe.
   if (onSubdomain && (!store || !hasStoreSubdomain(store))) {
     if (!store) redirect(publicSiteUrl());
     const path = headers().get(STORE_PATH_HEADER) ?? "/";

@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
  * El nombre del negocio que la persona escribe en la landing.
  *
  * Es el momento central de la portada: escribe "Dulces Mary" y la tienda del
- * teléfono, su link, los pasos y el subdominio Pro pasan a decir Dulces Mary.
+ * teléfono, su link, los pasos y su subdominio pasan a decir Dulces Mary.
  * Ver tu propia tienda antes de registrarte convence más que cualquier frase.
  *
  * Hasta que toque el campo, el hero escribe solo unos nombres de ejemplo para
@@ -195,10 +195,12 @@ export function StoreClaimForm({
           )}
         >
           <Lock aria-hidden="true" className="size-3.5 shrink-0" strokeWidth={2} />
-          usatiendify.com/
-          <b className={cn("font-semibold", night ? "text-sol" : "text-brand-700")}>
-            {slug}
-          </b>
+          <span className="truncate">
+            <b className={cn("font-semibold", night ? "text-sol" : "text-brand-700")}>
+              {slug}
+            </b>
+            .usatiendify.com
+          </span>
         </span>
       </p>
       <p className={cn("mt-3 text-[14.5px]", night ? "text-niebla" : "text-noche/90")}>
