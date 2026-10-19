@@ -13,6 +13,8 @@ import {
   sectionY,
   wrap,
 } from "@/components/landing/landing-ui";
+import { GRACE_DAYS, TRIAL_DAYS } from "@/lib/plans";
+import { LAUNCH_PROMO_CODE, LAUNCH_SIGNUP_HREF } from "@/lib/promo";
 import { cn } from "@/lib/utils";
 
 function PlanFeature({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
@@ -29,23 +31,22 @@ function PlanFeature({ children, dark = false }: { children: React.ReactNode; da
 }
 
 /**
- * Precios. El monto de Pro también sale en bolívares a la tasa BCV: es como
- * se piensa un precio acá, y es la función principal demostrada otra vez.
+ * Precios. Desde octubre de 2026 hay un solo plan (ver lib/plans): Pro, con el
+ * primer mes gratis usando el código de la portada. El monto también sale en
+ * bolívares a la tasa BCV: es como se piensa un precio acá, y es la función
+ * principal demostrada otra vez.
  *
- * Pro va en noche y no con un borde azul de dos píxeles: el plan recomendado
- * tiene que ganar por peso visual, no por un contorno de color.
+ * Pro va en noche y no con un borde azul de dos píxeles: es el plan, tiene que
+ * ganar por peso visual. Al lado, el código como un ticket, igual que los
+ * cupones del panel: se lee como algo que se recorta y se usa.
  */
 export function PricingPlans({
   usdRate,
-  freeMaxProducts,
-  freeLayouts,
   allLayouts,
   proMonthly,
   proYearly,
 }: {
   usdRate: number | null;
-  freeMaxProducts: number;
-  freeLayouts: number;
   allLayouts: number;
   proMonthly: number;
   proYearly: number;
@@ -65,8 +66,8 @@ export function PricingPlans({
         <div className="grid items-end gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-10">
           <SectionHeading
             eyebrow="Precios"
-            title="Empieza gratis. Crece cuando quieras."
-            text="Sin tarjeta de crédito. Pasas a Pro desde tu panel cuando lo necesites."
+            title="Un solo plan. El primer mes, gratis."
+            text="Todo incluido desde el primer día. Para empezar no necesitas tarjeta de crédito."
           />
           <div
             role="group"
@@ -95,55 +96,17 @@ export function PricingPlans({
           </div>
         </div>
 
-        <div className="mt-12 grid gap-[18px] md:grid-cols-2">
-          {/* Gratis */}
-          <article {...reveal()} className="flex min-w-0 flex-col gap-[22px] rounded-[30px] border border-linea bg-white p-[26px] sm:p-[34px]">
-            <span className="font-landing-mono text-[13px] font-semibold uppercase tracking-[0.08em] text-gris">
-              Gratis
-            </span>
-            <p className={cn(headingXl, "flex items-baseline gap-1.5 text-[clamp(3.4rem,2.8rem+2vw,4.6rem)] leading-[0.85] tabular-nums")}>
-              $0
-              <small className="font-landing-body text-[17px] font-semibold tracking-normal text-gris">
-                para siempre
-              </small>
-            </p>
-            <p className="-mt-2 text-[14.5px] text-pizarra">
-              Todo lo que necesitas para empezar a vender.
-            </p>
-            <ul className="grid gap-[11px] border-t border-linea pt-[22px]">
-              <PlanFeature>Hasta {freeMaxProducts} productos</PlanFeature>
-              <PlanFeature>
-                Tu propia dirección:{" "}
-                <span className="font-landing-mono text-[14px]">tutienda.usatiendify.com</span>
-              </PlanFeature>
-              <PlanFeature>{freeLayouts} plantillas, una por rubro</PlanFeature>
-              <PlanFeature>Pedidos y pagos ilimitados</PlanFeature>
-              <PlanFeature>Precios en dólares y bolívares</PlanFeature>
-              <PlanFeature>Finanzas, clientes y carritos abandonados</PlanFeature>
-            </ul>
-            <Link
-              href="/crear-tienda"
-              className={cn(pill, "mt-auto text-noche shadow-[inset_0_0_0_1.5px_hsl(var(--linea-fuerte))] hover:shadow-[inset_0_0_0_1.5px_hsl(var(--noche))]")}
-            >
-              Crear mi tienda
-            </Link>
-          </article>
-
+        <div className="mt-12 grid gap-[18px] md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
           {/* Pro */}
-          <article {...reveal(140)} className="relative flex min-w-0 flex-col gap-[22px] overflow-hidden rounded-[30px] bg-noche p-[26px] text-claro shadow-[0_2px_4px_hsl(var(--noche)/0.06),0_28px_56px_-22px_hsl(var(--noche)/0.32)] sm:p-[34px]">
+          <article {...reveal()} className="relative flex min-w-0 flex-col gap-[22px] overflow-hidden rounded-[30px] bg-noche p-[26px] text-claro shadow-[0_2px_4px_hsl(var(--noche)/0.06),0_28px_56px_-22px_hsl(var(--noche)/0.32)] sm:p-[34px]">
             {/* La etiqueta del logo, girada, como marca de agua */}
             <span
               aria-hidden="true"
               className="pointer-events-none absolute -right-[60px] -top-[60px] size-[260px] rounded-[30px] border-2 border-white/[0.08] [rotate:45deg]"
             />
-            <div className="flex items-center justify-between gap-3">
-              <span className="font-landing-mono text-[13px] font-semibold uppercase tracking-[0.08em] text-niebla">
-                Pro
-              </span>
-              <span className="rounded-full bg-sol px-2.5 py-[7px] font-landing-mono text-[11.5px] font-bold uppercase leading-none tracking-[0.06em] text-noche">
-                Recomendado
-              </span>
-            </div>
+            <span className="font-landing-mono text-[13px] font-semibold uppercase tracking-[0.08em] text-niebla">
+              Pro
+            </span>
             <p className={cn(headingXl, "flex items-baseline gap-1.5 text-[clamp(3.4rem,2.8rem+2vw,4.6rem)] leading-[0.85] tabular-nums")}>
               ${price}
               <small className="font-landing-body text-[17px] font-semibold tracking-normal text-niebla">
@@ -162,19 +125,57 @@ export function PricingPlans({
                   : `o $${proYearly} al año, con ${freeMonths} meses gratis.`}
               </p>
             </div>
-            <ul className="grid gap-[11px] border-t border-white/[0.12] pt-[22px]">
+            <ul className="grid gap-[11px] border-t border-white/[0.12] pt-[22px] sm:grid-cols-2 sm:gap-x-6">
               <PlanFeature dark>Productos ilimitados</PlanFeature>
+              <PlanFeature dark>Pedidos y pagos ilimitados</PlanFeature>
+              <PlanFeature dark>
+                Tu dirección:{" "}
+                <span className="font-landing-mono text-[14px]">tutienda.usatiendify.com</span>
+              </PlanFeature>
               <PlanFeature dark>Las {allLayouts} plantillas</PlanFeature>
-              <PlanFeature dark>Analítica completa de tu tienda</PlanFeature>
+              <PlanFeature dark>Precios en dólares y bolívares</PlanFeature>
+              <PlanFeature dark>Finanzas, clientes y carritos</PlanFeature>
+              <PlanFeature dark>Analítica de tu tienda</PlanFeature>
               <PlanFeature dark>Cupones de descuento</PlanFeature>
               <PlanFeature dark>Sin el sello de Tiendify</PlanFeature>
             </ul>
-            <Link href="/crear-tienda" className={cn(pill, "mt-auto bg-sol text-noche")}>
-              Empezar gratis
+            <Link href={LAUNCH_SIGNUP_HREF} className={cn(pill, "mt-auto bg-sol text-noche")}>
+              Empezar mi mes gratis
             </Link>
             <p className="-mt-2.5 text-center text-[13.5px] text-niebla">
-              Activas Pro desde tu panel. Lo pagas por Pago Móvil, Binance o tarjeta.
+              Después lo pagas por Pago Móvil, Binance o tarjeta.
             </p>
+          </article>
+
+          {/* El código, como un ticket */}
+          <article {...reveal(140)} className="flex min-w-0 flex-col gap-[22px] rounded-[30px] border-[1.5px] border-dashed border-linea-fuerte bg-white p-[26px] sm:p-[34px]">
+            <span className="font-landing-mono text-[13px] font-semibold uppercase tracking-[0.08em] text-gris">
+              Tu primer mes
+            </span>
+            <p className={cn(headingXl, "text-[clamp(2.4rem,2rem+1.4vw,3.2rem)] leading-[0.9]")}>
+              Gratis, con este código
+            </p>
+            <p
+              className="self-start rounded-2xl border-2 border-dashed border-brand-700 bg-brand-50 px-4 py-3 font-landing-mono text-[clamp(1.25rem,1rem+1vw,1.6rem)] font-bold tracking-[0.04em] text-brand-700 [overflow-wrap:anywhere]"
+            >
+              {LAUNCH_PROMO_CODE}
+            </p>
+            <ul className="grid gap-[11px] border-t border-linea pt-[22px]">
+              <PlanFeature>Pro completo por 30 días, sin tarjeta</PlanFeature>
+              <PlanFeature>
+                Los botones de esta página ya lo llevan puesto
+              </PlanFeature>
+              <PlanFeature>Sin código, igual lo pruebas {TRIAL_DAYS} días</PlanFeature>
+              <PlanFeature>
+                Si no renuevas, tu tienda sigue {GRACE_DAYS} días más. No se borra nada.
+              </PlanFeature>
+            </ul>
+            <Link
+              href={LAUNCH_SIGNUP_HREF}
+              className={cn(pill, "mt-auto text-noche shadow-[inset_0_0_0_1.5px_hsl(var(--linea-fuerte))] hover:shadow-[inset_0_0_0_1.5px_hsl(var(--noche))]")}
+            >
+              Crear mi tienda con el código
+            </Link>
           </article>
         </div>
 

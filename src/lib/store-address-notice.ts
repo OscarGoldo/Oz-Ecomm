@@ -31,7 +31,7 @@ const FREE_SUBDOMAINS_AT = new Date("2026-10-19T04:00:00Z");
 export function shouldShowStoreAddressNotice(
   user: AppUser,
   metadata: Record<string, unknown>,
-  store: Pick<Store, "slug" | "plan" | "plan_expires_at">,
+  store: Pick<Store, "slug" | "plan" | "plan_expires_at" | "founder">,
 ): boolean {
   if (!storeSubdomainsEnabled() || !slugFitsSubdomain(store.slug)) return false;
 

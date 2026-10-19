@@ -51,6 +51,9 @@ export type PaymentMethodType =
 
 export type FulfillmentType = "delivery" | "pickup";
 
+/** Los correos de vencimiento de una tienda nueva (migración 0037). */
+export type PlanNoticeKind = "ending" | "grace" | "pause_soon" | "paused";
+
 /** Foto de una línea del carrito abandonado (`abandoned_carts.items`). */
 export interface AbandonedCartItem {
   name: string;
@@ -131,6 +134,12 @@ export interface Database {
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
           stripe_subscription_status: SubscriptionState | null;
+          /**
+           * Tienda creada antes del plan único de US$15 (migración 0037): si no
+           * paga queda en Gratis y Pro le cuesta US$5, para siempre. Ver
+           * isFounder() en lib/plans.ts.
+           */
+          founder: boolean;
           referral_code: string;
           created_at: string;
           updated_at: string;
@@ -175,6 +184,7 @@ export interface Database {
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
           stripe_subscription_status?: SubscriptionState | null;
+          founder?: boolean;
           referral_code?: string;
           created_at?: string;
           updated_at?: string;
@@ -911,6 +921,22 @@ export interface Database {
         Update: Partial<
           Database["public"]["Tables"]["promo_redemptions"]["Insert"]
         >;
+        Relationships: [];
+      };
+      plan_notices: {
+        Row: {
+          store_id: string;
+          kind: PlanNoticeKind;
+          plan_expires_at: string;
+          sent_at: string;
+        };
+        Insert: {
+          store_id: string;
+          kind: PlanNoticeKind;
+          plan_expires_at: string;
+          sent_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["plan_notices"]["Insert"]>;
         Relationships: [];
       };
       platform_events: {

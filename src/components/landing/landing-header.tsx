@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { TiendifyLogo } from "@/components/landing/tiendify-logo";
+import { LAUNCH_SIGNUP_HREF } from "@/lib/promo";
 import { cn } from "@/lib/utils";
 
 /**
@@ -148,7 +149,7 @@ export function LandingHeader() {
   const menuItems = [
     ...NAV.map((n) => ({ label: n.label, href: `#${n.id}`, id: n.id, cta: false })),
     { label: "Ingresar", href: "/login", id: "", cta: false },
-    { label: "Crear mi tienda gratis", href: "/crear-tienda", id: "", cta: true },
+    { label: "Crear mi tienda", href: LAUNCH_SIGNUP_HREF, id: "", cta: true },
   ];
 
   return (
@@ -205,7 +206,7 @@ export function LandingHeader() {
             Ingresar
           </Link>
           <Link
-            href="/crear-tienda"
+            href={LAUNCH_SIGNUP_HREF}
             className="inline-flex min-h-[42px] items-center whitespace-nowrap rounded-full bg-white px-[18px] text-[14.5px] font-bold text-noche transition-transform active:scale-[0.97] max-[420px]:hidden"
           >
             Crear mi tienda

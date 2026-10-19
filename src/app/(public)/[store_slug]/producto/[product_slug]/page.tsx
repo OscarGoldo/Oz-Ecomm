@@ -24,6 +24,8 @@ import { storeUrl } from "@/lib/store-url";
 import { whatsappUrl } from "@/lib/whatsapp";
 import { JsonLd } from "@/components/storefront/json-ld";
 import { breadcrumbJsonLd, productJsonLd } from "@/lib/structured-data";
+import { StorePaused } from "@/components/storefront/store-paused";
+import { isPaused } from "@/lib/plans";
 
 export async function generateMetadata({
   params,
@@ -61,6 +63,8 @@ export default async function ProductDetailPage({
 }) {
   const store = await getStoreBySlug(params.store_slug);
   if (!store) notFound();
+  // Tienda nueva que no renovó después de la gracia: no vende (lib/plans).
+  if (isPaused(store)) return <StorePaused store={store} />;
 
   const product = await getStoreProduct(store.id, params.product_slug);
   if (!product) notFound();

@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { signUpStore } from "@/app/(public)/crear-tienda/actions";
+import { TRIAL_DAYS } from "@/lib/plans";
 import { monthsLabel } from "@/lib/promo";
 import { slugify } from "@/lib/slug";
 import { displayStoreAddress, storeSubdomainOrigin } from "@/lib/store-url";
@@ -170,9 +171,9 @@ export function SignupForm({
       // Ya tiene sesión: se lo lleva al panel, que es donde va a hacer lo
       // siguiente que importa (cargar su primer producto).
       toast.success(`¡${values.store_name} está lista!`, {
-        description: res.promoMonths
-          ? `Tienes ${monthsLabel(res.promoMonths)} de Pro gratis.`
-          : undefined,
+        description: `Tienes ${
+          res.promoMonths ? monthsLabel(res.promoMonths) : `${TRIAL_DAYS} días`
+        } de Pro gratis.`,
       });
       router.push("/panel");
       router.refresh();
@@ -204,11 +205,11 @@ export function SignupForm({
         >
           {displayStoreAddress(done.url)} <ExternalLink className="size-3.5" />
         </a>
-        {done.promoMonths && (
-          <p className="mt-3 text-sm font-medium text-success">
-            Tienes {monthsLabel(done.promoMonths)} de Pro gratis.
-          </p>
-        )}
+        <p className="mt-3 text-sm font-medium text-success">
+          Tienes{" "}
+          {done.promoMonths ? monthsLabel(done.promoMonths) : `${TRIAL_DAYS} días`} de
+          Pro gratis.
+        </p>
 
         <div className="mt-5 rounded-lg bg-muted/60 p-3 text-left text-sm text-muted-foreground">
           Entra a tu panel con tu email{" "}
@@ -262,7 +263,7 @@ export function SignupForm({
       {promoUnavailable && (
         <div className="rounded-xl border border-warning-border bg-warning-surface p-3 text-sm text-warning-text">
           El código {promoUnavailable} ya no está disponible. Igual puedes crear
-          tu tienda gratis.
+          tu tienda y probar Pro gratis por {TRIAL_DAYS} días.
         </div>
       )}
 
@@ -413,7 +414,7 @@ export function SignupForm({
 
       <Button type="submit" size="lg" className="w-full" disabled={submitting}>
         {submitting ? <Loader2 className="animate-spin" /> : <Rocket />}
-        Crear mi tienda gratis
+        Crear mi tienda
       </Button>
       <p className="text-center text-xs text-muted-foreground">
         Sin tarjeta. Empiezas a vender hoy.

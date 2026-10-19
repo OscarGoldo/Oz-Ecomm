@@ -141,7 +141,7 @@ export function PromoCodeForm() {
             ? cupos
               ? `Las primeras ${cupos} tiendas que se registren con ${code} tendrán ${monthsLabel(n)} de Pro gratis.`
               : `Toda tienda que se registre con ${code} tendrá ${monthsLabel(n)} de Pro gratis.`
-            : "Al terminar los meses gratis, la tienda pasa a Gratis sola."}
+            : "Al terminar los meses gratis, la tienda tiene 7 días de gracia y, si no paga, se pausa."}
         </p>
         <Button type="submit" disabled={busy}>
           {busy ? <Loader2 className="animate-spin" /> : <Plus />} Crear código

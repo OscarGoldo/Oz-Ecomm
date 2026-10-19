@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { extendExpiry } from "@/lib/plans";
+import { formatUSD } from "@/lib/format";
+import { extendExpiry, periodForAmount, priceFor, pricesFor } from "@/lib/plans";
+import { getPlatformConfig } from "@/lib/platform";
 import { recordPlatformEvent } from "@/lib/platform-events";
 import { monthsLabel } from "@/lib/promo";
 import {
@@ -130,7 +132,7 @@ async function storeForSubscription(
   if (subscriptionId) {
     const { data } = await db
       .from("stores")
-      .select("id, name, plan_expires_at")
+      .select("id, name, plan_expires_at, founder")
       .eq("paypal_subscription_id", subscriptionId)
       .maybeSingle();
     if (data) return data;
@@ -140,7 +142,7 @@ async function storeForSubscription(
   if (customId) {
     const { data } = await db
       .from("stores")
-      .select("id, name, plan_expires_at")
+      .select("id, name, plan_expires_at, founder")
       .eq("id", customId)
       .maybeSingle();
     if (data) return data;
@@ -165,9 +167,17 @@ async function handleSaleCompleted(db: Db, event: PaypalEvent) {
   }
 
   const amount = r.amount?.total ? Number(r.amount.total) : 0;
-  // El plan anual cuesta bastante más que un mes: así se distingue sin
-  // depender de mirar el plan_id contra el entorno.
-  const months = amount >= 30 ? 12 : 1;
+  // El período sale del monto contra el precio de ESTA tienda (una fundadora
+  // paga US$5, una nueva US$15; ver lib/plans), sin mirar el plan_id.
+  const prices = pricesFor(store, (await getPlatformConfig()).prices);
+  const months = periodForAmount(amount, prices);
+  const expected = priceFor(months, prices);
+
+  // La suscripción se arma en el navegador con el plan_id que le pasa la
+  // página. Con dos juegos de planes (lista y fundadora), alguien podría
+  // cambiarlo por el barato: ese cobro no suma meses solo, queda en revisión
+  // en /super/suscripciones para decidirlo a mano.
+  const enough = amount + 0.01 >= expected;
 
   await db.from("subscription_payments").insert({
     store_id: store.id,
@@ -178,9 +188,24 @@ async function handleSaleCompleted(db: Db, event: PaypalEvent) {
     reference: r.id ?? null,
     paypal_capture_id: r.id ?? null,
     paypal_subscription_id: subscriptionId,
-    status: "approved",
-    reviewed_at: new Date().toISOString(),
+    status: enough ? "approved" : "pending",
+    reviewed_at: enough ? new Date().toISOString() : null,
+    review_note: enough
+      ? null
+      : `Cobró ${formatUSD(amount)} y su plan cuesta ${formatUSD(expected)}`,
   });
+
+  if (!enough) {
+    await recordPlatformEvent({
+      type: "plan.proof_submitted",
+      storeId: store.id,
+      amount,
+      title: `Cobro por PayPal menor al precio: ${store.name}`,
+      detail: `Pagó ${formatUSD(amount)} y su plan cuesta ${formatUSD(expected)}. No se le sumó nada: revisarlo antes de aprobar.`,
+      url: "/super/suscripciones",
+    });
+    return;
+  }
 
   await recordPlatformEvent({
     type: "plan.paid",

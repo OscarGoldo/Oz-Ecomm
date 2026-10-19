@@ -11,7 +11,7 @@ import {
 import { ArrowRight, Lock } from "lucide-react";
 
 import { pill } from "@/components/landing/landing-ui";
-import { FREE_MAX_PRODUCTS } from "@/lib/plans";
+import { LAUNCH_PROMO_CODE } from "@/lib/promo";
 import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 
@@ -117,11 +117,11 @@ export function StoreInitial() {
 }
 
 /**
- * El campo "nombre de tu negocio" + "Crear mi tienda gratis".
+ * El campo "nombre de tu negocio" + "Crear mi tienda".
  *
- * Es un <form method="get"> a /crear-tienda con `nombre`: funciona sin
- * JavaScript, y el registro llega con el nombre ya puesto en vez de pedirlo
- * dos veces.
+ * Es un <form method="get"> a /crear-tienda con `nombre` y `codigo`: funciona
+ * sin JavaScript, y el registro llega con el nombre y el código del mes gratis
+ * ya puestos en vez de pedirlos de nuevo.
  */
 export function StoreClaimForm({
   id,
@@ -142,6 +142,9 @@ export function StoreClaimForm({
 
   return (
     <form action="/crear-tienda" method="get" className="w-full max-w-[580px]">
+      {/* El código de la portada viaja con el nombre: el registro lo muestra
+          ya puesto y el mes gratis se activa solo. */}
+      <input type="hidden" name="codigo" value={LAUNCH_PROMO_CODE} />
       <label
         htmlFor={id}
         className={cn("mb-2 block text-[14.5px] font-bold", night && "text-claro")}
@@ -181,7 +184,7 @@ export function StoreClaimForm({
               : "bg-noche text-white focus-visible:outline-noche",
           )}
         >
-          Crear mi tienda gratis
+          Crear mi tienda
           <ArrowRight aria-hidden="true" />
         </button>
       </div>
@@ -204,7 +207,16 @@ export function StoreClaimForm({
         </span>
       </p>
       <p className={cn("mt-3 text-[14.5px]", night ? "text-niebla" : "text-noche/90")}>
-        Gratis hasta {FREE_MAX_PRODUCTS} productos. Sin tarjeta de crédito.
+        Tu primer mes es gratis con el código{" "}
+        <b
+          className={cn(
+            "rounded-md border border-dashed px-1.5 py-0.5 font-landing-mono text-[13.5px] font-semibold",
+            night ? "border-sol/60 text-sol" : "border-noche/40 text-noche",
+          )}
+        >
+          {LAUNCH_PROMO_CODE}
+        </b>
+        . Sin tarjeta de crédito.
       </p>
     </form>
   );

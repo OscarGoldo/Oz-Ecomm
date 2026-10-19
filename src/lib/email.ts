@@ -2,6 +2,7 @@ import "server-only";
 
 import { formatBs, formatUSD } from "@/lib/format";
 import type { OrderMessageData } from "@/lib/order-messages";
+import type { PlanNoticeKind } from "@/types/database";
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
@@ -357,5 +358,81 @@ export function customerOrderReceiptEmail(
     <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Enviado por ${esc(d.storeName)} vía Tiendify</p>
   </div>`;
 
+  return { subject, html };
+}
+
+interface PlanNoticeEmailParams {
+  kind: PlanNoticeKind;
+  ownerName: string | null;
+  storeName: string;
+  /** Es la prueba gratis (con o sin código), no un plan que pagó. */
+  trial: boolean;
+  /** Días que faltan para lo que anuncia el aviso: el vencimiento o la pausa. */
+  days: number;
+  /** El día en que la tienda se pausa, ya escrito ("27 de octubre"). */
+  pauseDate: string;
+  /** Lo que cuesta Pro al mes, para decirlo en el correo. */
+  monthlyPrice: number;
+  /** La página del plan en el panel. */
+  planUrl: string;
+}
+
+/**
+ * Los avisos a una tienda nueva cuando se le vence el plan (ver lib/plans:
+ * no tiene Gratis, tiene gracia y después pausa). Los manda el cron diario,
+ * uno por etapa, desde lib/plan-notices.ts.
+ *
+ * Todos dicen lo mismo de fondo: qué pasa, cuándo, que no se borra nada y
+ * cómo se evita. La palabra "pausa" va siempre con lo que significa para el
+ * comerciante (sus clientes no pueden comprar), no como estado técnico.
+ */
+export function planNoticeEmail(p: PlanNoticeEmailParams): {
+  subject: string;
+  html: string;
+} {
+  const inDays = (n: number) =>
+    n <= 0 ? "hoy" : n === 1 ? "mañana" : `en ${n} días`;
+  const price = formatUSD(p.monthlyPrice);
+  const what = p.trial ? "Tu prueba gratis" : "Tu plan Pro";
+
+  let subject: string;
+  let title: string;
+  let body: string;
+  let cta = "Activar Pro";
+  switch (p.kind) {
+    case "ending":
+      subject = `${what} de Tiendify termina ${inDays(p.days)}`;
+      title = `${what} termina ${inDays(p.days)}`;
+      body = `Para que <strong>${esc(p.storeName)}</strong> siga vendiendo sin cortes, activa Pro por ${esc(price)} al mes. Lo pagas por Pago Móvil, Binance o tarjeta, y si renuevas antes, los días que te quedan se suman.`;
+      break;
+    case "grace":
+      subject = `Tu plan venció: ${p.storeName} se pausa el ${p.pauseDate}`;
+      title = "Tu plan venció";
+      body = `<strong>${esc(p.storeName)}</strong> sigue funcionando hasta el ${esc(p.pauseDate)}. Si no renuevas antes, la tienda se pausa: tus clientes verán un aviso y no podrán comprar. No se borra nada.`;
+      cta = "Renovar Pro";
+      break;
+    case "pause_soon":
+      subject = `${p.storeName} se pausa ${inDays(p.days)}`;
+      title = `Tu tienda se pausa ${inDays(p.days)}`;
+      body = `Desde el ${esc(p.pauseDate)} tus clientes no podrán comprar en <strong>${esc(p.storeName)}</strong>. Renueva Pro por ${esc(price)} al mes y sigue vendiendo como hasta ahora.`;
+      cta = "Renovar Pro";
+      break;
+    case "paused":
+      subject = `${p.storeName} está en pausa`;
+      title = "Tu tienda está en pausa";
+      body = `Tus clientes ven un aviso y no pueden comprar en <strong>${esc(p.storeName)}</strong>. Tus productos, pedidos y clientes siguen guardados: activa Pro por ${esc(price)} al mes y la tienda vuelve al instante, tal como estaba.`;
+      break;
+  }
+
+  const html = `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+    <h2 style="margin:0 0 4px">${esc(title)}</h2>
+    <p style="margin:0 0 16px;color:#64748b">Hola${p.ownerName ? ` ${esc(p.ownerName)}` : ""}</p>
+    <div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:16px">
+      <p style="margin:0;color:#334155;line-height:1.5">${body}</p>
+    </div>
+    <a href="${esc(p.planUrl)}" style="display:inline-block;background:#0f172a;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:999px">${esc(cta)}</a>
+    <p style="margin:20px 0 0;color:#94a3b8;font-size:12px">Tiendify</p>
+  </div>`;
   return { subject, html };
 }

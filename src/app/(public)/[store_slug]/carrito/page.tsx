@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { CartView } from "@/components/storefront/cart-view";
 import { getStoreBySlug } from "@/lib/storefront";
 import { getEnrichedCart } from "@/lib/cart";
+import { StorePaused } from "@/components/storefront/store-paused";
+import { isPaused } from "@/lib/plans";
 
 export const metadata: Metadata = { title: { absolute: "Carrito" } };
 
@@ -14,6 +16,8 @@ export default async function CartPage({
 }) {
   const store = await getStoreBySlug(params.store_slug);
   if (!store) notFound();
+  // Tienda nueva que no renovó después de la gracia: no vende (lib/plans).
+  if (isPaused(store)) return <StorePaused store={store} />;
 
   const cart = await getEnrichedCart(store);
 

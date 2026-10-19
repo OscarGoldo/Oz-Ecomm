@@ -10,6 +10,16 @@ import type { PromoCode } from "@/types/database";
  * `promo-server.ts`.
  */
 
+/**
+ * El código de la portada: un mes de Pro gratis. Lo crea la migración 0037 y
+ * se maneja desde /super/codigos; si se apaga o se borra allá, hay que sacarlo
+ * también de acá, porque la portada lo sigue mostrando.
+ */
+export const LAUNCH_PROMO_CODE = "USATIENDIFYYA";
+
+/** El registro con el código de la portada ya puesto. */
+export const LAUNCH_SIGNUP_HREF = `/crear-tienda?codigo=${LAUNCH_PROMO_CODE}`;
+
 /** Largo de un código. Coincide con el CHECK de la tabla. */
 export const PROMO_CODE_MIN = 3;
 export const PROMO_CODE_MAX = 24;

@@ -1,4 +1,4 @@
-import { FREE_MAX_PRODUCTS } from "@/lib/plans";
+import { LAUNCH_PROMO_CODE } from "@/lib/promo";
 import { rateText, wrap } from "@/components/landing/landing-ui";
 import { PaymentLogo, type PaymentLogoId } from "@/components/landing/payment-logos";
 
@@ -36,7 +36,7 @@ export function RateTicker({ usdRate }: { usdRate: number | null }) {
           )}
         </p>
         <p className="hidden text-niebla md:block">
-          Gratis hasta {FREE_MAX_PRODUCTS} productos · Sin tarjeta
+          Código <b className="font-landing-mono font-semibold text-sol">{LAUNCH_PROMO_CODE}</b>: tu primer mes gratis
         </p>
       </div>
     </div>

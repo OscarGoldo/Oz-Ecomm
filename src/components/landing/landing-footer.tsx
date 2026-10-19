@@ -2,9 +2,10 @@ import Link from "next/link";
 
 import { reveal, wrap } from "@/components/landing/landing-ui";
 import { TiendifyLogo } from "@/components/landing/tiendify-logo";
+import { LAUNCH_SIGNUP_HREF } from "@/lib/promo";
 
 const LINKS = [
-  { label: "Crear tienda", href: "/crear-tienda" },
+  { label: "Crear tienda", href: LAUNCH_SIGNUP_HREF },
   { label: "Ingresar", href: "/login" },
   { label: "Términos", href: "/terminos" },
   { label: "Privacidad", href: "/privacidad" },

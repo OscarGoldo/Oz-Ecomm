@@ -11,6 +11,8 @@ import { paypalEnabled } from "@/lib/paypal";
 import { storeHref } from "@/lib/store-href";
 import { createClient } from "@/lib/supabase/server";
 import type { PaymentMethod } from "@/types/database";
+import { StorePaused } from "@/components/storefront/store-paused";
+import { isPaused } from "@/lib/plans";
 
 export const metadata: Metadata = { title: { absolute: "Checkout" } };
 
@@ -21,6 +23,8 @@ export default async function CheckoutPage({
 }) {
   const store = await getStoreBySlug(params.store_slug);
   if (!store) notFound();
+  // Tienda nueva que no renovó después de la gracia: no vende (lib/plans).
+  if (isPaused(store)) return <StorePaused store={store} />;
 
   const cart = await getEnrichedCart(store);
   if (cart.lines.length === 0) {

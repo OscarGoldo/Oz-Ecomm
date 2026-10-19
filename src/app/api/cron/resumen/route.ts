@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { formatUSD } from "@/lib/format";
 import { recordPlatformEvent } from "@/lib/platform-events";
+import { reportError } from "@/lib/report-error";
+import { sendPlanNotices } from "@/lib/plan-notices";
 import { daysUntilExpiry, isPro } from "@/lib/plans";
 import { publicSiteUrl } from "@/lib/site-url";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -34,7 +36,10 @@ function plural(n: number, one: string, many: string): string {
  *     solo: es el momento de escribirle al comerciante, no cuando ya cayó a
  *     Gratis. El `dedupeKey` lleva la fecha de vencimiento, así el mismo aviso
  *     no se repite mañana, pero sí vuelve si renueva y otra vez está por vencer.
- *  2. Manda al grupo de Telegram el resumen de las últimas 24 horas.
+ *  2. Le escribe por correo a cada tienda nueva cuyo plan termina, venció o
+ *     se pausó (ver lib/plan-notices.ts). Las fundadoras caen a Gratis y no
+ *     lo necesitan.
+ *  3. Manda al grupo de Telegram el resumen de las últimas 24 horas.
  *
  * Protegido con CRON_SECRET, igual que /api/cron/bcv.
  */
@@ -88,7 +93,16 @@ export async function GET(request: NextRequest) {
     expiringAlerts += 1;
   }
 
-  // ── 2. Resumen ────────────────────────────────────────────────────────────
+  // ── 2. Avisos de vencimiento al comerciante ─────────────────────────────
+  let planNotices = 0;
+  try {
+    planNotices = await sendPlanNotices();
+  } catch (e) {
+    // Que un correo falle no puede dejar sin resumen a los socios.
+    reportError("cron-resumen:plan-notices", e);
+  }
+
+  // ── 3. Resumen ────────────────────────────────────────────────────────────
   const recent = (iso: string | null) => iso !== null && Date.parse(iso) >= dayAgo;
   const newStores = stores.filter((s) => recent(s.created_at));
   const firstSales = stores.filter((s) => recent(s.first_sale_at));
@@ -167,5 +181,5 @@ export async function GET(request: NextRequest) {
 
   const summarySent = await sendTelegram(lines.join("\n"));
 
-  return NextResponse.json({ ok: true, expiringAlerts, summarySent });
+  return NextResponse.json({ ok: true, expiringAlerts, planNotices, summarySent });
 }

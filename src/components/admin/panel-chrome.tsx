@@ -74,17 +74,43 @@ export function PanelStoreCard({
 /**
  * El plan, abajo de la barra lateral. En Gratis muestra cuánto del cupo de
  * productos va usado, que es el límite con el que la tienda se topa primero.
+ * Una tienda nueva no tiene Gratis: ve su prueba, o que está en pausa.
  */
 export function PanelPlanCard({
   pro,
+  paused = false,
+  trial = false,
   daysLeft,
   productCount,
 }: {
   pro: boolean;
+  /** Tienda nueva que pasó la gracia sin renovar (lib/plans). */
+  paused?: boolean;
+  /** Su Pro es la prueba gratis, no un plan pagado. */
+  trial?: boolean;
   daysLeft: number | null;
   productCount: number;
 }) {
   const used = Math.min(100, Math.round((productCount / FREE_MAX_PRODUCTS) * 100));
+
+  if (paused) {
+    return (
+      <Link
+        href="/panel/plan"
+        className="flex items-center justify-between gap-2 rounded-xl border border-sol/40 bg-noche-suave px-3.5 py-3 transition-colors hover:border-sol"
+      >
+        <span className="min-w-0">
+          <span className="block font-landing-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-sol">
+            Tienda en pausa
+          </span>
+          <span className="mt-0.5 block truncate text-[13px] text-white/75">
+            Activa tu plan para vender
+          </span>
+        </span>
+        <ArrowRight className="size-4 shrink-0 text-sol" />
+      </Link>
+    );
+  }
 
   // En Pro la tarjeta es de una línea: no hay cupo que mirar, solo cuándo
   // vence (si vence).
@@ -96,13 +122,13 @@ export function PanelPlanCard({
       >
         <span className="min-w-0">
           <span className="block font-landing-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-niebla">
-            Plan Pro
+            {trial ? "Prueba de Pro" : "Plan Pro"}
           </span>
           <span className="mt-0.5 block truncate text-[13px] text-white/75">
             {daysLeft === null
               ? "Sin fecha de vencimiento"
               : daysLeft > 0
-                ? `Vence en ${daysLeft} ${daysLeft === 1 ? "día" : "días"}`
+                ? `${trial ? "Termina" : "Vence"} en ${daysLeft} ${daysLeft === 1 ? "día" : "días"}`
                 : "Venció, renuévalo"}
           </span>
         </span>

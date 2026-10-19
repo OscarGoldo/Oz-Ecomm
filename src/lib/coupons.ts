@@ -78,7 +78,7 @@ export async function findCouponByCode(
 
   const { data: store } = await db
     .from("stores")
-    .select("plan, plan_expires_at, plan_source")
+    .select("plan, plan_expires_at, plan_source, founder")
     .eq("id", storeId)
     .maybeSingle();
   if (!isPro(store)) return null;

@@ -11,14 +11,13 @@ import {
 } from "@/components/landing/page-shell";
 import { SignupShell } from "@/components/landing/signup-shell";
 import { getPublicUsdRate } from "@/lib/bcv";
-import { FREE_MAX_PRODUCTS } from "@/lib/plans";
-import { normalizePromoCode } from "@/lib/promo";
+import { LAUNCH_PROMO_CODE, normalizePromoCode } from "@/lib/promo";
 import { lookupPromoCode } from "@/lib/promo-server";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: { absolute: "Crea tu tienda · Tiendify" },
-  description: "Crea tu tienda online gratis en minutos.",
+  description: "Crea tu tienda online en minutos. Tu primer mes es gratis.",
 };
 
 /**
@@ -70,8 +69,9 @@ export default async function CrearTiendaPage({
                 Tu tienda, lista en <Sticker>un minuto.</Sticker>
               </h1>
               <p className={pageLead}>
-                Gratis hasta {FREE_MAX_PRODUCTS} productos y sin tarjeta de crédito.
-                Cargas tus productos, compartes el link y empiezas a vender.
+                Tu primer mes de Pro es gratis con el código {LAUNCH_PROMO_CODE}, sin
+                tarjeta de crédito. Cargas tus productos, compartes el link y
+                empiezas a vender.
               </p>
             </>
           }

@@ -502,7 +502,7 @@ export const designSchema = z.object({
 // ─── El diseño de una tienda ───────────────────────────────────────────────
 
 export type DesignStore = Pick<Store, "primary_color" | "customization"> &
-  Partial<PlanFields> & { design?: Json | null };
+  PlanFields & { design?: Json | null };
 
 /**
  * El diseño guardado de la tienda, sin aplicar el plan: el publicado, o si

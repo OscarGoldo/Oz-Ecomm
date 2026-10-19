@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { isPaused } from "@/lib/plans";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { reportError } from "@/lib/report-error";
 import { publicSiteUrl } from "@/lib/site-url";
@@ -44,12 +45,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const db = createAdminClient();
 
-    const { data: stores, error: storesError } = await db
+    const { data: allStores, error: storesError } = await db
       .from("stores")
-      .select("id, slug, plan, plan_expires_at, updated_at")
+      .select("id, slug, plan, plan_expires_at, plan_source, founder, updated_at")
       .eq("active", true)
       .limit(500);
     if (storesError) throw storesError;
+    // Una tienda en pausa no vende: no tiene sentido mandar al buscador ahí.
+    const stores = (allStores ?? []).filter((s) => !isPaused(s));
 
     // Las URLs van con la dirección canónica de cada tienda: el subdominio si
     // es Pro. Como el mapa se regenera cada hora, una tienda que pasa a Pro (o

@@ -11,8 +11,12 @@ import {
   FREE_MAX_PRODUCTS,
   PLAN_PERIODS,
   daysUntilExpiry,
+  daysUntilPause,
+  isFounder,
   isPro,
+  planState,
   priceFor,
+  pricesFor,
 } from "@/lib/plans";
 import { paypalClientId } from "@/lib/paypal";
 import { planIdFor, subscriptionsConfigured } from "@/lib/paypal-subscriptions";
@@ -90,11 +94,15 @@ function nextCharge(payments: SubscriptionPayment[], subscriptionId: string) {
  */
 export default async function PlanPage() {
   const { store } = await requireStoreUser();
+  // En gracia también es Pro: la tienda conserva todo mientras decide.
   const pro = isPro(store);
+  const state = planState(store);
+  const founder = isFounder(store);
   const daysLeft = daysUntilExpiry(store);
+  const pauseIn = daysUntilPause(store);
 
   const [
-    { prices, payments, paypalEnabled, stripeEnabled },
+    { prices: listPrices, payments, paypalEnabled, stripeEnabled },
     rates,
     { data: history },
     { count: productCount },
@@ -118,7 +126,9 @@ export default async function PlanPage() {
   const subscribed =
     store.paypal_subscription_status === "active" ||
     store.stripe_subscription_status === "active";
-  const recurringOn = paypalEnabled && subscriptionsConfigured();
+  const recurringOn = paypalEnabled && subscriptionsConfigured(founder);
+  // La fundadora ve su precio de US$5; la nueva, el de lista.
+  const prices = pricesFor(store, listPrices);
 
   const payments_ = (history ?? []) as SubscriptionPayment[];
   const until = store.plan_expires_at ? fmtDate(store.plan_expires_at) : null;
@@ -134,6 +144,32 @@ export default async function PlanPage() {
   const used = productCount ?? 0;
   const usedPct = Math.min(100, Math.round((used / FREE_MAX_PRODUCTS) * 100));
   const expiringSoon = pro && daysLeft !== null && daysLeft >= 0 && daysLeft <= 7;
+  // A una tienda nueva el Pro sin pagar solo le llega como prueba.
+  const trial = state === "pro" && !founder && store.plan_source === "comp";
+  const title =
+    state === "paused"
+      ? "En pausa"
+      : state === "grace"
+        ? "Pro vencido"
+        : state === "free"
+          ? "Gratis"
+          : trial
+            ? "Prueba"
+            : "Pro";
+  const summary =
+    state === "paused"
+      ? "Tu tienda está en pausa: tus clientes ven un aviso y no pueden comprar. Activa tu plan y vuelve al instante, tal como estaba."
+      : state === "grace"
+        ? `Tu plan venció el ${until}. Si no lo renuevas, tu tienda se pausa ${
+            pauseIn === 1 ? "mañana" : `en ${pauseIn} días`
+          } y tus clientes no podrán comprar.`
+        : state === "free"
+          ? "Tienes lo esencial para vender. Activa Pro cuando quieras crecer."
+          : trial && until
+            ? `Tu prueba gratis termina el ${until}. Después, Pro cuesta ${formatUSD(prices.monthly)} al mes.`
+            : until
+              ? `Vigente hasta el ${until}.`
+              : "Sin vencimiento. Gracias por estar desde el principio.";
 
   return (
     <div className="space-y-6">
@@ -161,16 +197,23 @@ export default async function PlanPage() {
         <div className="mt-2 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="min-w-0">
             <p className="font-display text-[2.6rem] font-bold leading-none tracking-[-0.03em]">
-              {pro ? "Pro" : "Gratis"}
+              {title}
             </p>
             <p className="mt-2.5 max-w-[46ch] text-[15px] leading-relaxed text-white/75">
-              {!pro
-                ? "Tienes lo esencial para vender. Activa Pro cuando quieras crecer."
-                : until
-                  ? `Vigente hasta el ${until}.`
-                  : "Sin vencimiento. Gracias por estar desde el principio."}
+              {summary}
             </p>
+            {founder && !lifetime && (
+              <p className="mt-2 max-w-[46ch] text-[13.5px] leading-relaxed text-niebla">
+                Tienes precio de fundador: Pro te cuesta {formatUSD(prices.monthly)} al
+                mes o {formatUSD(prices.yearly)} al año, para siempre.
+              </p>
+            )}
           </div>
+          {state === "grace" && pauseIn !== null && (
+            <span className="inline-flex h-9 items-center rounded-full bg-sol px-3.5 font-landing-mono text-[13px] font-semibold tabular-nums text-noche">
+              Se pausa en {pauseIn} {pauseIn === 1 ? "día" : "días"}
+            </span>
+          )}
           {pro && daysLeft !== null && daysLeft >= 0 && (
             <span
               className={cn(
@@ -181,7 +224,7 @@ export default async function PlanPage() {
               Quedan {daysLeft} {daysLeft === 1 ? "día" : "días"}
             </span>
           )}
-          {!pro && showCheckout && (
+          {(state === "free" || state === "paused") && showCheckout && (
             <a
               href="#activar"
               className="inline-flex h-11 items-center gap-2 rounded-full bg-sol px-5 text-sm font-bold text-noche transition-transform active:scale-[0.97]"
@@ -191,7 +234,7 @@ export default async function PlanPage() {
           )}
         </div>
 
-        {!pro && (
+        {state === "free" && (
           <div className="mt-6 max-w-md">
             <div className="flex items-baseline justify-between gap-3 text-[13px]">
               <span className="text-white/75">Productos cargados</span>
@@ -269,7 +312,7 @@ export default async function PlanPage() {
         >
           <div className="border-b px-5 py-4">
             <h2 id="incluye" className="font-display text-lg font-bold tracking-[-0.02em]">
-              Qué incluye cada plan
+              {founder ? "Qué incluye cada plan" : "Qué incluye Pro"}
             </h2>
           </div>
           <table className="w-full text-sm">
@@ -278,7 +321,8 @@ export default async function PlanPage() {
                 <th className="px-5 py-3">
                   <span className="sr-only">Función</span>
                 </th>
-                <th className="w-[5.5rem] px-2 py-3 text-center">Gratis</th>
+                {/* Gratis existe solo para las fundadoras. */}
+                {founder && <th className="w-[5.5rem] px-2 py-3 text-center">Gratis</th>}
                 <th className="w-[6.5rem] bg-brand-50 px-2 py-3 text-center text-brand-700">
                   Pro
                   <span className="mt-0.5 block font-landing-body text-[13px] font-bold normal-case tracking-normal text-foreground">
@@ -291,9 +335,11 @@ export default async function PlanPage() {
               {FEATURES.map((f) => (
                 <tr key={f.label}>
                   <td className="px-5 py-3 font-medium [overflow-wrap:anywhere]">{f.label}</td>
-                  <td className="px-2 py-3 text-center text-[13px] text-ink-600">
-                    <FeatureValue value={f.free} />
-                  </td>
+                  {founder && (
+                    <td className="px-2 py-3 text-center text-[13px] text-ink-600">
+                      <FeatureValue value={f.free} />
+                    </td>
+                  )}
                   <td className="bg-brand-50/60 px-2 py-3 text-center text-[13px] font-semibold">
                     <FeatureValue value={f.pro} />
                   </td>
@@ -322,7 +368,7 @@ export default async function PlanPage() {
               paypalClientId={paypalEnabled ? paypalClientId() : null}
               stripeEnabled={stripeEnabled}
               stripeRecurringPeriods={PLAN_PERIODS.filter(
-                (m) => stripePriceFor(m) !== null,
+                (m) => stripePriceFor(m, founder) !== null,
               )}
               planIds={
                 recurringOn
@@ -330,7 +376,7 @@ export default async function PlanPage() {
                     // PayPal. El que no esté se cobra una sola vez.
                     Object.fromEntries(
                       PLAN_PERIODS.map(
-                        (m) => [m, planIdFor(m)] as [number, string | null],
+                        (m) => [m, planIdFor(m, founder)] as [number, string | null],
                       ).filter((e): e is [number, string] => e[1] !== null),
                     )
                   : null

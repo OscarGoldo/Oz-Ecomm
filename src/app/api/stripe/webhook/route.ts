@@ -5,12 +5,7 @@ import { finalizeCardOrder } from "@/app/(public)/[store_slug]/checkout/actions"
 import { formatUSD } from "@/lib/format";
 import { notifyPaidOrder } from "@/lib/order-notify";
 import { stockOpsForOrder } from "@/lib/order-stock";
-import {
-  PLAN_PERIODS,
-  extendExpiry,
-  priceFor,
-  type PlanPrices,
-} from "@/lib/plans";
+import { extendExpiry, periodForAmount, priceFor, pricesFor } from "@/lib/plans";
 import { getPlatformConfig } from "@/lib/platform";
 import { recordPlatformEvent } from "@/lib/platform-events";
 import { monthsLabel } from "@/lib/promo";
@@ -359,7 +354,13 @@ async function handlePlanSession(db: Db, session: Stripe.Checkout.Session) {
   const months = Number(session.metadata?.months ?? 0);
   if (!months) return;
 
-  const { prices } = await getPlatformConfig();
+  // Cada tienda paga su precio: una fundadora, el de US$5 (ver lib/plans).
+  const { data: payer } = await db
+    .from("stores")
+    .select("founder")
+    .eq("id", storeId)
+    .maybeSingle();
+  const prices = pricesFor(payer, (await getPlatformConfig()).prices);
   const expected = toCents(priceFor(months, prices));
   if ((session.amount_total ?? 0) + 1 < expected) {
     console.error("[stripe-webhook] plan cobrado por menos", storeId, session.amount_total, expected);
@@ -405,8 +406,10 @@ async function handleInvoicePaid(db: Db, invoice: Stripe.Invoice) {
   const amount = fromCents(invoice.amount_paid ?? 0);
   if (amount <= 0) return;
 
-  const { prices } = await getPlatformConfig();
-  const months = monthsForAmount(amount, prices);
+  // Contra el precio de ESTA tienda: con el de lista, el anual de US$50 de
+  // una fundadora se parecería más a un mes de US$15 que a un año de US$150.
+  const prices = pricesFor(store, (await getPlatformConfig()).prices);
+  const months = periodForAmount(amount, prices);
 
   await extendPlan(db, store.id, months, {
     amount,
@@ -577,7 +580,7 @@ async function storeForSubscription(
   if (subscriptionId) {
     const { data } = await db
       .from("stores")
-      .select("id, name, plan_expires_at, stripe_subscription_status")
+      .select("id, name, plan_expires_at, stripe_subscription_status, founder")
       .eq("stripe_subscription_id", subscriptionId)
       .maybeSingle();
     if (data) return data;
@@ -587,7 +590,7 @@ async function storeForSubscription(
   if (storeId) {
     const { data } = await db
       .from("stores")
-      .select("id, name, plan_expires_at, stripe_subscription_status")
+      .select("id, name, plan_expires_at, stripe_subscription_status, founder")
       .eq("id", storeId)
       .maybeSingle();
     if (data) return data;
@@ -595,24 +598,6 @@ async function storeForSubscription(
   return null;
 }
 
-/**
- * ¿Cuántos meses compró? Se deduce del monto contra los precios configurados,
- * eligiendo el período más parecido. Es el mismo criterio que el webhook de
- * PayPal, pero sin la constante mágica: si mañana el anual cambia de precio,
- * esto sigue acertando.
- */
-function monthsForAmount(amount: number, prices: PlanPrices): number {
-  let best = 1;
-  let diff = Infinity;
-  for (const m of PLAN_PERIODS) {
-    const d = Math.abs(priceFor(m, prices) - amount);
-    if (d < diff) {
-      diff = d;
-      best = m;
-    }
-  }
-  return best;
-}
 
 /**
  * Registra el cobro y suma los meses.

@@ -15,12 +15,8 @@ import { PricingPlans } from "@/components/landing/pricing-plans";
 import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { StoreNameProvider } from "@/components/landing/store-name";
 import { getPublicUsdRate } from "@/lib/bcv";
-import {
-  DEFAULT_PRO_PRICE_USD,
-  DEFAULT_PRO_PRICE_YEARLY_USD,
-  FREE_MAX_PRODUCTS,
-} from "@/lib/plans";
-import { FREE_LAYOUTS, THEME_PRESETS } from "@/lib/theme";
+import { DEFAULT_PRO_PRICE_USD, DEFAULT_PRO_PRICE_YEARLY_USD } from "@/lib/plans";
+import { THEME_PRESETS } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 /**
@@ -32,10 +28,11 @@ export const revalidate = 3600;
 
 /**
  * Es lo que se lee en negrita debajo de la imagen cuando alguien pega el link
- * en WhatsApp: tiene que decir qué es y que es gratis, no solo "Tiendify".
+ * en WhatsApp: tiene que decir qué es y que el primer mes es gratis, no solo
+ * "Tiendify".
  */
 export const metadata: Metadata = {
-  title: { absolute: "Tiendify · Crea tu tienda online gratis" },
+  title: { absolute: "Tiendify · Crea tu tienda online, el primer mes gratis" },
   description:
     "Tu tienda online lista hoy. Tus clientes pagan con Pago Móvil, Zelle, Binance, efectivo o tarjeta, con precios en dólares y bolívares.",
 };
@@ -75,8 +72,6 @@ export default async function LandingPage() {
           <LandingSteps />
           <PricingPlans
             usdRate={usdRate}
-            freeMaxProducts={FREE_MAX_PRODUCTS}
-            freeLayouts={FREE_LAYOUTS.length}
             allLayouts={THEME_PRESETS.length}
             proMonthly={DEFAULT_PRO_PRICE_USD}
             proYearly={DEFAULT_PRO_PRICE_YEARLY_USD}

@@ -123,6 +123,8 @@ export async function getStoreStats(): Promise<StoreStatsResult> {
         plan_source: (str(r.plan_source) ?? "free") as PlanSource,
         plan_expires_at: str(r.plan_expires_at),
         plan_note: str(r.plan_note),
+        // La función de la base no la trae; se completa abajo.
+        founder: true,
         stripe_subscription_status: str(
           r.stripe_subscription_status,
         ) as SubscriptionState | null,
@@ -145,6 +147,11 @@ export async function getStoreStats(): Promise<StoreStatsResult> {
         referred_by: str(r.referred_by),
       }),
     );
+    // `super_store_stats` es anterior al precio de fundador (0037). En vez de
+    // rehacer la función, se lee la columna aparte: son pocas filas.
+    const { data: founders } = await db.from("stores").select("id, founder");
+    const founderById = new Map((founders ?? []).map((f) => [f.id, f.founder]));
+    for (const s of stores) s.founder = founderById.get(s.id) ?? true;
     return { stores, complete: true };
   }
 
@@ -178,6 +185,7 @@ export async function getStoreStats(): Promise<StoreStatsResult> {
         plan_source: s.plan_source,
         plan_expires_at: s.plan_expires_at,
         plan_note: s.plan_note,
+        founder: s.founder ?? true,
         stripe_subscription_status: s.stripe_subscription_status,
         paypal_subscription_status: s.paypal_subscription_status,
         created_at: s.created_at,

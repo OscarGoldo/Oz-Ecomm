@@ -13,7 +13,6 @@ import {
 } from "@/components/landing/landing-ui";
 import { RateConverter } from "@/components/landing/rate-converter";
 import { StoreSlug } from "@/components/landing/store-name";
-import { FREE_MAX_PRODUCTS } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 
 /**
@@ -167,7 +166,7 @@ export function FeatureBento({ usdRate }: { usdRate: number | null }) {
           <article {...reveal(0)} className={cn(tile, "lg:col-span-3")}>
             <h3 className={tileTitle}>Tu propia dirección.</h3>
             <p className={tileText}>
-              Tu tienda vive en su propio subdominio desde el plan Gratis. Es el
+              Tu tienda vive en su propio subdominio desde el primer día. Es el
               link que pones en tu bio.
             </p>
             <div
@@ -199,16 +198,8 @@ export function FeatureBento({ usdRate }: { usdRate: number | null }) {
             </p>
             <div className={mini} aria-hidden="true">
               <div className="flex items-baseline justify-between text-sm text-pizarra">
-                <span>Productos en plan Gratis</span>
-                <b className="font-landing-mono text-[14.5px] text-noche">
-                  24 de {FREE_MAX_PRODUCTS}
-                </b>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-linea">
-                <div
-                  className="reveal-fill h-full rounded-full bg-brand-500"
-                  style={{ width: `${(24 / FREE_MAX_PRODUCTS) * 100}%` }}
-                />
+                <span>Productos cargados</span>
+                <b className="font-landing-mono text-[14.5px] text-noche">24</b>
               </div>
               <div className="flex items-baseline justify-between border-t border-linea pt-2 text-sm text-pizarra">
                 <span>Pedidos de hoy</span>

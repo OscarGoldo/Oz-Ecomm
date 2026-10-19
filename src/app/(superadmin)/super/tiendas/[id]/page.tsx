@@ -10,7 +10,7 @@ import { requireSuperAdmin } from "@/lib/auth";
 import { PAYMENT_METHOD_META } from "@/lib/constants";
 import { formatUSD } from "@/lib/format";
 import { SALES_STATUSES } from "@/lib/metrics";
-import { isPro } from "@/lib/plans";
+import { isFounder, isPro, planState } from "@/lib/plans";
 import { storeUrl as publicStoreUrl } from "@/lib/store-url";
 import { storeClosedByOwner } from "@/lib/store-status";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -128,6 +128,21 @@ export default async function SuperStorePage({
   }
 
   const pro = isPro(store);
+  const founder = isFounder(store);
+  const state = planState(store);
+  const comp = store.plan_source === "comp";
+  const planLabel =
+    state === "paused"
+      ? "En pausa (no renovó)"
+      : state === "grace"
+        ? "Pro vencido, en gracia"
+        : state === "free"
+          ? "Gratis"
+          : comp
+            ? founder
+              ? "Pro de cortesía"
+              : "Prueba de Pro"
+            : "Pro, pagando";
   const closed = storeClosedByOwner(store);
   const wa = whatsappUrl(store.whatsapp);
   const storeUrl = publicStoreUrl(store);
@@ -152,11 +167,7 @@ export default async function SuperStorePage({
               {store.name}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {pro
-                ? store.plan_source === "comp"
-                  ? "Pro de cortesía"
-                  : "Pro"
-                : "Gratis"}{" "}
+              {planLabel}{" "}
               · {store.active ? "en línea" : closed ? "cerrada por su dueño" : "pausada"}
             </p>
           </div>
@@ -168,7 +179,7 @@ export default async function SuperStorePage({
           >
             Ver tienda <ExternalLink className="size-4" />
           </a>
-          <StorePlanControl storeId={store.id} note={store.plan_note} />
+          <StorePlanControl storeId={store.id} note={store.plan_note} founder={founder} />
           <StoreActiveSwitch storeId={store.id} active={store.active} />
         </div>
       </div>
@@ -252,11 +263,12 @@ export default async function SuperStorePage({
 
         <Section title="Plan">
           <Row label="Plan actual">
-            {pro
-              ? store.plan_source === "comp"
-                ? "Pro de cortesía"
-                : "Pro, pagando"
-              : "Gratis"}
+            {planLabel}
+          </Row>
+          <Row label="Precio">
+            {founder
+              ? "Fundadora: Pro a US$5 o US$50 al año; sin Pro queda en Gratis"
+              : "Nueva: Pro a precio de lista; sin Pro se pausa tras 7 días de gracia"}
           </Row>
           <Row label="Vence">
             {store.plan === "pro" && store.plan_expires_at ? (

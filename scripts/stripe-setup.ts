@@ -7,7 +7,9 @@
  *
  * Crea, si no existen:
  *   · un Product ("Tiendify Pro")
- *   · dos Prices recurrentes: mensual y anual
+ *   · dos Prices recurrentes de lista: mensual y anual (US$15 y US$150)
+ *   · dos Prices recurrentes de fundadora: mensual y anual (US$5 y US$50, el
+ *     precio de siempre de las tiendas que existían antes; ver lib/plans.ts)
  *   · el webhook apuntando a <NEXT_PUBLIC_APP_URL>/api/stripe/webhook
  *
  * Es idempotente: los precios se buscan por `lookup_key` y el webhook por URL,
@@ -22,11 +24,17 @@ const key = (process.env.STRIPE_SECRET_KEY ?? "").trim();
 const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").trim().replace(/\/$/, "");
 
 const PRODUCT_NAME = "Tiendify Pro";
-const LOOKUP_MONTHLY = "tiendify_pro_monthly";
-const LOOKUP_YEARLY = "tiendify_pro_yearly";
+// Los de lista llevan "_v2": las claves sin sufijo son los precios de US$5 y
+// US$50 que se crearon primero, y ahora son los de las fundadoras.
+const LOOKUP_MONTHLY = "tiendify_pro_monthly_v2";
+const LOOKUP_YEARLY = "tiendify_pro_yearly_v2";
+const LOOKUP_FOUNDER_MONTHLY = "tiendify_pro_monthly";
+const LOOKUP_FOUNDER_YEARLY = "tiendify_pro_yearly";
 
-const MONTHLY_USD = Number(process.env.SETUP_PRICE_MONTHLY ?? 5);
-const YEARLY_USD = Number(process.env.SETUP_PRICE_YEARLY ?? 50);
+const MONTHLY_USD = Number(process.env.SETUP_PRICE_MONTHLY ?? 15);
+const YEARLY_USD = Number(process.env.SETUP_PRICE_YEARLY ?? 150);
+const FOUNDER_MONTHLY_USD = 5;
+const FOUNDER_YEARLY_USD = 50;
 
 /** Los eventos que el webhook sabe procesar. Ni uno más. */
 const EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
@@ -135,6 +143,8 @@ async function main() {
 
   const monthly = await price(LOOKUP_MONTHLY, MONTHLY_USD, "month");
   const yearly = await price(LOOKUP_YEARLY, YEARLY_USD, "year");
+  const founderMonthly = await price(LOOKUP_FOUNDER_MONTHLY, FOUNDER_MONTHLY_USD, "month");
+  const founderYearly = await price(LOOKUP_FOUNDER_YEARLY, FOUNDER_YEARLY_USD, "year");
 
   // ── Webhook ───────────────────────────────────────────────────────────────
   let webhookSecret: string | null = null;
@@ -163,8 +173,12 @@ async function main() {
   }
 
   console.log("\n── Pegá esto en .env.local y en Vercel ──────────────────────");
-  console.log(`STRIPE_PRICE_MONTHLY=${monthly.id}`);
-  console.log(`STRIPE_PRICE_YEARLY=${yearly.id}`);
+  // Los nombres cortos son los de las fundadoras: así ya estaban puestos en
+  // producción y siguen cobrándoles lo mismo. Ver lib/stripe.ts.
+  console.log(`STRIPE_PRICE_MONTHLY=${founderMonthly.id}`);
+  console.log(`STRIPE_PRICE_YEARLY=${founderYearly.id}`);
+  console.log(`STRIPE_PRICE_LIST_MONTHLY=${monthly.id}`);
+  console.log(`STRIPE_PRICE_LIST_YEARLY=${yearly.id}`);
   if (webhookSecret) console.log(`STRIPE_WEBHOOK_SECRET=${webhookSecret}`);
   console.log("─────────────────────────────────────────────────────────────");
 }

@@ -59,7 +59,7 @@ export interface AiPhotoQuota {
  * ai_generations no existe): sin la cuenta no hay tope, así que no se ofrece.
  */
 export async function aiPhotoQuota(
-  store: { id: string } & Partial<PlanFields>,
+  store: { id: string } & PlanFields,
 ): Promise<AiPhotoQuota | null> {
   const db = createAdminClient();
   const pro = isPro(store);

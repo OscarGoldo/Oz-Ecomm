@@ -85,6 +85,18 @@ Consecuencias de este orden, todas asumidas:
 
 ## Cómo funciona el plan Pro
 
+Desde octubre de 2026 hay dos precios (ver `src/lib/plans.ts` y la migración
+0037): el de lista (US$15 al mes, US$150 al año) y el de las tiendas
+fundadoras, las que existían antes del cambio (US$5 y US$50, para siempre).
+Cada uno tiene sus propios precios recurrentes en Stripe:
+`STRIPE_PRICE_MONTHLY` / `_YEARLY` son los de las fundadoras (los primeros que
+se crearon, por eso el nombre corto) y `STRIPE_PRICE_LIST_MONTHLY` / `_YEARLY`
+los de lista. `scripts/stripe-setup.ts` crea los cuatro. Sin los de lista, una
+tienda nueva paga con tarjeta una sola vez, por el monto correcto. Antes de abrir la
+suscripción, `matchingRecurringPrice` compara el monto del precio de Stripe con
+el que le toca a la tienda; si no coincide (una variable mal puesta), cobra una
+sola vez por el monto correcto en vez de suscribirla al precio equivocado.
+
 - Si el período tiene precio recurrente (`STRIPE_PRICE_MONTHLY` / `_YEARLY`), se
   contrata una **suscripción** que se renueva sola.
 - Un período sin precio recurrente se cobra **una sola vez**. Hoy los dos que se

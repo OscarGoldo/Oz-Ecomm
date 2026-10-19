@@ -43,20 +43,25 @@ export async function accessToken(c: PaypalCreds): Promise<string | null> {
  * débito mensual. Si algún día se crea un plan trimestral en PayPal, se agrega
  * acá y la UI lo toma sola.
  */
-export function planIdFor(months: number): string | null {
+export function planIdFor(months: number, founder: boolean): string | null {
+  // PAYPAL_PLAN_MONTHLY / _YEARLY son los planes de US$5 y US$50 que se
+  // crearon primero: ahora son los de las fundadoras (ver lib/plans). Las
+  // tiendas nuevas usan los de lista; sin ellos, pagan una sola vez por el
+  // monto correcto.
+  const env = process.env;
   let id: string | undefined;
-  if (months >= 12) id = process.env.PAYPAL_PLAN_YEARLY;
-  else if (months === 1) id = process.env.PAYPAL_PLAN_MONTHLY;
+  if (months >= 12) id = founder ? env.PAYPAL_PLAN_YEARLY : env.PAYPAL_PLAN_LIST_YEARLY;
+  else if (months === 1) id = founder ? env.PAYPAL_PLAN_MONTHLY : env.PAYPAL_PLAN_LIST_MONTHLY;
   else return null;
   return (id ?? "").trim() || null;
 }
 
 /** ¿Está todo lo necesario para cobrar recurrente? */
-export function subscriptionsConfigured(): boolean {
+export function subscriptionsConfigured(founder: boolean): boolean {
   return (
     paypalCredsFromEnv() !== null &&
-    planIdFor(1) !== null &&
-    planIdFor(12) !== null
+    planIdFor(1, founder) !== null &&
+    planIdFor(12, founder) !== null
   );
 }
 

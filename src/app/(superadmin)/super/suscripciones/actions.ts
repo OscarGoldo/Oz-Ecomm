@@ -194,7 +194,7 @@ export async function setStorePlan(input: SetPlanInput): Promise<ActionResult> {
   } else if (d.action === "gift") {
     const { data: store } = await db
       .from("stores")
-      .select("plan, plan_expires_at, plan_source")
+      .select("plan, plan_expires_at, plan_source, founder")
       .eq("id", d.storeId)
       .maybeSingle();
     if (!store) return { ok: false, error: "No existe esa tienda" };

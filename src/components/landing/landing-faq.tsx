@@ -5,13 +5,16 @@ import { SectionHeading, reveal, sectionY, wrap } from "@/components/landing/lan
 import {
   DEFAULT_PRO_PRICE_USD,
   DEFAULT_PRO_PRICE_YEARLY_USD,
-  FREE_MAX_PRODUCTS,
+  GRACE_DAYS,
+  TRIAL_DAYS,
 } from "@/lib/plans";
+import { LAUNCH_PROMO_CODE } from "@/lib/promo";
 import { cn } from "@/lib/utils";
 
 /**
- * Preguntas frecuentes. Ordenadas por lo que frena el registro: primero si
- * "gratis" esconde algo, después cómo entra la plata, al final el plan Pro.
+ * Preguntas frecuentes. Ordenadas por lo que frena el registro: primero cuánto
+ * cuesta y qué pasa si no pago, después cómo entra la plata, al final cómo se
+ * paga el plan.
  *
  * Cada respuesta tiene que ser cierta hoy. Antes de prometer algo nuevo acá
  * (un aviso, un plazo de pago), verificar que exista y que esté activo en
@@ -20,8 +23,12 @@ import { cn } from "@/lib/utils";
  */
 const faqs = [
   {
-    q: "¿De verdad es gratis? ¿Cuál es la trampa?",
-    a: `No hay trampa. El plan Gratis es para siempre y no pide tarjeta: hasta ${FREE_MAX_PRODUCTS} productos, pedidos ilimitados y precios en dólares y bolívares. Pro es para cuando quieras crecer: más productos, todas las plantillas, cupones y analítica.`,
+    q: "¿Cuánto cuesta? ¿Puedo probarlo gratis?",
+    a: `Hay un solo plan, con todo incluido: $${DEFAULT_PRO_PRICE_USD} al mes o $${DEFAULT_PRO_PRICE_YEARLY_USD} al año. El primer mes es gratis con el código ${LAUNCH_PROMO_CODE} (sin código, son ${TRIAL_DAYS} días), y para empezar no te pedimos tarjeta.`,
+  },
+  {
+    q: "¿Qué pasa si no renuevo?",
+    a: `Tu tienda sigue funcionando ${GRACE_DAYS} días más y te avisamos por correo. Si en ese tiempo no renuevas, la tienda se pausa: tus clientes ven un aviso con tu WhatsApp y no pueden comprar. No se borra nada; apenas pagas, vuelve tal como estaba.`,
   },
   {
     q: "¿Tiendify se queda con un porcentaje de mis ventas?",
@@ -48,7 +55,7 @@ const faqs = [
     a: "Te llega un correo con cada pedido y lo ves al momento en tu panel. Al terminar la compra, tu cliente también puede avisarte por WhatsApp con un toque, y recibe el resumen de su pedido por correo. No necesita crear una cuenta para comprar.",
   },
   {
-    q: "¿Cómo pago Pro? ¿Puedo cancelarlo?",
+    q: "¿Cómo pago el plan? ¿Puedo cancelarlo?",
     a: `Cuesta $${DEFAULT_PRO_PRICE_USD} al mes o $${DEFAULT_PRO_PRICE_YEARLY_USD} al año. Si lo pagas por Pago Móvil o Binance, no se renueva solo. Con tarjeta se renueva automáticamente y lo cancelas cuando quieras desde tu panel: sigues con Pro hasta el final del período que ya pagaste.`,
   },
 ];

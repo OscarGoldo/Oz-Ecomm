@@ -1,4 +1,4 @@
-import { daysUntilExpiry, isPro } from "@/lib/plans";
+import { daysUntilExpiry, isPaused, isPro } from "@/lib/plans";
 import type {
   PlanSource,
   StorePlan,
@@ -29,6 +29,8 @@ export interface StoreStat {
   plan_source: PlanSource;
   plan_expires_at: string | null;
   plan_note: string | null;
+  /** Fundadora: si no paga queda en Gratis; las nuevas quedan en pausa. */
+  founder: boolean;
   stripe_subscription_status: SubscriptionState | null;
   paypal_subscription_status: SubscriptionState | null;
   created_at: string;
@@ -93,8 +95,9 @@ const DAY_MS = 86_400_000;
 export function segmentsOf(s: StoreStat, now = Date.now()): StoreSegment[] {
   const out: StoreSegment[] = [];
   const pro = isPro(s);
+  const paused = isPaused(s);
 
-  if (!pro) out.push("free");
+  if (!pro && !paused) out.push("free");
   else if (s.plan_source === "comp") out.push("comp");
   else out.push("paying");
 
@@ -122,7 +125,8 @@ export function segmentsOf(s: StoreStat, now = Date.now()): StoreSegment[] {
   const lastSeen = new Date(s.last_activity_at ?? s.created_at).getTime();
   if (s.active && now - lastSeen > DORMANT_DAYS * DAY_MS) out.push("dormant");
 
-  if (!s.active) out.push("offline");
+  // Una tienda nueva que no pagó después de la gracia tampoco vende.
+  if (!s.active || paused) out.push("offline");
 
   return out;
 }

@@ -25,7 +25,7 @@ import { abandonedCartCutoff } from "@/lib/constants";
 import { shouldShowDomainNotice } from "@/lib/domain-notice";
 import { pendingPlanGift } from "@/lib/plan-gift";
 import { shouldShowStoreAddressNotice } from "@/lib/store-address-notice";
-import { daysUntilExpiry, isPro } from "@/lib/plans";
+import { daysUntilExpiry, daysUntilPause, isFounder, isPro, planState } from "@/lib/plans";
 import { getImageUrl } from "@/lib/storage";
 import { publicSiteUrl } from "@/lib/site-url";
 import { displayStoreAddress, storeSubdomainOrigin, storeUrl } from "@/lib/store-url";
@@ -186,6 +186,8 @@ export default async function PanelLayout({
               plan={
                 <PanelPlanCard
                   pro={pro}
+                  paused={planState(store) === "paused"}
+                  trial={!isFounder(store) && store.plan_source === "comp"}
                   daysLeft={daysUntilExpiry(store)}
                   productCount={productCount ?? 0}
                 />
@@ -207,8 +209,10 @@ export default async function PanelLayout({
           <main className="min-w-0 flex-1 px-4 pb-24 pt-5 md:px-8 md:pb-14 md:pt-8">
             <div className="mx-auto w-full max-w-6xl">
               <PlanBanner
-                pro={pro}
+                state={planState(store)}
                 daysLeft={daysUntilExpiry(store)}
+                pauseIn={daysUntilPause(store)}
+                trial={!isFounder(store) && store.plan_source === "comp"}
                 pendingReview={(pendingPayment ?? 0) > 0}
               />
               {children}

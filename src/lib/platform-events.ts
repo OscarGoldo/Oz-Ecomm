@@ -31,6 +31,7 @@ export type PlatformEventType =
   | "referral.needs_review"
   // Alertas
   | "plan.expiring"
+  | "plan.paused"
   | "plan.cancelled"
   | "plan.payment_failed"
   | "stripe.dispute"
@@ -53,6 +54,7 @@ export const EVENT_GROUP: Record<PlatformEventType, EventGroup> = {
   "payout.sent": "pagos",
   "referral.needs_review": "crecimiento",
   "plan.expiring": "alerta",
+  "plan.paused": "alerta",
   "plan.cancelled": "alerta",
   "plan.payment_failed": "alerta",
   "stripe.dispute": "alerta",

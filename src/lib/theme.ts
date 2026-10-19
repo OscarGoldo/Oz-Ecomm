@@ -558,7 +558,7 @@ export const LAYOUT_CHROME: Record<LayoutId, LayoutChrome> = {
  * sin plan) se asume Gratis.
  */
 export function resolveTheme(
-  store: Pick<Store, "primary_color" | "customization"> & Partial<PlanFields>,
+  store: Pick<Store, "primary_color" | "customization"> & PlanFields,
 ): StoreTheme {
   const c = (store.customization ?? {}) as Partial<StoreTheme>;
   const basePrimary = store.primary_color || DEFAULT_THEME.colors.primary;

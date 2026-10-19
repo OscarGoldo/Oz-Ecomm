@@ -1,4 +1,4 @@
-import { daysUntilExpiry, isPro } from "@/lib/plans";
+import { daysUntilExpiry, daysUntilPause, isFounder, planState } from "@/lib/plans";
 import { EXPIRING_DAYS, type StoreStat } from "@/lib/super-segments";
 
 /**
@@ -82,10 +82,22 @@ export interface PlanBadge {
 
 /** El plan de una tienda de un vistazo, con el vencimiento si importa. */
 export function planBadge(s: StoreStat, now = new Date()): PlanBadge {
-  if (!isPro(s)) return { label: "Gratis", variant: "neutral", sub: null };
+  const state = planState(s);
+  if (state === "free") return { label: "Gratis", variant: "neutral", sub: null };
+  if (state === "paused") return { label: "En pausa", variant: "danger", sub: "no renovó" };
 
   const comp = s.plan_source === "comp";
-  const label = comp ? "Cortesía" : "Pro";
+  // A una tienda nueva el Pro sin pagar solo le llega como prueba (con o sin
+  // código); a una fundadora, como regalo de los socios o de un referido.
+  const label = comp ? (isFounder(s) ? "Cortesía" : "Prueba") : "Pro";
+  if (state === "grace") {
+    const left = daysUntilPause(s) ?? 0;
+    return {
+      label,
+      variant: "danger",
+      sub: left <= 1 ? "se pausa mañana" : `vencido · se pausa en ${left} d`,
+    };
+  }
   const autoRenew =
     s.stripe_subscription_status === "active" ||
     s.paypal_subscription_status === "active";

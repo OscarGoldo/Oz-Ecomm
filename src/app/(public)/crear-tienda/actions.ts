@@ -6,7 +6,7 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { initialExchangeRate } from "@/lib/bcv";
-import { extendExpiry } from "@/lib/plans";
+import { TRIAL_DAYS, extendExpiry, trialExpiry } from "@/lib/plans";
 import { recordPlatformEvent } from "@/lib/platform-events";
 import { monthsLabel } from "@/lib/promo";
 import {
@@ -204,7 +204,7 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
         ok: false,
         field: "promo",
         error:
-          "Ese código no es válido o ya se agotó. Bórralo y crea tu tienda gratis igual.",
+          "Ese código no es válido o ya se agotó. Bórralo y crea tu tienda igual: tienes 7 días de prueba.",
       };
     }
   }
@@ -222,14 +222,20 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
       whatsapp: d.whatsapp,
       active: true,
       ...rate,
+      // No hay plan Gratis para las tiendas nuevas (ver lib/plans): todas
+      // arrancan con Pro de prueba. El código da sus meses; sin código, la
+      // prueba corta. `founder` queda en false por el DEFAULT de la columna.
+      plan: "pro" as const,
+      plan_source: "comp" as const,
       ...(promo
         ? {
-            plan: "pro" as const,
-            plan_source: "comp" as const,
             plan_expires_at: extendExpiry(null, promo.months),
             plan_note: `Código ${promo.code}: ${monthsLabel(promo.months)} de Pro gratis`,
           }
-        : {}),
+        : {
+            plan_expires_at: trialExpiry(),
+            plan_note: `Prueba de ${TRIAL_DAYS} días`,
+          }),
     })
     .select("id")
     .single();
@@ -311,7 +317,9 @@ export async function signUpStore(input: SignupInput): Promise<SignupResult> {
     detail: [
       d.owner_name,
       d.owner_email,
-      promo ? `código ${promo.code} (${monthsLabel(promo.months)} de Pro)` : null,
+      promo
+        ? `código ${promo.code} (${monthsLabel(promo.months)} de Pro)`
+        : `prueba de ${TRIAL_DAYS} días`,
     ]
       .filter(Boolean)
       .join(" · "),

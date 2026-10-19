@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSessionContext } from "@/lib/auth";
 import { initialExchangeRate } from "@/lib/bcv";
+import { TRIAL_DAYS, trialExpiry } from "@/lib/plans";
 import { recordPlatformEvent } from "@/lib/platform-events";
 import { sendTelegram, telegramConfigured } from "@/lib/telegram";
 import { isReservedSlug, slugify, STORE_SLUG_MAX } from "@/lib/slug";
@@ -100,6 +101,12 @@ export async function createStore(
       whatsapp: d.whatsapp?.trim() || null,
       active: true,
       ...rate,
+      // Igual que el registro: una tienda nueva no tiene Gratis, arranca con
+      // la prueba. Si es un regalo, se le suman meses desde Suscripciones.
+      plan: "pro",
+      plan_source: "comp",
+      plan_expires_at: trialExpiry(),
+      plan_note: `Prueba de ${TRIAL_DAYS} días`,
     })
     .select("id")
     .single();

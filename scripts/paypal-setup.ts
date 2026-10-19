@@ -7,7 +7,8 @@
  *
  * Crea, si no existen:
  *   · un Product ("Tiendify Pro")
- *   · dos Plans de facturación: mensual y anual
+ *   · dos Plans de facturación de lista: mensual y anual (US$15 y US$150)
+ *   · dos Plans de fundadora: mensual y anual (US$5 y US$50; ver lib/plans.ts)
  *   · el webhook apuntando a <NEXT_PUBLIC_APP_URL>/api/paypal/webhook
  *
  * Es idempotente por nombre: si ya creaste los planes, los reusa en vez de
@@ -25,11 +26,17 @@ const BASE = sandbox
   : "https://api-m.paypal.com";
 
 const PRODUCT_NAME = "Tiendify Pro";
-const PLAN_MONTHLY = "Tiendify Pro — Mensual";
-const PLAN_YEARLY = "Tiendify Pro — Anual";
+// Los planes sin precio en el nombre son los de US$5 y US$50 que se crearon
+// primero: ahora son los de las tiendas fundadoras (ver lib/plans.ts).
+const PLAN_MONTHLY = "Tiendify Pro — Mensual US$15";
+const PLAN_YEARLY = "Tiendify Pro — Anual US$150";
+const PLAN_FOUNDER_MONTHLY = "Tiendify Pro — Mensual";
+const PLAN_FOUNDER_YEARLY = "Tiendify Pro — Anual";
 
-const MONTHLY_USD = process.env.SETUP_PRICE_MONTHLY ?? "5.00";
-const YEARLY_USD = process.env.SETUP_PRICE_YEARLY ?? "50.00";
+const MONTHLY_USD = process.env.SETUP_PRICE_MONTHLY ?? "15.00";
+const YEARLY_USD = process.env.SETUP_PRICE_YEARLY ?? "150.00";
+const FOUNDER_MONTHLY_USD = "5.00";
+const FOUNDER_YEARLY_USD = "50.00";
 
 let token = "";
 
@@ -192,11 +199,27 @@ async function main() {
   const productId = await findOrCreateProduct();
   const monthly = await findOrCreatePlan(productId, PLAN_MONTHLY, "MONTH", MONTHLY_USD);
   const yearly = await findOrCreatePlan(productId, PLAN_YEARLY, "YEAR", YEARLY_USD);
+  const founderMonthly = await findOrCreatePlan(
+    productId,
+    PLAN_FOUNDER_MONTHLY,
+    "MONTH",
+    FOUNDER_MONTHLY_USD,
+  );
+  const founderYearly = await findOrCreatePlan(
+    productId,
+    PLAN_FOUNDER_YEARLY,
+    "YEAR",
+    FOUNDER_YEARLY_USD,
+  );
   const webhookId = await findOrCreateWebhook();
 
   console.log("\n── Pon esto en tus variables de entorno ──");
-  console.log(`PAYPAL_PLAN_MONTHLY=${monthly}`);
-  console.log(`PAYPAL_PLAN_YEARLY=${yearly}`);
+  // Los nombres cortos son los de las fundadoras: así ya estaban puestos en
+  // producción. Ver planIdFor en src/lib/paypal-subscriptions.ts.
+  console.log(`PAYPAL_PLAN_MONTHLY=${founderMonthly}`);
+  console.log(`PAYPAL_PLAN_YEARLY=${founderYearly}`);
+  console.log(`PAYPAL_PLAN_LIST_MONTHLY=${monthly}`);
+  console.log(`PAYPAL_PLAN_LIST_YEARLY=${yearly}`);
   if (webhookId) console.log(`PAYPAL_WEBHOOK_ID=${webhookId}`);
   else console.log("PAYPAL_WEBHOOK_ID=  ← correr de nuevo con NEXT_PUBLIC_APP_URL público");
 }

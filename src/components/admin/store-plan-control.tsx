@@ -20,9 +20,12 @@ import { setStorePlan } from "@/app/(superadmin)/super/suscripciones/actions";
 export function StorePlanControl({
   storeId,
   note,
+  founder,
 }: {
   storeId: string;
   note: string | null;
+  /** Fundadora: sin Pro queda en Gratis. Una nueva queda en pausa (lib/plans). */
+  founder: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -124,7 +127,7 @@ export function StorePlanControl({
           onClick={() => run("free")}
           disabled={busy}
         >
-          Bajar a Gratis
+          {founder ? "Bajar a Gratis" : "Quitar Pro (queda en pausa)"}
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
           Cancelar

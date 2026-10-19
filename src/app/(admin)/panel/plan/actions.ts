@@ -15,12 +15,12 @@ import {
   subscriptionCreds,
 } from "@/lib/paypal-subscriptions";
 import { PAYMENT_METHOD_META } from "@/lib/constants";
-import { PLAN_PERIODS, extendExpiry, priceFor } from "@/lib/plans";
+import { PLAN_PERIODS, extendExpiry, isFounder, priceFor, pricesFor } from "@/lib/plans";
 import { getPlatformConfig } from "@/lib/platform";
 import { recordPlatformEvent } from "@/lib/platform-events";
 import { monthsLabel } from "@/lib/promo";
 import { reportError } from "@/lib/report-error";
-import { appUrl, getStripe, stripePriceFor, toCents } from "@/lib/stripe";
+import { appUrl, getStripe, matchingRecurringPrice, toCents } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export interface ActionResult {
@@ -85,7 +85,7 @@ export async function requestProUpgrade(
     };
   }
 
-  const { prices } = await getPlatformConfig();
+  const prices = pricesFor(ctx.store, (await getPlatformConfig()).prices);
   const amount = priceFor(d.period_months, prices);
   const reference = d.reference?.trim() || null;
 
@@ -227,7 +227,7 @@ export async function createProPaypalOrder(
   const creds = paypalCredsFromEnv();
   if (!creds) return { ok: false, error: "PayPal no está configurado" };
 
-  const { prices } = await getPlatformConfig();
+  const prices = pricesFor(ctx.store, (await getPlatformConfig()).prices);
   const amount = priceFor(parsed.data, prices);
 
   const res = await createPaypalOrder(creds, amount, {
@@ -265,7 +265,7 @@ export async function captureProPaypalPayment(
   const creds = paypalCredsFromEnv();
   if (!creds) return { ok: false, error: "PayPal no está configurado" };
 
-  const { prices } = await getPlatformConfig();
+  const prices = pricesFor(ctx.store, (await getPlatformConfig()).prices);
   const expected = priceFor(parsed.data, prices);
 
   const cap = await capturePaypalOrder(creds, paypalOrderId.trim());
@@ -335,7 +335,7 @@ export async function captureProPaypalPayment(
 // ── Plan Pro por Stripe ─────────────────────────────────────────────────────
 // Una sola pantalla para las dos formas de cobrar: si el período tiene precio
 // recurrente creado en Stripe, se contrata la suscripción (se renueva sola); si
-// no, se cobra una vez. Lo decide `stripePriceFor`, no la UI.
+// no, se cobra una vez. Lo decide `matchingRecurringPrice`, no la UI.
 
 export interface StripeCheckoutUrl extends ActionResult {
   url?: string;
@@ -364,9 +364,9 @@ export async function createProStripeCheckout(
   const stripe = getStripe();
   if (!stripe) return { ok: false, error: "Stripe no está configurado" };
 
-  const { prices } = await getPlatformConfig();
+  const prices = pricesFor(store, (await getPlatformConfig()).prices);
   const amount = priceFor(period, prices);
-  const recurring = stripePriceFor(period);
+  const recurring = await matchingRecurringPrice(stripe, period, isFounder(store), amount);
   const base = `${appUrl()}/panel/plan`;
   const metadata = {
     kind: "plan",

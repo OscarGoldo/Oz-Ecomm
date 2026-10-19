@@ -28,6 +28,8 @@ import type { VerticalLayoutId } from "@/components/storefront/storefront-props"
 import { StoreHome } from "@/components/storefront/sections/store-home";
 import { publishedDesign } from "@/lib/design/design";
 import { designV2Enabled } from "@/lib/design/flag";
+import { StorePaused } from "@/components/storefront/store-paused";
+import { isPaused } from "@/lib/plans";
 
 export async function generateMetadata({
   params,
@@ -63,6 +65,8 @@ export default async function StorefrontHome({
 }) {
   const store = await getStoreBySlug(params.store_slug);
   if (!store) notFound();
+  // Tienda nueva que no renovó después de la gracia: no vende (lib/plans).
+  if (isPaused(store)) return <StorePaused store={store} />;
 
   const v2 = designV2Enabled(store);
   const theme = resolveTheme(store);

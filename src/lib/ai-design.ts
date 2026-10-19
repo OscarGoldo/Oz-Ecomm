@@ -72,7 +72,7 @@ export interface AiDesignQuota {
  * "no disponible": sin la cuenta no hay tope, y cada intento cuesta plata.
  */
 export async function aiDesignQuota(
-  store: { id: string } & Partial<PlanFields>,
+  store: { id: string } & PlanFields,
 ): Promise<AiDesignQuota | null> {
   const db = createAdminClient();
   const pro = isPro(store);

@@ -19,6 +19,7 @@ import { newOrderPush, proofPush, sendStorePush } from "@/lib/push";
 import { notifyOwnerNewOrder } from "@/lib/whatsapp-cloud";
 import { evaluateCoupon, findCouponByCode } from "@/lib/coupons";
 import { maybeQualifyReferral } from "@/lib/referrals-server";
+import { isPaused } from "@/lib/plans";
 import { recordPlatformEvent } from "@/lib/platform-events";
 import { storeUrl } from "@/lib/store-url";
 import {
@@ -277,6 +278,10 @@ async function buildOrderDraft(
     .maybeSingle();
   if (!store || !store.active) {
     return { ok: false, error: "La tienda no está disponible" };
+  }
+  // La vitrina ya no deja llegar acá, pero el candado va en el servidor.
+  if (isPaused(store)) {
+    return { ok: false, error: "La tienda está en pausa y no está recibiendo pedidos" };
   }
 
   // El comprobante tiene que vivir en la carpeta de ESTA tienda. Sin esto, la

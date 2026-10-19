@@ -7,14 +7,19 @@
 // Variables de entorno:
 //   STRIPE_SECRET_KEY        — sk_live_… / sk_test_… (solo servidor)
 //   STRIPE_WEBHOOK_SECRET    — whsec_… del endpoint /api/stripe/webhook
-//   STRIPE_PRICE_MONTHLY     — id del precio recurrente mensual del plan Pro
-//   STRIPE_PRICE_YEARLY      — id del precio recurrente anual del plan Pro
+//   STRIPE_PRICE_MONTHLY     — precio recurrente mensual de las tiendas
+//   STRIPE_PRICE_YEARLY        fundadoras (US$5 / US$50, ver lib/plans). Son los
+//                              primeros que se crearon, por eso el nombre corto.
+//   STRIPE_PRICE_LIST_MONTHLY — precio recurrente de lista, el de las tiendas
+//   STRIPE_PRICE_LIST_YEARLY    nuevas (US$15 / US$150).
 //
 // A diferencia de PayPal, no hay client id público: el checkout de Stripe es
 // una redirección a una página alojada por ellos, así que el navegador no
 // necesita ninguna credencial.
 
 import Stripe from "stripe";
+
+import { reportError } from "@/lib/report-error";
 
 let cached: Stripe | null = null;
 
@@ -63,19 +68,52 @@ export function stripeIsTestMode(): boolean {
  * precio mensual para cualquier otro período sería cobrarle al comerciante un
  * débito mensual cuando creía estar pagando otra cosa.
  */
-export function stripePriceFor(months: number): string | null {
+export function stripePriceFor(months: number, founder: boolean): string | null {
+  const env = process.env;
   let id: string | undefined;
-  if (months >= 12) id = process.env.STRIPE_PRICE_YEARLY;
-  else if (months === 1) id = process.env.STRIPE_PRICE_MONTHLY;
+  if (months >= 12) id = founder ? env.STRIPE_PRICE_YEARLY : env.STRIPE_PRICE_LIST_YEARLY;
+  else if (months === 1) id = founder ? env.STRIPE_PRICE_MONTHLY : env.STRIPE_PRICE_LIST_MONTHLY;
   else return null;
   return (id ?? "").trim() || null;
 }
 
-/** ¿Está todo lo necesario para cobrar el plan recurrente por Stripe? */
-export function stripeSubscriptionsConfigured(): boolean {
-  return (
-    stripeConfigured() && stripePriceFor(1) !== null && stripePriceFor(12) !== null
-  );
+/**
+ * El precio recurrente para esta compra, solo si Stripe cobra exactamente lo
+ * que calculó Tiendify.
+ *
+ * Con una suscripción, el monto lo pone el precio guardado en Stripe, no el
+ * nuestro. Si la variable de entorno quedó apuntando al precio viejo (el de
+ * US$5 cuando la tienda debe pagar US$15, o al revés), cobraríamos otra cosa
+ * que la que mostramos. En ese caso se devuelve null y la compra cae al cobro
+ * único por el monto correcto, que es lo que hace un período sin precio.
+ */
+export async function matchingRecurringPrice(
+  stripe: Stripe,
+  months: number,
+  founder: boolean,
+  amountUsd: number,
+): Promise<string | null> {
+  const id = stripePriceFor(months, founder);
+  if (!id) return null;
+  try {
+    const price = await stripe.prices.retrieve(id);
+    const matches =
+      price.active &&
+      price.currency === "usd" &&
+      price.unit_amount === toCents(amountUsd) &&
+      price.recurring?.interval === (months >= 12 ? "year" : "month");
+    if (matches) return id;
+    reportError("stripe:recurring-price-mismatch", new Error("precio distinto"), {
+      priceId: id,
+      months,
+      founder,
+      expectedCents: toCents(amountUsd),
+      stripeCents: price.unit_amount,
+    });
+  } catch (e) {
+    reportError("stripe:recurring-price-lookup", e, { priceId: id });
+  }
+  return null;
 }
 
 /** USD → centavos, que es la unidad con la que trabaja Stripe. */
