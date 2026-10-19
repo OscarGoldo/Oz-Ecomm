@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
+import { LayoutGrid, List, Search } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import {
@@ -12,13 +12,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  PRODUCT_SORTS,
+  PRODUCTS_VIEW_COOKIE,
+  type ProductSort,
+  type ProductsView,
+} from "@/lib/catalog-view";
+import { cn } from "@/lib/utils";
 import type { Category } from "@/types/database";
 
 interface ProductsFiltersProps {
   categories: Pick<Category, "id" | "name">[];
+  /** Hay productos sin categoría: se ofrece filtrarlos. */
+  uncategorized: boolean;
+  sort: ProductSort;
+  view: ProductsView;
 }
 
-export function ProductsFilters({ categories }: ProductsFiltersProps) {
+export function ProductsFilters({ categories, uncategorized, sort, view }: ProductsFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -32,9 +43,17 @@ export function ProductsFilters({ categories }: ProductsFiltersProps) {
       if (!value || value === "all") sp.delete(key);
       else sp.set(key, value);
     }
+    // Filtrar de nuevo vuelve a la primera tanda.
+    sp.delete("ver");
     startTransition(() => {
       router.replace(`${pathname}?${sp.toString()}`);
     });
+  }
+
+  function setView(next: ProductsView) {
+    if (next === view) return;
+    document.cookie = `${PRODUCTS_VIEW_COOKIE}=${next}; path=/panel; max-age=31536000; samesite=lax`;
+    startTransition(() => router.refresh());
   }
 
   // Debounce the search input.
@@ -47,21 +66,20 @@ export function ProductsFilters({ categories }: ProductsFiltersProps) {
   }, [q]);
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row">
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+    <div className="flex flex-wrap items-center gap-2.5">
+      <div className="relative min-w-0 flex-[1_1_100%] sm:flex-[1_1_180px]">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-400" aria-hidden="true" />
         <Input
+          type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar producto…"
-          className="pl-9"
+          placeholder="Buscar por nombre o SKU"
+          aria-label="Buscar productos"
+          className="h-10 bg-card pl-9"
         />
       </div>
-      <Select
-        defaultValue={params.get("cat") ?? "all"}
-        onValueChange={(v) => apply({ cat: v })}
-      >
-        <SelectTrigger className="sm:w-48">
+      <Select defaultValue={params.get("cat") ?? "all"} onValueChange={(v) => apply({ cat: v })}>
+        <SelectTrigger className="h-10 min-w-0 flex-1 bg-card sm:w-48 sm:flex-none" aria-label="Categoría">
           <SelectValue placeholder="Categoría" />
         </SelectTrigger>
         <SelectContent>
@@ -71,22 +89,45 @@ export function ProductsFilters({ categories }: ProductsFiltersProps) {
               {c.name}
             </SelectItem>
           ))}
+          {uncategorized && <SelectItem value="ninguna">Sin categoría</SelectItem>}
         </SelectContent>
       </Select>
-      <Select
-        defaultValue={params.get("status") ?? "all"}
-        onValueChange={(v) => apply({ status: v })}
-      >
-        <SelectTrigger className="sm:w-40">
-          <SelectValue placeholder="Estado" />
+      <Select defaultValue={sort} onValueChange={(v) => apply({ orden: v === "vendidos" ? "" : v })}>
+        <SelectTrigger className="h-10 min-w-0 flex-1 bg-card sm:w-52 sm:flex-none" aria-label="Ordenar">
+          <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Todos</SelectItem>
-          <SelectItem value="active">Activos</SelectItem>
-          <SelectItem value="draft">Borradores</SelectItem>
-          <SelectItem value="archived">Archivados</SelectItem>
+          {PRODUCT_SORTS.map((s) => (
+            <SelectItem key={s.value} value={s.value}>
+              {s.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
+      {/* La cuadrícula con fotos solo existe en pantallas grandes. */}
+      <div className="hidden overflow-hidden rounded-lg border bg-card lg:inline-flex" role="group" aria-label="Vista">
+        {(
+          [
+            { id: "fotos", label: "Ver en cuadrícula", Icon: LayoutGrid },
+            { id: "lista", label: "Ver en lista", Icon: List },
+          ] as const
+        ).map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setView(id)}
+            aria-pressed={view === id}
+            aria-label={label}
+            title={label}
+            className={cn(
+              "grid h-[38px] w-10 place-items-center text-ink-500 transition-colors hover:text-foreground",
+              view === id && "bg-[#EEF3F8] text-foreground",
+            )}
+          >
+            <Icon className="size-4" />
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
