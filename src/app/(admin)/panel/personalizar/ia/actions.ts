@@ -10,13 +10,16 @@ import {
 } from "@/app/(admin)/panel/personalizar/actions";
 import {
   aiDesignAvailable,
+  aiDesignLimits,
   aiDesignQuota,
   AI_DESIGN_DAILY_LIMIT,
+  AI_DESIGN_MODEL,
   generateDesignProposals,
   seenSchema,
   type AiDesignQuota,
   type DesignProposal,
 } from "@/lib/ai-design";
+import { reserveAiCall } from "@/lib/ai-budget";
 import { applyDesignPatch } from "@/app/(admin)/panel/personalizar/design-actions";
 import { getSessionContext } from "@/lib/auth";
 import { isPro } from "@/lib/plans";
@@ -37,6 +40,13 @@ const briefSchema = z
   .trim()
   .min(15, "Cuéntanos un poco más de tu negocio (al menos una frase).")
   .max(1500, "Es demasiado largo. Resúmelo en unas pocas frases.");
+
+/** Por qué no puede pedir otro diseño ahora, según su cupo. */
+function quotaMessage(quota: AiDesignQuota): string {
+  return quota.freeUsed
+    ? "Ya usaste tu diseño gratis con IA. Con Pro pides nuevos diseños cuando quieras."
+    : `Ya pediste ${AI_DESIGN_DAILY_LIMIT} diseños hoy. Mañana puedes pedir más, o ajusta este a mano en Personalizar.`;
+}
 
 export async function generateAiDesign(input: {
   brief: string;
@@ -59,13 +69,7 @@ export async function generateAiDesign(input: {
     return { ok: false, error: "El diseñador con IA no está disponible en este momento." };
   }
   if (quota.remaining <= 0) {
-    return {
-      ok: false,
-      quota,
-      error: quota.freeUsed
-        ? "Ya usaste tu diseño gratis con IA. Con Pro pides nuevos diseños cuando quieras."
-        : `Ya pediste ${AI_DESIGN_DAILY_LIMIT} diseños hoy. Mañana puedes pedir más, o ajusta este a mano en Personalizar.`,
-    };
+    return { ok: false, quota, error: quotaMessage(quota) };
   }
 
   // Lo que la tienda ya tiene cargado le da contexto real a la IA: qué vende,
@@ -93,7 +97,30 @@ export async function generateAiDesign(input: {
     .slice(0, 3);
   const logo = getImageUrl(store.logo_url);
 
+  // El conteo de arriba es para el mensaje; el cupo de verdad se cumple acá,
+  // anotando el intento antes de llamar (ver lib/ai-budget).
+  const reservation = await reserveAiCall({
+    storeId: store.id,
+    kind: "design",
+    model: AI_DESIGN_MODEL,
+    limits: aiDesignLimits(isPro(store)),
+  });
+  if (!reservation.ok) {
+    const now = (await aiDesignQuota(store)) ?? { ...quota, remaining: 0 };
+    return {
+      ok: false,
+      quota: now,
+      error:
+        reservation.reason === "store"
+          ? quotaMessage(now)
+          : reservation.reason === "platform"
+            ? "El diseñador con IA llegó a su tope por hoy. Vuelve a intentarlo mañana, o ajusta tu tienda a mano en Personalizar."
+            : "El diseñador con IA no está disponible en este momento.",
+    };
+  }
+
   const result = await generateDesignProposals(
+    reservation.id,
     store.id,
     {
       brief: brief.data,

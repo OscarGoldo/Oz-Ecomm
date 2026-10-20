@@ -3,6 +3,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
+import { aiUsedFilter, finishAiCall, type AiLimit } from "@/lib/ai-budget";
 import { isPro, type PlanFields } from "@/lib/plans";
 import { BASES, baseNeedsPro, getBase, type DesignPatch } from "@/lib/design/bases";
 import { HEADING_FONTS } from "@/lib/design/design";
@@ -93,7 +94,8 @@ export async function aiDesignQuota(
           .select("id", { count: "exact", head: true })
           .eq("store_id", store.id)
           .eq("kind", "design")
-          .eq("ok", true),
+          .eq("ok", true)
+          .or(aiUsedFilter()),
   ]);
   const error = today.error ?? everOk?.error;
   if (error) {
@@ -108,21 +110,15 @@ export async function aiDesignQuota(
   return { remaining: Math.min(leftToday, leftFree), pro, freeUsed: leftFree === 0 };
 }
 
-async function recordGeneration(row: {
-  storeId: string;
-  ok: boolean;
-  inputTokens: number;
-  outputTokens: number;
-}): Promise<void> {
-  const { error } = await createAdminClient().from("ai_generations").insert({
-    store_id: row.storeId,
-    kind: "design",
-    model: AI_DESIGN_MODEL,
-    input_tokens: row.inputTokens,
-    output_tokens: row.outputTokens,
-    ok: row.ok,
-  });
-  if (error) reportError("recordGeneration", new Error(error.message), { storeId: row.storeId });
+/**
+ * Los mismos cupos de `aiDesignQuota`, para `reserveAiCall` (lib/ai-budget):
+ * ahí se cumplen aunque lleguen varios pedidos a la vez.
+ */
+export function aiDesignLimits(pro: boolean): AiLimit[] {
+  return [
+    { windowMs: 24 * 60 * 60 * 1000, max: AI_DESIGN_DAILY_LIMIT },
+    ...(pro ? [] : [{ windowMs: null, max: AI_DESIGN_FREE_LIMIT, okOnly: true }]),
+  ];
 }
 
 /** Lo que se sabe de la tienda, además de lo que el comerciante escribió. */
@@ -668,10 +664,12 @@ export interface GenerateOptions {
 }
 
 /**
- * Pide las tres propuestas. Anota la generación (bien o mal) para el tope
- * diario y para saber cuánto se gasta.
+ * Pide las tres propuestas. Quien llama ya reservó el intento con
+ * `reserveAiCall` (lib/ai-budget); acá se cierra con lo que pasó y lo que
+ * costó, bien o mal, para los cupos y para saber cuánto se gasta.
  */
 export async function generateDesignProposals(
+  reservationId: string,
   storeId: string,
   ctx: DesignContext,
   current: StoreTheme,
@@ -740,7 +738,7 @@ ${varietyNote(directions, opts.seen)}`;
     outputTokens = message.usage.output_tokens;
 
     if (message.stop_reason === "refusal") {
-      await recordGeneration({ storeId, ok: false, inputTokens, outputTokens });
+      await finishAiCall(reservationId, { ok: false, inputTokens, outputTokens });
       return {
         ok: false,
         error: "No pudimos diseñar con esa descripción. Cuéntalo de otra forma e intenta de nuevo.",
@@ -772,15 +770,15 @@ ${varietyNote(directions, opts.seen)}`;
         storeId,
         stopReason: message.stop_reason,
       });
-      await recordGeneration({ storeId, ok: false, inputTokens, outputTokens });
+      await finishAiCall(reservationId, { ok: false, inputTokens, outputTokens });
       return { ok: false, error: "No salió bien esta vez. Intenta de nuevo." };
     }
 
-    await recordGeneration({ storeId, ok: true, inputTokens, outputTokens });
+    await finishAiCall(reservationId, { ok: true, inputTokens, outputTokens });
     return { ok: true, proposals };
   } catch (err) {
     reportError("generateDesignProposals", err, { storeId });
-    await recordGeneration({ storeId, ok: false, inputTokens, outputTokens });
+    await finishAiCall(reservationId, { ok: false, inputTokens, outputTokens });
     const busy =
       err instanceof Anthropic.RateLimitError ||
       (err instanceof Anthropic.APIError && (err.status ?? 0) >= 500);

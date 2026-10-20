@@ -4,15 +4,19 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import {
+  aiPhotoLimits,
   aiPhotoQuota,
   aiProductsAvailable,
+  AI_PRODUCT_KIND,
+  AI_PRODUCT_MODEL,
   describeProductPhoto,
   sameName,
   type AiPhotoQuota,
   type PhotoDraft,
 } from "@/lib/ai-products";
+import { reserveAiCall } from "@/lib/ai-budget";
 import { getSessionContext } from "@/lib/auth";
-import { planLimits } from "@/lib/plans";
+import { isPro, planLimits } from "@/lib/plans";
 import { slugify } from "@/lib/slug";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,6 +27,13 @@ import { createClient } from "@/lib/supabase/server";
  */
 function ownsPhoto(storeId: string, path: string): boolean {
   return new RegExp(`^${storeId}/products/[A-Za-z0-9-]+\\.(jpe?g|png|webp)$`).test(path);
+}
+
+/** Por qué no puede leer otra foto ahora, según su cupo. */
+function quotaMessage(quota: AiPhotoQuota): string {
+  return quota.pro
+    ? "Llegaste al tope de fotos con IA por ahora. Complétala a mano."
+    : `Ya usaste las ${quota.limit} fotos con IA del mes. Complétala a mano o activa Pro.`;
 }
 
 export type ReadPhotoResult =
@@ -41,13 +52,7 @@ export async function readProductPhoto(path: string): Promise<ReadPhotoResult> {
   const quota = aiProductsAvailable() ? await aiPhotoQuota(store) : null;
   if (!quota) return { ok: false, error: "La carga con IA no está disponible en este momento." };
   if (quota.remaining <= 0) {
-    return {
-      ok: false,
-      quota,
-      error: quota.pro
-        ? "Llegaste al tope de fotos con IA por ahora. Complétala a mano."
-        : `Ya usaste las ${quota.limit} fotos con IA del mes. Complétala a mano o activa Pro.`,
-    };
+    return { ok: false, quota, error: quotaMessage(quota) };
   }
 
   // Con la sesión del dueño: RLS solo deja ver lo suyo.
@@ -68,7 +73,30 @@ export async function readProductPhoto(path: string): Promise<ReadPhotoResult> {
       .limit(8),
   ]);
 
-  const res = await describeProductPhoto(store.id, path, {
+  // El conteo de arriba es para el mensaje; el cupo de verdad se cumple acá,
+  // anotando el intento antes de llamar (ver lib/ai-budget). El panel manda
+  // varias fotos a la vez, así que sin esto un lote pasaba el cupo entero.
+  const reservation = await reserveAiCall({
+    storeId: store.id,
+    kind: AI_PRODUCT_KIND,
+    model: AI_PRODUCT_MODEL,
+    limits: aiPhotoLimits(isPro(store)),
+  });
+  if (!reservation.ok) {
+    const now = (await aiPhotoQuota(store)) ?? { ...quota, remaining: 0 };
+    return {
+      ok: false,
+      quota: now,
+      error:
+        reservation.reason === "store"
+          ? quotaMessage(now)
+          : reservation.reason === "platform"
+            ? "La carga con IA llegó a su tope por hoy. Complétala a mano o vuelve mañana."
+            : "La carga con IA no está disponible en este momento.",
+    };
+  }
+
+  const res = await describeProductPhoto(reservation.id, store.id, path, {
     storeName: store.name,
     storeDescription: store.description,
     categories: categories ?? [],

@@ -3,6 +3,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
+import { aiUsedFilter, finishAiCall, releaseAiCall, type AiLimit } from "@/lib/ai-budget";
 import { isPro, type PlanFields } from "@/lib/plans";
 import { reportError } from "@/lib/report-error";
 import { getImageUrl } from "@/lib/storage";
@@ -80,6 +81,7 @@ export async function aiPhotoQuota(
       .eq("store_id", store.id)
       .eq("kind", AI_PRODUCT_KIND)
       .eq("ok", true)
+      .or(aiUsedFilter())
       .gte("created_at", month),
   ]);
   const error = today.error ?? okMonth.error;
@@ -93,21 +95,20 @@ export async function aiPhotoQuota(
   return { remaining: Math.min(leftToday, leftMonth), limit, pro };
 }
 
-async function recordReading(row: {
-  storeId: string;
-  ok: boolean;
-  inputTokens: number;
-  outputTokens: number;
-}): Promise<void> {
-  const { error } = await createAdminClient().from("ai_generations").insert({
-    store_id: row.storeId,
-    kind: AI_PRODUCT_KIND,
-    model: AI_PRODUCT_MODEL,
-    input_tokens: row.inputTokens,
-    output_tokens: row.outputTokens,
-    ok: row.ok,
-  });
-  if (error) reportError("recordReading", new Error(error.message), { storeId: row.storeId });
+/**
+ * Los mismos cupos de `aiPhotoQuota`, para `reserveAiCall` (lib/ai-budget):
+ * ahí se cumplen aunque lleguen varias fotos a la vez.
+ */
+export function aiPhotoLimits(pro: boolean): AiLimit[] {
+  const day = 24 * 60 * 60 * 1000;
+  return [
+    { windowMs: day, max: AI_PHOTO_DAILY_ATTEMPTS },
+    {
+      windowMs: 30 * day,
+      max: pro ? AI_PHOTO_MONTHLY_LIMIT.pro : AI_PHOTO_MONTHLY_LIMIT.free,
+      okOnly: true,
+    },
+  ];
 }
 
 /** Lo que se sabe de la tienda, para que la IA escriba en su idioma. */
@@ -220,17 +221,22 @@ function contextText(ctx: PhotoContext): string {
 }
 
 /**
- * Lee una foto ya subida a Storage y devuelve la ficha propuesta. Anota la
- * lectura (bien o mal) para el cupo y para saber cuánto se gasta.
+ * Lee una foto ya subida a Storage y devuelve la ficha propuesta. Quien llama
+ * ya reservó el intento con `reserveAiCall` (lib/ai-budget); acá se cierra con
+ * lo que pasó y lo que costó, bien o mal.
  */
 export async function describeProductPhoto(
+  reservationId: string,
   storeId: string,
   path: string,
   ctx: PhotoContext,
 ): Promise<DescribePhotoResult> {
   const image = await fetchPhoto(path);
-  // Sin foto no se llama a la IA, así que tampoco se anota: no costó nada.
-  if (!image) return { ok: false, error: "No pudimos abrir esa foto. Súbela de nuevo." };
+  // Sin foto no se llama a la IA: la reserva se devuelve, no costó nada.
+  if (!image) {
+    await releaseAiCall(reservationId);
+    return { ok: false, error: "No pudimos abrir esa foto. Súbela de nuevo." };
+  }
 
   let inputTokens = 0;
   let outputTokens = 0;
@@ -262,7 +268,7 @@ export async function describeProductPhoto(
         storeId,
         stopReason: message.stop_reason,
       });
-      await recordReading({ storeId, ok: false, inputTokens, outputTokens });
+      await finishAiCall(reservationId, { ok: false, inputTokens, outputTokens });
       return { ok: false, error: "No pudimos leer esta foto. Complétala a mano o intenta de nuevo." };
     }
 
@@ -276,7 +282,7 @@ export async function describeProductPhoto(
         ? Math.round(raw.price_usd * 100) / 100
         : null;
 
-    await recordReading({ storeId, ok: true, inputTokens, outputTokens });
+    await finishAiCall(reservationId, { ok: true, inputTokens, outputTokens });
     return {
       ok: true,
       draft: {
@@ -290,7 +296,7 @@ export async function describeProductPhoto(
     };
   } catch (err) {
     reportError("describeProductPhoto", err, { storeId });
-    await recordReading({ storeId, ok: false, inputTokens, outputTokens });
+    await finishAiCall(reservationId, { ok: false, inputTokens, outputTokens });
     const busy =
       err instanceof Anthropic.RateLimitError ||
       (err instanceof Anthropic.APIError && (err.status ?? 0) >= 500);
