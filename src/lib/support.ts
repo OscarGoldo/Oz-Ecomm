@@ -11,6 +11,18 @@ export function supportWhatsapp(): string | null {
   return (process.env.SUPPORT_WHATSAPP ?? "").trim() || null;
 }
 
+/**
+ * El mismo WhatsApp, listo para mostrar como contacto público (portada,
+ * Términos, Privacidad): el link de wa.me y el número como se lee. null si la
+ * variable no está, y entonces el contacto no se dibuja.
+ */
+export function supportContact(message?: string): { url: string; label: string } | null {
+  const digits = (supportWhatsapp() ?? "").replace(/\D/g, "");
+  if (!digits) return null;
+  const text = message ? `?text=${encodeURIComponent(message)}` : "";
+  return { url: `https://wa.me/${digits}${text}`, label: `+${digits}` };
+}
+
 /** Cómo se le dice a cada tipo de comentario, del lado de quien lo escribe. */
 export const FEEDBACK_KINDS: { id: FeedbackKind; label: string }[] = [
   { id: "problem", label: "Algo no funciona" },

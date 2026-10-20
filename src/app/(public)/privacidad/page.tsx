@@ -13,6 +13,7 @@ import {
   legalTitle,
   legalUpdated,
 } from "@/components/landing/page-shell";
+import { supportContact } from "@/lib/support";
 
 export const metadata: Metadata = {
   title: "Política de privacidad",
@@ -20,6 +21,8 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacidadPage() {
+  const whatsapp = supportContact();
+
   return (
     <PageShell action={<BarLink href="/crear-tienda">Crear mi tienda</BarLink>}>
       <main className="mx-auto w-full max-w-3xl px-4 pb-20 pt-8 sm:px-6 sm:pt-12">
@@ -30,7 +33,7 @@ export default function PrivacidadPage() {
             <h1 className={legalTitle}>
               Política de privacidad
             </h1>
-            <p className={legalUpdated}>Última actualización: julio 2026</p>
+            <p className={legalUpdated}>Última actualización: octubre 2026</p>
           </div>
 
           <section className="space-y-2">
@@ -117,7 +120,23 @@ export default function PrivacidadPage() {
               6. Tus derechos
             </h2>
             <p>
-              Puedes pedir la corrección o eliminación de tus datos escribiendo a{" "}
+              Puedes pedir la corrección o eliminación de tus datos escribiendo
+              {whatsapp && (
+                <>
+                  {" "}
+                  por WhatsApp al{" "}
+                  <a
+                    href={whatsapp.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={legalLink}
+                  >
+                    {whatsapp.label}
+                  </a>{" "}
+                  o
+                </>
+              )}{" "}
+              a{" "}
               <a
                 href="mailto:ovalery1903@gmail.com"
                 className={legalLink}

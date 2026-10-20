@@ -3,6 +3,7 @@ import Link from "next/link";
 import { reveal, wrap } from "@/components/landing/landing-ui";
 import { TiendifyLogo } from "@/components/landing/tiendify-logo";
 import { LAUNCH_SIGNUP_HREF } from "@/lib/promo";
+import { supportContact } from "@/lib/support";
 
 const LINKS = [
   { label: "Crear tienda", href: LAUNCH_SIGNUP_HREF },
@@ -12,6 +13,10 @@ const LINKS = [
 ];
 
 export function LandingFooter() {
+  // Un lugar donde preguntar antes de registrarse. Es el mismo WhatsApp del
+  // soporte del panel (SUPPORT_WHATSAPP); sin la variable, el link no sale.
+  const whatsapp = supportContact("Hola, vengo de la página de Tiendify y tengo una pregunta.");
+
   return (
     <footer className="overflow-hidden bg-claro">
       <div className={wrap}>
@@ -31,6 +36,16 @@ export function LandingFooter() {
                 {l.label}
               </Link>
             ))}
+            {whatsapp && (
+              <a
+                href={whatsapp.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-semibold text-pizarra transition-colors hover:text-noche"
+              >
+                WhatsApp
+              </a>
+            )}
           </nav>
         </div>
         {/* La marca enorme y apenas visible cierra la página como un sello. */}
