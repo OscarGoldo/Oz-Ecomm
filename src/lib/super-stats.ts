@@ -104,8 +104,20 @@ export interface StoreStatsResult {
   complete: boolean;
 }
 
-/** Todas las tiendas con sus números, de la más nueva a la más vieja. */
-export async function getStoreStats(): Promise<StoreStatsResult> {
+/**
+ * Las tiendas con sus números, de la más nueva a la más vieja. Sin las demo
+ * (de prueba y páginas ejemplo, migración 0038), salvo que se pidan: no son
+ * comerciantes y no cuentan en ningún número.
+ */
+export async function getStoreStats({
+  includeDemo = false,
+}: { includeDemo?: boolean } = {}): Promise<StoreStatsResult> {
+  const result = await allStoreStats();
+  // Sin la migración 0038 `demo` no existe y queda undefined: no se saca nada.
+  return includeDemo ? result : { ...result, stores: result.stores.filter((s) => !s.demo) };
+}
+
+async function allStoreStats(): Promise<StoreStatsResult> {
   const db = createAdminClient();
   const { data, error } = await db.rpc("super_store_stats");
 
@@ -147,11 +159,19 @@ export async function getStoreStats(): Promise<StoreStatsResult> {
         referred_by: str(r.referred_by),
       }),
     );
-    // `super_store_stats` es anterior al precio de fundador (0037). En vez de
-    // rehacer la función, se lee la columna aparte: son pocas filas.
-    const { data: founders } = await db.from("stores").select("id, founder");
-    const founderById = new Map((founders ?? []).map((f) => [f.id, f.founder]));
-    for (const s of stores) s.founder = founderById.get(s.id) ?? true;
+    // `super_store_stats` es anterior al precio de fundador (0037) y a las
+    // demo (0038). En vez de rehacer la función, se leen esas columnas aparte:
+    // son pocas filas. Sin 0038 la consulta falla y se lee solo `founder`.
+    const withDemo = await db.from("stores").select("id, founder, demo, example");
+    const flags: { id: string; founder: boolean; demo?: boolean; example?: boolean }[] =
+      withDemo.data ?? (await db.from("stores").select("id, founder")).data ?? [];
+    const flagsById = new Map(flags.map((f) => [f.id, f]));
+    for (const s of stores) {
+      const f = flagsById.get(s.id);
+      s.founder = f?.founder ?? true;
+      s.demo = f?.demo ?? false;
+      s.example = f?.example ?? false;
+    }
     return { stores, complete: true };
   }
 
@@ -186,6 +206,8 @@ export async function getStoreStats(): Promise<StoreStatsResult> {
         plan_expires_at: s.plan_expires_at,
         plan_note: s.plan_note,
         founder: s.founder ?? true,
+        demo: s.demo ?? false,
+        example: s.example ?? false,
         stripe_subscription_status: s.stripe_subscription_status,
         paypal_subscription_status: s.paypal_subscription_status,
         created_at: s.created_at,
@@ -291,7 +313,7 @@ export async function getSuperCharts(days: number): Promise<SuperCharts> {
   // Un anual pagado hace 23 meses todavía cubre el primer mes del gráfico.
   const paymentsFrom = addMonths(now, -24).toISOString();
 
-  const [payments, orders] = await Promise.all([
+  const [allPayments, allOrders, { data: demoRows }] = await Promise.all([
     fetchAll<{
       store_id: string;
       amount: number | string;
@@ -317,7 +339,13 @@ export async function getSuperCharts(days: number): Promise<SuperCharts> {
           .order("created_at", { ascending: true })
           .range(from, to),
     ),
+    // Las tiendas demo (de prueba y páginas ejemplo) no van en los gráficos.
+    // Sin la migración 0038 esto falla y no se saca ninguna.
+    db.from("stores").select("id").eq("demo", true),
   ]);
+  const demo = new Set((demoRows ?? []).map((s) => s.id));
+  const payments = allPayments.filter((p) => !demo.has(p.store_id));
+  const orders = allOrders.filter((o) => !demo.has(o.store_id));
 
   // MRR al cierre de cada mes. Los pagos vienen del más viejo al más nuevo,
   // así que el último que se ve de cada tienda antes del cierre es su vigente.

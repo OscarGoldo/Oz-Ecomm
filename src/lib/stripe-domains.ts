@@ -45,10 +45,12 @@ export async function syncStorePaymentDomains(
   const host = platformHost();
   if (host.includes(":") || host.endsWith("localhost")) return result;
 
+  // Las páginas ejemplo no cobran con tarjeta: su dirección no va a Stripe.
   const { data: stores, error } = await db
     .from("stores")
     .select("slug")
-    .eq("active", true);
+    .eq("active", true)
+    .eq("example", false);
   if (error) throw error;
 
   const wanted = (stores ?? [])

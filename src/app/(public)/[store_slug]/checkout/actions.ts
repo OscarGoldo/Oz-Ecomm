@@ -156,10 +156,12 @@ export async function saveCheckoutLead(
     const db = createAdminClient();
     const { data: store } = await db
       .from("stores")
-      .select("id, active, exchange_rate, show_bs_prices")
+      // "*" para no depender de que exista `example` (migración 0038).
+      .select("*")
       .eq("id", data.store_id)
       .maybeSingle();
-    if (!store || !store.active) return;
+    // En una página ejemplo no hay a quién avisarle de un carrito abandonado.
+    if (!store || !store.active || store.example) return;
 
     const cart = await getEnrichedCart(store);
     if (cart.lines.length === 0) return;
@@ -282,6 +284,14 @@ async function buildOrderDraft(
   // La vitrina ya no deja llegar acá, pero el candado va en el servidor.
   if (isPaused(store)) {
     return { ok: false, error: "La tienda está en pausa y no está recibiendo pedidos" };
+  }
+  // Página ejemplo de /super/ejemplos: se recorre todo el camino de compra
+  // para mostrarlo, pero no nace ningún pedido. No tiene dueño que lo atienda.
+  if (store.example) {
+    return {
+      ok: false,
+      error: "Esta es una página de ejemplo. En tu tienda, aquí el pedido te llegaría al panel y por WhatsApp.",
+    };
   }
 
   // El comprobante tiene que vivir en la carpeta de ESTA tienda. Sin esto, la

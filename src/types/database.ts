@@ -140,6 +140,17 @@ export interface Database {
            * isFounder() en lib/plans.ts.
            */
           founder: boolean;
+          /**
+           * No es de un comerciante real (migración 0038): tienda de prueba de
+           * los socios o página ejemplo. No cuenta en los números de /super.
+           * Ausente si la migración no corrió.
+           */
+          demo?: boolean;
+          /**
+           * Página ejemplo de /super/ejemplos (migración 0038): sin dueño, no
+           * toma pedidos y lleva la franja de ejemplo. Ver lib/example-pages.ts.
+           */
+          example?: boolean;
           referral_code: string;
           created_at: string;
           updated_at: string;
@@ -185,6 +196,8 @@ export interface Database {
           stripe_subscription_id?: string | null;
           stripe_subscription_status?: SubscriptionState | null;
           founder?: boolean;
+          demo?: boolean;
+          example?: boolean;
           referral_code?: string;
           created_at?: string;
           updated_at?: string;

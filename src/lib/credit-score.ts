@@ -24,7 +24,11 @@ import { emailKey, groupByCustomer, phoneKey } from "@/lib/customer-identity";
  * historia aparte.
  */
 
-/** Tiendas que no se evalúan: las de prueba de Tiendify. */
+/**
+ * Tiendas que no se evalúan: las de prueba de Tiendify. Desde la migración
+ * 0038 llevan `stores.demo` y se excluyen por eso (credit-server.ts); la lista
+ * queda de respaldo por si la columna todavía no existe.
+ */
 export const CREDIT_EXCLUDED_SLUGS = new Set([
   "alfa-electronic",
   "retro-mania",

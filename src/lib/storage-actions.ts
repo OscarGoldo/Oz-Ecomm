@@ -76,11 +76,17 @@ export async function createProofUploadTicket(
   } else {
     const { data: store } = await db
       .from("stores")
-      .select("id, active")
+      // "*" y no la lista de columnas: sin la migración 0038 pedir `example`
+      // haría fallar la consulta, y con ella la subida de todo comprobante.
+      .select("*")
       .eq("id", storeId)
       .maybeSingle();
     if (!store || !store.active) {
       return { ok: false, error: "La tienda no está disponible" };
+    }
+    // Una página ejemplo no toma pedidos: tampoco guarda comprobantes.
+    if (store.example) {
+      return { ok: false, error: "Esta es una página de ejemplo: aquí tu cliente subiría su comprobante." };
     }
   }
 

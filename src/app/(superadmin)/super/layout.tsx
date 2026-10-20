@@ -54,11 +54,13 @@ export default async function SuperLayout({
   // pagan. Pro pagando con el mismo criterio que isPro() y super_overview.
   const db = createAdminClient();
   const nowIso = new Date().toISOString();
+  // Sin las demo (de prueba y páginas ejemplo): no son comerciantes.
   const [{ count: storesCount }, { count: payingCount }] = await Promise.all([
-    db.from("stores").select("id", { count: "exact", head: true }),
+    db.from("stores").select("id", { count: "exact", head: true }).eq("demo", false),
     db
       .from("stores")
       .select("id", { count: "exact", head: true })
+      .eq("demo", false)
       .eq("plan", "pro")
       .eq("plan_source", "paid")
       .or(`plan_expires_at.is.null,plan_expires_at.gt.${nowIso}`),

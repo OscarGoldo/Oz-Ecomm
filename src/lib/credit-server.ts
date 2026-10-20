@@ -68,8 +68,9 @@ async function allOrders(): Promise<OrderRow[]> {
 
 export async function getCreditOverview(): Promise<CreditOverview> {
   const db = createAdminClient();
+  // Con las demo, para nombrar las de prueba que no se evalúan.
   const [{ stores }, orders, { data: contacts }] = await Promise.all([
-    getStoreStats(),
+    getStoreStats({ includeDemo: true }),
     allOrders(),
     db.from("stores").select("id, phone"),
   ]);
@@ -94,7 +95,9 @@ export async function getCreditOverview(): Promise<CreditOverview> {
   const excluded: string[] = [];
   const rows: CreditRow[] = [];
   for (const s of stores) {
-    if (CREDIT_EXCLUDED_SLUGS.has(s.slug)) {
+    // Las páginas ejemplo no tienen pedidos ni se nombran: no son tiendas.
+    if (s.example) continue;
+    if (s.demo || CREDIT_EXCLUDED_SLUGS.has(s.slug)) {
       excluded.push(s.name);
       continue;
     }

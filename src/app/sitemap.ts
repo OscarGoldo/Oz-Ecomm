@@ -49,6 +49,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .from("stores")
       .select("id, slug, plan, plan_expires_at, plan_source, founder, updated_at")
       .eq("active", true)
+      // Las de prueba y las páginas ejemplo no son tiendas que vendan.
+      .eq("demo", false)
       .limit(500);
     if (storesError) throw storesError;
     // Una tienda en pausa no vende: no tiene sentido mandar al buscador ahí.

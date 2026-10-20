@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { ArrowLeft, ExternalLink } from "lucide-react";
@@ -74,6 +74,8 @@ export default async function SuperStorePage({
     .eq("id", params.id)
     .maybeSingle();
   if (!storeRow) notFound();
+  // Una página ejemplo no tiene dueño ni plan que mirar: se edita en su lugar.
+  if (storeRow.example) redirect(`/super/ejemplos/${storeRow.id}`);
   const store = storeRow as Store;
 
   const [

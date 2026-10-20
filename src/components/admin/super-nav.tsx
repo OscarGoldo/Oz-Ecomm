@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   MoreHorizontal,
+  Presentation,
   Receipt,
   Store,
   Ticket,
@@ -61,6 +62,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Crecimiento",
     items: [
+      { href: "/super/ejemplos", label: "Páginas ejemplo", icon: Presentation },
       { href: "/super/codigos", label: "Códigos", icon: Ticket },
       { href: "/super/referidos", label: "Referidos", icon: Gift },
     ],

@@ -31,6 +31,10 @@ export interface StoreStat {
   plan_note: string | null;
   /** Fundadora: si no paga queda en Gratis; las nuevas quedan en pausa. */
   founder: boolean;
+  /** De prueba o página ejemplo (migración 0038): no es un comerciante. */
+  demo?: boolean;
+  /** Página ejemplo de /super/ejemplos (migración 0038). */
+  example?: boolean;
   stripe_subscription_status: SubscriptionState | null;
   paypal_subscription_status: SubscriptionState | null;
   created_at: string;

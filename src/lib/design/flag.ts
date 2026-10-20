@@ -7,8 +7,12 @@ import "server-only";
  * esas. Sin la variable, todo sigue como siempre: el editor viejo y las
  * plantillas de siempre. Así se prueba en una tienda real (la tuya) antes de
  * que lo vean las demás.
+ *
+ * Las páginas ejemplo de /super/ejemplos lo tienen siempre: se arman con los
+ * diseños base y no tienen dueño que vaya a extrañar el editor viejo.
  */
-export function designV2Enabled(store: { slug: string }): boolean {
+export function designV2Enabled(store: { slug: string; example?: boolean }): boolean {
+  if (store.example) return true;
   const raw = process.env.DESIGN_V2?.trim();
   if (!raw) return false;
   if (raw === "all") return true;

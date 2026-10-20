@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import { ExampleBanner } from "@/components/storefront/example-banner";
 import { StoreBaseProvider } from "@/components/storefront/store-base";
 import { StorefrontHeader } from "@/components/storefront/storefront-header";
 import { StorefrontFooter } from "@/components/storefront/storefront-footer";
@@ -18,6 +20,19 @@ import { resolveTheme, themeStyle } from "@/lib/theme";
 import { StoreAnnouncement } from "@/components/storefront/store-announcement";
 import { designStyle, publishedDesign } from "@/lib/design/design";
 import { designV2Enabled } from "@/lib/design/flag";
+
+/**
+ * Las tiendas que no son de un comerciante (de prueba o páginas ejemplo) no
+ * van a Google: tampoco están en el mapa del sitio (sitemap.ts).
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: { store_slug: string };
+}): Promise<Metadata> {
+  const store = await getStoreBySlug(params.store_slug);
+  return store?.demo ? { robots: { index: false, follow: false } } : {};
+}
 
 export default async function StoreLayout({
   children,
@@ -50,6 +65,7 @@ export default async function StoreLayout({
     return (
       <StoreBaseProvider base={storeBasePath(store.slug)}>
         <div style={designStyle(design)} className="storefront flex min-h-dvh flex-col bg-background text-foreground">
+          {store.example && <ExampleBanner />}
           {announcement.enabled && announcement.text && (
             <StoreAnnouncement text={announcement.text} look={design.tokens.look} style={announcement.style} />
           )}
