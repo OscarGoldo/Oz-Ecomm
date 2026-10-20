@@ -6,7 +6,7 @@ import {
   loadGoogleFont,
   publicHost,
 } from "@/lib/og";
-import { FREE_MAX_PRODUCTS } from "@/lib/plans";
+import { LAUNCH_PROMO_CODE } from "@/lib/promo";
 
 /**
  * La tarjeta de Tiendify: lo que se ve al pegar usatiendify.com (o el link de
@@ -39,8 +39,11 @@ const CUERPO = "#C9D5E3";
 const TITULAR_1 = "Tu tienda online,";
 const TITULAR_2 = "en dólares y";
 const TITULAR_ACENTO = "bolívares.";
-// La bajada ya no repite "USD y Bs": eso lo dice el titular.
-const BAJADA = `Gratis hasta ${FREE_MAX_PRODUCTS} productos, con la tasa del BCV.`;
+// La bajada ya no repite "USD y Bs": eso lo dice el titular. Lleva la oferta
+// de la portada con el mismo código (lib/promo): desde el plan único de US$15
+// las tiendas nuevas no tienen plan Gratis, y "gratis hasta 30 productos" ya
+// no era cierto. Si el código se apaga, hay que cambiar esto también.
+const BAJADA = `El primer mes gratis con el código ${LAUNCH_PROMO_CODE}.`;
 const PAGOS = ["Pago Móvil", "Zelle", "Binance", "Efectivo", "Tarjeta"];
 
 export default async function Image() {
