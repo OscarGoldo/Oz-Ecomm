@@ -115,7 +115,9 @@ export async function generateAiDesign(input: {
           ? quotaMessage(now)
           : reservation.reason === "platform"
             ? "El diseñador con IA llegó a su tope por hoy. Vuelve a intentarlo mañana, o ajusta tu tienda a mano en Personalizar."
-            : "El diseñador con IA no está disponible en este momento.",
+            : reservation.reason === "platform_month"
+              ? "El diseñador con IA no está disponible por ahora. Mientras tanto, puedes ajustar tu tienda a mano en Personalizar."
+              : "El diseñador con IA no está disponible en este momento.",
     };
   }
 

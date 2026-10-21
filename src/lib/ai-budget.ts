@@ -9,7 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * llaman a Claude con la clave de Anthropic de Tiendify, y cada llamada cuesta
  * aunque falle.
  *
- * Dos frenos:
+ * Tres frenos:
  *
  *  1. Los cupos de cada tienda se cumplen de verdad. Antes se contaba, se
  *     llamaba a la IA (unos 20 s) y recién al final se anotaba el uso: varios
@@ -21,9 +21,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *     tokens reales al precio de la API. Si una cuenta abusa o el día viene
  *     muy movido, la IA se apaga sola hasta que baje, y avisa por Telegram una
  *     vez por día.
+ *  3. Un tope por mes calendario (en hora UTC), con la misma cuenta. Es el
+ *     techo de la factura: el del día solo, todos los días en el tope, deja
+ *     pasar US$300 en un mes. Avisa por Telegram al llegar al 80 %, para
+ *     subirlo antes de que se apague, y otra vez si se apaga.
  *
- * El límite de gasto mensual de la consola de Anthropic sigue siendo la red de
- * abajo de todo: esto lo complementa, no lo reemplaza.
+ * Si además está puesto el límite mensual en la consola de Anthropic, ese
+ * queda como la red de abajo de todo.
  */
 
 export type AiKind = "design" | "product_photo";
@@ -47,16 +51,28 @@ const PENDING_TTL_MS = 5 * 60_000;
 
 const DAY_MS = 86_400_000;
 
-/** Tope por defecto para toda la plataforma, en US$ cada 24 h. */
+/** Topes por defecto para toda la plataforma, en US$. */
 const DEFAULT_DAILY_BUDGET_USD = 10;
+const DEFAULT_MONTHLY_BUDGET_USD = 50;
+
+/** Pasada esta parte del tope del mes, avisa (una vez por mes). */
+const MONTHLY_WARNING_SHARE = 0.8;
 
 /**
- * El tope vigente. Se cambia con `AI_DAILY_BUDGET_USD` en Vercel (con un
- * redeploy), sin tocar código.
+ * Los topes vigentes. Se cambian con `AI_DAILY_BUDGET_USD` y
+ * `AI_MONTHLY_BUDGET_USD` en Vercel (con un redeploy), sin tocar código.
  */
 export function aiDailyBudgetUsd(): number {
-  const n = Number(process.env.AI_DAILY_BUDGET_USD);
-  return Number.isFinite(n) && n > 0 ? n : DEFAULT_DAILY_BUDGET_USD;
+  return budgetFromEnv(process.env.AI_DAILY_BUDGET_USD, DEFAULT_DAILY_BUDGET_USD);
+}
+
+export function aiMonthlyBudgetUsd(): number {
+  return budgetFromEnv(process.env.AI_MONTHLY_BUDGET_USD, DEFAULT_MONTHLY_BUDGET_USD);
+}
+
+function budgetFromEnv(raw: string | undefined, fallback: number): number {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
 /** Lo que costó una llamada, en US$. */
@@ -82,9 +98,12 @@ export interface AiLimit {
   okOnly?: boolean;
 }
 
+/** "platform" es el tope del día; "platform_month", el del mes. */
+type PlatformRefusal = "platform" | "platform_month";
+
 export type AiReservation =
   | { ok: true; id: string }
-  | { ok: false; reason: "store" | "platform" | "error" };
+  | { ok: false; reason: "store" | PlatformRefusal | "error" };
 
 type Db = ReturnType<typeof createAdminClient>;
 
@@ -119,7 +138,7 @@ export async function reserveAiCall(input: {
     return { ok: false, reason: "error" };
   }
 
-  const refuse = async (reason: "store" | "platform" | "error"): Promise<AiReservation> => {
+  const refuse = async (reason: "store" | PlatformRefusal | "error"): Promise<AiReservation> => {
     await releaseAiCall(row.id);
     return { ok: false, reason };
   };
@@ -149,23 +168,83 @@ export async function reserveAiCall(input: {
     if ((count ?? 0) > limit.max) return refuse("store");
   }
 
-  // Tope de la plataforma, con este intento ya adentro.
-  const spent = await spentLast24h(db, now);
-  if (spent === null) return refuse("error");
-  const budget = aiDailyBudgetUsd();
-  if (spent > budget) {
+  // Topes de la plataforma, con este intento ya adentro.
+  const budget = await checkPlatformBudget(db, now);
+  if (budget !== "ok") return refuse(budget);
+
+  return { ok: true, id: row.id };
+}
+
+/**
+ * Para la IA que no pasa por `reserveAiCall`: la de las páginas ejemplo, que
+ * es solo de los socios y tiene su propio techo por página. Igual cuenta para
+ * los topes, y se frena con ellos. Si no se puede leer el gasto, deja pasar.
+ */
+export async function aiPlatformBudgetReached(): Promise<boolean> {
+  const budget = await checkPlatformBudget(createAdminClient(), Date.now());
+  return budget === "platform" || budget === "platform_month";
+}
+
+/** Revisa los topes del mes y del día, y avisa por Telegram si hace falta. */
+async function checkPlatformBudget(db: Db, now: number): Promise<"ok" | PlatformRefusal | "error"> {
+  const spent = await platformSpend(db, now);
+  if (spent === null) return "error";
+  const usd = (n: number) => Math.round(n * 100) / 100;
+  const month = new Date(now).toISOString().slice(0, 7);
+
+  // El del mes primero: si están pasados los dos, es el que dura más.
+  const monthly = aiMonthlyBudgetUsd();
+  if (spent.month > monthly) {
     await recordPlatformEvent({
       type: "ai.budget_reached",
-      amount: Math.round(spent * 100) / 100,
+      amount: usd(spent.month),
+      title: "La IA llegó al tope de gasto del mes",
+      detail: `El tope es US$${monthly} por mes. El diseñador, la carga con fotos y las páginas ejemplo quedan apagados hasta el 1 de ${nextMonthName(now)}. Se sube con AI_MONTHLY_BUDGET_USD en Vercel.`,
+      url: "/super",
+      dedupeKey: `ai-budget-month:${month}`,
+    });
+    return "platform_month";
+  }
+  if (spent.month > monthly * MONTHLY_WARNING_SHARE) {
+    await recordPlatformEvent({
+      type: "ai.budget_warning",
+      amount: usd(spent.month),
+      title: `La IA ya gastó el ${Math.round(MONTHLY_WARNING_SHARE * 100)} % del tope del mes`,
+      detail: `El tope es US$${monthly} por mes. Si se pasa, la IA se apaga hasta el 1 de ${nextMonthName(now)}. Se sube con AI_MONTHLY_BUDGET_USD en Vercel.`,
+      url: "/super",
+      dedupeKey: `ai-budget-warning:${month}`,
+    });
+  }
+
+  const daily = aiDailyBudgetUsd();
+  if (spent.day > daily) {
+    await recordPlatformEvent({
+      type: "ai.budget_reached",
+      amount: usd(spent.day),
       title: "La IA llegó al tope de gasto del día",
-      detail: `El tope es US$${budget} cada 24 h. El diseñador y la carga con fotos quedan apagados hasta que baje. Se sube con AI_DAILY_BUDGET_USD en Vercel.`,
+      detail: `El tope es US$${daily} cada 24 h. El diseñador, la carga con fotos y las páginas ejemplo quedan apagados hasta que baje. Se sube con AI_DAILY_BUDGET_USD en Vercel.`,
       url: "/super",
       dedupeKey: `ai-budget:${new Date(now).toISOString().slice(0, 10)}`,
     });
-    return refuse("platform");
+    return "platform";
   }
 
-  return { ok: true, id: row.id };
+  return "ok";
+}
+
+/** El 1 del mes en curso, 00:00 UTC. */
+function startOfMonthUtc(now: number): number {
+  const d = new Date(now);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
+}
+
+/** "noviembre": el mes en que vuelve la IA si se apagó por el tope del mes. */
+function nextMonthName(now: number): string {
+  const d = new Date(now);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)).toLocaleDateString("es", {
+    month: "long",
+    timeZone: "UTC",
+  });
 }
 
 /** Cierra la reserva con lo que de verdad pasó y costó. Nunca lanza. */
@@ -195,12 +274,15 @@ type SpendRow = {
 };
 
 /**
- * Lo gastado en IA en las últimas 24 h, en toda la plataforma: lo terminado a
- * precio real y lo que está en curso a precio estimado. null = no se pudo leer,
- * y entonces no se llama (sin la cuenta no hay tope).
+ * Lo gastado en IA en toda la plataforma en las últimas 24 h y en el mes en
+ * curso: lo terminado a precio real y lo que está en curso a precio estimado.
+ * Una sola lectura para los dos. null = no se pudo leer, y entonces no se
+ * llama (sin la cuenta no hay tope).
  */
-async function spentLast24h(db: Db, now: number): Promise<number | null> {
-  const since = new Date(now - DAY_MS).toISOString();
+async function platformSpend(db: Db, now: number): Promise<{ day: number; month: number } | null> {
+  const dayStart = now - DAY_MS;
+  const monthStart = startOfMonthUtc(now);
+  const since = new Date(Math.min(dayStart, monthStart)).toISOString();
   try {
     const rows = await fetchAll<SpendRow>((from, to) =>
       db
@@ -210,17 +292,22 @@ async function spentLast24h(db: Db, now: number): Promise<number | null> {
         .order("id")
         .range(from, to),
     );
-    let usd = 0;
+    let day = 0;
+    let month = 0;
     for (const r of rows) {
+      const at = new Date(r.created_at).getTime();
+      let usd = 0;
       if (r.input_tokens > 0 || r.output_tokens > 0) {
-        usd += aiCallCostUsd(r.input_tokens, r.output_tokens);
-      } else if (r.ok && new Date(r.created_at).getTime() >= now - PENDING_TTL_MS) {
-        usd += PENDING_USD[r.kind as AiKind] ?? PENDING_USD.design;
+        usd = aiCallCostUsd(r.input_tokens, r.output_tokens);
+      } else if (r.ok && at >= now - PENDING_TTL_MS) {
+        usd = PENDING_USD[r.kind as AiKind] ?? PENDING_USD.design;
       }
+      if (at >= dayStart) day += usd;
+      if (at >= monthStart) month += usd;
     }
-    return usd;
+    return { day, month };
   } catch (e) {
-    reportError("spentLast24h", e);
+    reportError("platformSpend", e);
     return null;
   }
 }

@@ -38,6 +38,7 @@ export type PlatformEventType =
   | "stripe.refund"
   | "stripe.orphan_charge"
   | "ai.budget_reached"
+  | "ai.budget_warning"
   // Errores (los anota y avisa src/lib/error-alerts.ts, no recordPlatformEvent)
   | "system.error";
 
@@ -62,6 +63,7 @@ export const EVENT_GROUP: Record<PlatformEventType, EventGroup> = {
   "stripe.refund": "alerta",
   "stripe.orphan_charge": "alerta",
   "ai.budget_reached": "alerta",
+  "ai.budget_warning": "alerta",
   "system.error": "alerta",
 };
 

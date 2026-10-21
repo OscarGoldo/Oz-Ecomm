@@ -92,7 +92,9 @@ export async function readProductPhoto(path: string): Promise<ReadPhotoResult> {
           ? quotaMessage(now)
           : reservation.reason === "platform"
             ? "La carga con IA llegó a su tope por hoy. Complétala a mano o vuelve mañana."
-            : "La carga con IA no está disponible en este momento.",
+            : reservation.reason === "platform_month"
+              ? "La carga con IA no está disponible por ahora. Mientras tanto, completa el producto a mano."
+              : "La carga con IA no está disponible en este momento.",
     };
   }
 

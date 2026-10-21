@@ -3,6 +3,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
+import { aiPlatformBudgetReached } from "@/lib/ai-budget";
 import { RUBROS, type RubroId } from "@/lib/design/bases";
 import { STOCK_PHOTOS, isStockPhotoId } from "@/lib/example-photos";
 import { reportError } from "@/lib/report-error";
@@ -205,6 +206,12 @@ export async function proposeExampleCatalog(storeId: string, brief: ExampleBrief
   if (!aiExampleAvailable()) return { ok: false, error: "La IA no está configurada (falta ANTHROPIC_API_KEY)" };
   if (!(await underDailyLimit(storeId))) {
     return { ok: false, error: `Ya se pidieron ${AI_EXAMPLE_DAILY_LIMIT} propuestas hoy para esta página. Prueba mañana.` };
+  }
+  if (await aiPlatformBudgetReached()) {
+    return {
+      ok: false,
+      error: "La IA llegó al tope de gasto (del día o del mes). Se sube con AI_DAILY_BUDGET_USD o AI_MONTHLY_BUDGET_USD en Vercel.",
+    };
   }
 
   let inputTokens = 0;
