@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { ArrowLeft } from "lucide-react";
 
 import { OrderDetail, loadOrderDetail } from "@/components/admin/order-detail";
 import { OrderStatusBadge } from "@/components/admin/status-badge";
 import { requireStoreUser } from "@/lib/auth";
+import { orderDateFull } from "@/lib/format";
 
 export const metadata = { title: "Pedido" };
 
@@ -48,7 +47,7 @@ export default async function OrderDetailPage({
           <OrderStatusBadge status={order.status} />
         </div>
         <p className="mt-1 text-sm text-ink-600">
-          {format(new Date(order.created_at), "EEEE d 'de' MMMM, HH:mm", { locale: es })}
+          {orderDateFull(order.created_at)}
         </p>
       </div>
 

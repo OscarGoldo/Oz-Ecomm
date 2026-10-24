@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { ChevronRight, Inbox, Maximize2, MousePointerClick, X } from "lucide-react";
 
 import { OrderDetail, loadOrderDetail } from "@/components/admin/order-detail";
@@ -10,7 +8,7 @@ import { OrdersSearch } from "@/components/admin/orders-search";
 import { OrderStatusBadge } from "@/components/admin/status-badge";
 import { requireStoreUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { formatBs, formatUSD } from "@/lib/format";
+import { formatBs, formatUSD, orderDateLong, orderDateShort } from "@/lib/format";
 import { PAYMENT_METHOD_META } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { Order, OrderStatus, PaymentMethodType } from "@/types/database";
@@ -172,8 +170,7 @@ export default async function PedidosPage({
                         {order.customer_name}
                       </p>
                       <p className="mt-0.5 truncate text-[13px] text-ink-500">
-                        {paymentLabel(order)} ·{" "}
-                        {format(new Date(order.created_at), "d 'de' MMM, HH:mm", { locale: es })}
+                        {paymentLabel(order)} · {orderDateShort(order.created_at)}
                       </p>
                     </Link>
                     <span className="shrink-0 text-right font-landing-mono text-sm font-semibold tabular-nums">
@@ -227,9 +224,7 @@ export default async function PedidosPage({
                 <tbody className="divide-y divide-ink-100">
                   {filtered.map((order) => {
                     const isSelected = order.id === selectedId;
-                    const date = format(new Date(order.created_at), "d 'de' MMM, HH:mm", {
-                      locale: es,
-                    });
+                    const date = orderDateShort(order.created_at);
                     const cell = (
                       <>
                         <span className="block truncate font-semibold">
@@ -342,9 +337,7 @@ export default async function PedidosPage({
                       Pedido #{selected.order.order_number}
                     </p>
                     <p className="text-[13px] text-ink-600">
-                      {format(new Date(selected.order.created_at), "d 'de' MMMM, HH:mm", {
-                        locale: es,
-                      })}
+                      {orderDateLong(selected.order.created_at)}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
