@@ -1,10 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useStoreHref } from "@/components/storefront/store-base";
-import { Search } from "lucide-react";
-
+import { ProductSearch, type SearchStore } from "@/components/storefront/product-search";
 import { cn } from "@/lib/utils";
 
 /** Search input tone, matching the header variant it sits on. */
@@ -27,42 +23,29 @@ const ICON_TONES: Record<SearchTone, string> = {
   dark: "text-white/50",
 };
 
+const CLEAR_TONES: Record<SearchTone, string> = {
+  brand: "text-muted-foreground hover:text-foreground",
+  light: "text-muted-foreground hover:text-foreground",
+  dark: "text-white/50 hover:text-white",
+};
+
 export function HeaderSearch({
-  storeSlug,
+  store,
   tone = "brand",
 }: {
-  storeSlug: string;
+  store: SearchStore;
   tone?: SearchTone;
 }) {
-  const router = useRouter();
-  const link = useStoreHref(storeSlug);
-  const params = useSearchParams();
-  const [q, setQ] = useState(params.get("q") ?? "");
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const term = q.trim();
-    router.push(term ? link(`?q=${encodeURIComponent(term)}`) : link());
-  }
-
   return (
-    <form onSubmit={submit} className="relative w-full">
-      <Search
-        className={cn(
-          "pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2",
-          ICON_TONES[tone],
-        )}
-      />
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        type="search"
-        placeholder="Buscar productos…"
-        className={cn(
-          "h-10 w-full rounded-full border border-transparent pl-9 pr-4 text-sm outline-none ring-offset-2",
-          INPUT_TONES[tone],
-        )}
-      />
-    </form>
+    <ProductSearch
+      store={store}
+      // 16px en el teléfono: con menos, Safari agranda la página al tocar el cuadro.
+      inputClassName={cn(
+        "h-10 rounded-full border border-transparent pl-9 text-base md:text-sm",
+        INPUT_TONES[tone],
+      )}
+      iconClassName={cn("left-3 size-4", ICON_TONES[tone])}
+      clearClassName={CLEAR_TONES[tone]}
+    />
   );
 }

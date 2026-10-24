@@ -104,7 +104,7 @@ export function StorefrontHeader({
 
         {/* Desktop search */}
         <div className="mx-2 hidden max-w-xl flex-1 md:block">
-          <HeaderSearch storeSlug={store.slug} tone={v.searchTone} />
+          <HeaderSearch store={store} tone={v.searchTone} />
         </div>
 
         <Link
@@ -140,7 +140,7 @@ export function StorefrontHeader({
 
       {/* Mobile search */}
       <div className="container pb-3 md:hidden">
-        <HeaderSearch storeSlug={store.slug} tone={v.searchTone} />
+        <HeaderSearch store={store} tone={v.searchTone} />
       </div>
     </header>
   );

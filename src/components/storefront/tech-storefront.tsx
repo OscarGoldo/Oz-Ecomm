@@ -30,7 +30,7 @@ export function TechStorefront({
             {hero.headline}
           </h1>
           <div className="mt-5 max-w-2xl">
-            <StoreSearch big placeholder="Buscar productos, marcas, modelos…" />
+            <StoreSearch store={store} placeholder="Buscar productos, marcas, modelos…" />
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {freeShipping && (

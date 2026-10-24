@@ -2,6 +2,7 @@ import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getImageUrl } from "@/lib/storage";
 import type { Category, Product, ProductVariant, Store } from "@/types/database";
 
 /**
@@ -72,6 +73,20 @@ export interface CatalogFilters {
 }
 
 /**
+ * Las palabras de una búsqueda, para buscar cada una por su lado en el nombre:
+ * "licuadora oster" encuentra "Licuadora Clásica Oster", que con la frase
+ * pegada no salía. Se quitan los comodines (`%`, y `*`, que PostgREST también
+ * lee como comodín) para que un "%" no cuente como búsqueda.
+ */
+function searchWords(q: string): string[] {
+  return q
+    .split(/\s+/)
+    .map((w) => w.replace(/[%*\\]/g, ""))
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
+/**
  * Cuántos productos trae una página del catálogo.
  *
  * Antes no había techo: la home hacía un SELECT sin `limit` y renderizaba el
@@ -121,7 +136,9 @@ export async function getStoreProducts(
 
   if (limit != null) query = query.limit(limit);
 
-  if (filters.q) query = query.ilike("name", `%${filters.q}%`);
+  for (const word of searchWords(filters.q ?? "")) {
+    query = query.ilike("name", `%${word}%`);
+  }
 
   if (filters.categorySlug) {
     const { data: cat } = await supabase
@@ -221,6 +238,65 @@ export async function getRelatedProducts(
   }
 
   return results.slice(0, limit);
+}
+
+/** Un producto en la lista que abre el buscador mientras se escribe. */
+export interface ProductSuggestion {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  compareAtPrice: number | null;
+  image: string | null;
+  available: boolean;
+}
+
+const SUGGESTION_LIMIT = 6;
+
+/**
+ * Lo que sugiere el buscador mientras se escribe: pocos productos y pocas
+ * columnas, para que la lista llegue rápido.
+ *
+ * Trae unos de más para poner primero los que empiezan con lo escrito: con
+ * "lav", "Lavadora" va antes que "Jabón para lavar".
+ */
+export async function getProductSuggestions(
+  storeId: string,
+  q: string,
+): Promise<ProductSuggestion[]> {
+  const words = searchWords(q);
+  if (words.length === 0) return [];
+
+  let query = publicDb()
+    .from("products")
+    .select("id, name, slug, price, compare_at_price, images, stock, track_stock")
+    .eq("store_id", storeId)
+    .eq("status", "active")
+    .order("featured", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(SUGGESTION_LIMIT * 3);
+  for (const word of words) query = query.ilike("name", `%${word}%`);
+
+  const { data } = await query;
+  const first = words[0].toLowerCase();
+  const rank = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.startsWith(first)) return 0;
+    return n.split(/\s+/).some((w) => w.startsWith(first)) ? 1 : 2;
+  };
+
+  return (data ?? [])
+    .sort((a, b) => rank(a.name) - rank(b.name))
+    .slice(0, SUGGESTION_LIMIT)
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      price: p.price,
+      compareAtPrice: p.compare_at_price,
+      image: getImageUrl(p.images[0]),
+      available: isAvailable(p),
+    }));
 }
 
 /** Whether a product is purchasable given its stock settings. */

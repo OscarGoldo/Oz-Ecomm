@@ -272,7 +272,7 @@ export function HeroSection({ section, ctx }: { section: Section<"hero">; ctx: H
             <h1 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">{headline}</h1>
             {subtext && <p className="mt-1 text-sm text-white/70">{subtext}</p>}
             <div className="mt-5 max-w-2xl">
-              <StoreSearch big placeholder="Buscar productos, marcas, modelos…" />
+              <StoreSearch store={store} placeholder="Buscar productos, marcas, modelos…" />
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {ctx.freeShipping && (
