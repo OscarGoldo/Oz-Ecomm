@@ -51,6 +51,10 @@ export type PaymentMethodType =
 
 export type FulfillmentType = "delivery" | "pickup";
 
+/** Lectura del comprobante con IA (0039). */
+export type ProofCheckStatus = "reading" | "done" | "failed";
+export type ProofVerdict = "ok" | "review" | "suspicious";
+
 /** Los correos de vencimiento de una tienda nueva (migración 0037). */
 export type PlanNoticeKind = "ending" | "grace" | "pause_soon" | "paused";
 
@@ -1057,6 +1061,44 @@ export interface Database {
         };
         Update: Partial<
           Database["public"]["Tables"]["push_subscriptions"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      payment_proof_checks: {
+        Row: {
+          id: string;
+          order_id: string;
+          store_id: string;
+          proof_path: string;
+          status: ProofCheckStatus;
+          attempts: number;
+          image_hash: string | null;
+          reference_key: string | null;
+          verdict: ProofVerdict | null;
+          reading: Json | null;
+          flags: Json;
+          error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          store_id: string;
+          proof_path: string;
+          status?: ProofCheckStatus;
+          attempts?: number;
+          image_hash?: string | null;
+          reference_key?: string | null;
+          verdict?: ProofVerdict | null;
+          reading?: Json | null;
+          flags?: Json;
+          error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["payment_proof_checks"]["Insert"]
         >;
         Relationships: [];
       };

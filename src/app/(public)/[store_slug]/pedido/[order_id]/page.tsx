@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { OrderStatusBadge } from "@/components/admin/status-badge";
 import { OrderPayLater } from "@/components/storefront/order-pay-later";
 import { OrderStripePay } from "@/components/storefront/order-stripe-pay";
+import { ProofCheckNotice } from "@/components/storefront/proof-check-notice";
 import { getStoreBySlug } from "@/lib/storefront";
 import { storeHref } from "@/lib/store-href";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -26,6 +27,10 @@ import {
 import type { OrderItem, PaymentMethodType } from "@/types/database";
 
 export const metadata: Metadata = { title: { absolute: "Tu pedido" } };
+
+// La lectura del comprobante con IA corre desde esta página (ProofCheckNotice)
+// y tarda hasta 45 s en el peor caso.
+export const maxDuration = 60;
 
 export default async function OrderConfirmationPage({
   params,
@@ -158,6 +163,10 @@ export default async function OrderConfirmationPage({
           details={payDetails}
           instructions={payInstructions}
         />
+      )}
+
+      {isPendingProof && order.payment_proof_url && (
+        <ProofCheckNotice orderId={order.id} storeId={store.id} hasWhatsapp={Boolean(waUrl)} />
       )}
 
       {/* WhatsApp notify */}

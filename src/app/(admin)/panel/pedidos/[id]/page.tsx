@@ -10,6 +10,10 @@ import { requireStoreUser } from "@/lib/auth";
 
 export const metadata = { title: "Pedido" };
 
+// "Verifica el pago" lee el comprobante con IA desde esta página (ProofCheck),
+// y la lectura tarda hasta 45 s en el peor caso.
+export const maxDuration = 60;
+
 /**
  * Un pedido en su propia página: la que se abre desde el teléfono, desde el
  * Resumen o desde un enlace. En escritorio ancho el mismo detalle se abre al

@@ -30,7 +30,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * queda como la red de abajo de todo.
  */
 
-export type AiKind = "design" | "product_photo";
+export type AiKind = "design" | "product_photo" | "payment_proof";
 
 /** Precio de Claude Opus 5.5 en US$ por millón de tokens (tarifa de la API). */
 const PRICE_PER_MTOK = { input: 4, output: 20 } as const;
@@ -40,7 +40,7 @@ const PRICE_PER_MTOK = { input: 4, output: 20 } as const;
  * real. Un poco por encima de lo medido: un diseño ronda US$0,08 y una foto
  * bastante menos.
  */
-const PENDING_USD: Record<AiKind, number> = { design: 0.15, product_photo: 0.05 };
+const PENDING_USD: Record<AiKind, number> = { design: 0.15, product_photo: 0.05, payment_proof: 0.03 };
 
 /**
  * Una reserva que sigue sin tokens después de esto se da por muerta (la
@@ -199,7 +199,7 @@ async function checkPlatformBudget(db: Db, now: number): Promise<"ok" | Platform
       type: "ai.budget_reached",
       amount: usd(spent.month),
       title: "La IA llegó al tope de gasto del mes",
-      detail: `El tope es US$${monthly} por mes. El diseñador, la carga con fotos y las páginas ejemplo quedan apagados hasta el 1 de ${nextMonthName(now)}. Se sube con AI_MONTHLY_BUDGET_USD en Vercel.`,
+      detail: `El tope es US$${monthly} por mes. El diseñador, la carga con fotos, la lectura de comprobantes y las páginas ejemplo quedan apagados hasta el 1 de ${nextMonthName(now)}. Se sube con AI_MONTHLY_BUDGET_USD en Vercel.`,
       url: "/super",
       dedupeKey: `ai-budget-month:${month}`,
     });
@@ -222,7 +222,7 @@ async function checkPlatformBudget(db: Db, now: number): Promise<"ok" | Platform
       type: "ai.budget_reached",
       amount: usd(spent.day),
       title: "La IA llegó al tope de gasto del día",
-      detail: `El tope es US$${daily} cada 24 h. El diseñador, la carga con fotos y las páginas ejemplo quedan apagados hasta que baje. Se sube con AI_DAILY_BUDGET_USD en Vercel.`,
+      detail: `El tope es US$${daily} cada 24 h. El diseñador, la carga con fotos, la lectura de comprobantes y las páginas ejemplo quedan apagados hasta que baje. Se sube con AI_DAILY_BUDGET_USD en Vercel.`,
       url: "/super",
       dedupeKey: `ai-budget:${new Date(now).toISOString().slice(0, 10)}`,
     });

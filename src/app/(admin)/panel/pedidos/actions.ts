@@ -14,6 +14,8 @@ import { ORDER_STATUS_META } from "@/lib/constants";
 import { maybeQualifyReferral } from "@/lib/referrals-server";
 import { CONFIRMABLE_FROM, canTransition, isConfirmable } from "@/lib/order-status";
 import { stockOpsForOrder } from "@/lib/order-stock";
+import { ensureProofCheck } from "@/lib/proof-check";
+import type { ProofCheckView } from "@/lib/proof-rules";
 import type { OrderStatus, Store } from "@/types/database";
 
 export interface ActionResult {
@@ -243,4 +245,19 @@ export async function updateOrderStatus(
   await notifyCustomerEmail(orderId, status, store);
   revalidate(orderId);
   return { ok: true };
+}
+
+/**
+ * La lectura del comprobante con IA, para el bloque "Verifica el pago". Si
+ * todavía no se leyó, la hace ahora (unos segundos); si ya está, la devuelve.
+ * No confirma nada: confirmar sigue siendo confirmPayment, a mano.
+ */
+export async function readOrderProof(orderId: string): Promise<ProofCheckView | null> {
+  let store: Store;
+  try {
+    store = await requireStore();
+  } catch {
+    return null;
+  }
+  return ensureProofCheck(orderId, store.id);
 }

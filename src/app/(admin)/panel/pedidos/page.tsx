@@ -17,6 +17,10 @@ import type { Order, OrderStatus, PaymentMethodType } from "@/types/database";
 
 export const metadata = { title: "Pedidos" };
 
+// "Verifica el pago" lee el comprobante con IA desde esta página (ProofCheck),
+// y la lectura tarda hasta 45 s en el peor caso.
+export const maxDuration = 60;
+
 /** Pedidos por página en el panel. */
 const ORDERS_PAGE_SIZE = 30;
 

@@ -1,6 +1,7 @@
 import { Bike, Mail, MapPin, Phone, Store as StoreIcon } from "lucide-react";
 
 import { OrderActions } from "@/components/admin/order-actions";
+import { ProofCheck } from "@/components/admin/proof-check";
 import { ProofViewer } from "@/components/admin/proof-viewer";
 import { PAYMENT_METHOD_META } from "@/lib/constants";
 import { formatBs, formatUSD } from "@/lib/format";
@@ -8,6 +9,8 @@ import {
   buildOrderMessageData,
   orderReceiptCustomerMessage,
 } from "@/lib/order-messages";
+import { loadProofCheck, proofReadingAvailable } from "@/lib/proof-check";
+import type { ProofCheckView } from "@/lib/proof-rules";
 import { PAYMENT_PROOFS_BUCKET } from "@/lib/storage";
 import { storeUrl } from "@/lib/store-url";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -29,6 +32,10 @@ export interface OrderDetailData {
   paymentLabel: string;
   /** Recibo de 1 tap para WhatsApp, ya armado. */
   receiptMessage: string;
+  /** Lo que la IA leyó en la captura, si ya la leyó. */
+  proofCheck: ProofCheckView | null;
+  /** Pedir la lectura al abrir: hay captura, IA y el pago está por confirmar. */
+  proofAutoRead: boolean;
 }
 
 /** Trae el pedido de esta tienda con todo lo que muestra el detalle. */
@@ -54,14 +61,23 @@ export async function loadOrderDetail(
   const items = (itemsData ?? []) as OrderItem[];
 
   let proofUrl: string | null = null;
+  let proofCheck: ProofCheckView | null = null;
   if (order.payment_proof_url) {
-    const { data } = await createAdminClient()
-      .storage.from(PAYMENT_PROOFS_BUCKET)
-      // Una hora: con 10 minutos, dejar el pedido abierto y volver dejaba la
-      // imagen rota sin ningún mensaje que lo explicara.
-      .createSignedUrl(order.payment_proof_url, 3600);
+    const [{ data }, check] = await Promise.all([
+      createAdminClient()
+        .storage.from(PAYMENT_PROOFS_BUCKET)
+        // Una hora: con 10 minutos, dejar el pedido abierto y volver dejaba la
+        // imagen rota sin ningún mensaje que lo explicara.
+        .createSignedUrl(order.payment_proof_url, 3600),
+      loadProofCheck(order.id, store.id),
+    ]);
     proofUrl = data?.signedUrl ?? null;
+    proofCheck = check;
   }
+  const proofAutoRead =
+    Boolean(order.payment_proof_url) &&
+    order.status === "pending_confirmation" &&
+    proofReadingAvailable();
 
   const paymentLabel = order.payment_method_type
     ? (PAYMENT_METHOD_META[order.payment_method_type as PaymentMethodType]?.label ??
@@ -80,7 +96,15 @@ export async function loadOrderDetail(
     }),
   );
 
-  return { order: order as Order, items, proofUrl, paymentLabel, receiptMessage };
+  return {
+    order: order as Order,
+    items,
+    proofUrl,
+    paymentLabel,
+    receiptMessage,
+    proofCheck,
+    proofAutoRead,
+  };
 }
 
 /** Rótulo de cada bloque: en mono y versalitas, como en el resto del panel. */
@@ -106,7 +130,7 @@ export function OrderDetail({
   storeName: string;
   variant: "page" | "panel";
 }) {
-  const { order, items, proofUrl, paymentLabel, receiptMessage } = data;
+  const { order, items, proofUrl, paymentLabel, receiptMessage, proofCheck, proofAutoRead } = data;
   const block = variant === "page" ? "rounded-2xl border bg-card p-5" : "px-5 py-5";
 
   return (
@@ -149,6 +173,17 @@ export function OrderDetail({
               </p>
             )}
           </div>
+
+          {proofUrl && (proofCheck || proofAutoRead) && (
+            <div className="mt-3.5">
+              <ProofCheck
+                key={order.id}
+                orderId={order.id}
+                initial={proofCheck}
+                autoRead={proofAutoRead}
+              />
+            </div>
+          )}
 
           <div className="mt-3.5">
             {proofUrl ? (
@@ -282,7 +317,10 @@ export function OrderDetail({
           // Ya se muestra grande arriba mientras está por confirmar; acá abajo
           // queda solo como registro del pedido una vez resuelto.
           order.status !== "pending_confirmation" && (
-            <div className="mt-3">
+            <div className="mt-3 space-y-3">
+              {proofCheck?.status === "done" && (
+                <ProofCheck key={order.id} orderId={order.id} initial={proofCheck} autoRead={false} />
+              )}
               <ProofViewer url={proofUrl} />
             </div>
           )
